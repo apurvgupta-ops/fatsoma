@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { createEvent } from "@/app/actions/events";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { updateEvent } from "@/app/actions/events";
 import { uploadImage } from "@/app/actions/upload";
-import PageHeader from "@/components/admin/PageHeader";
 import EventDetailsSection from "@/components/admin/EventDetailsSection";
 import LocationDetailsSection from "@/components/admin/LocationDetailsSection";
 import DateTimeSection from "@/components/admin/DateTimeSection";
@@ -13,22 +14,52 @@ import PricingModelSection from "@/components/admin/PricingModelSection";
 import PublishSidebar from "@/components/admin/PublishSidebar";
 import Toast from "@/components/admin/Toast";
 import MobilePublishFooter from "@/components/admin/MobilePublishFooter";
-import type {
-  EventFormValues,
-  TicketBatch,
-  ToastState,
-} from "@/types/event-form";
+import type { EventFormValues, ToastState } from "@/types/event-form";
 
-const defaultBatch: TicketBatch = {
-  name: "Early Bird",
-  quantity: 150,
-  basePrice: 18,
-  minPrice: 15,
-  maxPrice: 24,
+type Event = {
+  id: string;
+  eventName: string;
+  eventDescription: string;
+  eventCategory: string;
+  eventImage: string;
+  eventBanner?: string;
+  venueName: string;
+  addressLine: string;
+  city: string;
+  postcode: string;
+  country: string;
+  mapsLink?: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  totalTickets: number;
+  ticketBatches: {
+    name: string;
+    quantity: number;
+    basePrice: number;
+    minPrice: number;
+    maxPrice: number;
+  }[];
+  dynamicPricing: boolean;
+  bookingFee: number;
+  allowResale: boolean;
+  platformCommission: number;
+  status: "draft" | "published";
 };
 
-export default function Home() {
+type Props = {
+  event: Event;
+};
+
+export default function EventEditForm({ event }: Props) {
+  const router = useRouter();
   const [toast, setToast] = useState<ToastState>(null);
+
+  // Format the date for the date input (YYYY-MM-DD)
+  const formattedDate = event.eventDate
+    ? new Date(event.eventDate).toISOString().split("T")[0]
+    : "";
+
   const {
     register,
     handleSubmit,
@@ -38,13 +69,24 @@ export default function Home() {
     formState: { errors, isSubmitting },
   } = useForm<EventFormValues>({
     defaultValues: {
-      eventCategory: "Party",
-      totalTickets: 500,
-      ticketBatches: [defaultBatch],
-      dynamicPricing: true,
-      bookingFee: 5,
-      allowResale: false,
-      platformCommission: 8,
+      eventName: event.eventName,
+      eventDescription: event.eventDescription,
+      eventCategory: event.eventCategory,
+      venueName: event.venueName,
+      addressLine: event.addressLine,
+      city: event.city,
+      postcode: event.postcode,
+      country: event.country,
+      mapsLink: event.mapsLink || "",
+      eventDate: formattedDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      totalTickets: event.totalTickets,
+      ticketBatches: event.ticketBatches,
+      dynamicPricing: event.dynamicPricing,
+      bookingFee: event.bookingFee,
+      allowResale: event.allowResale,
+      platformCommission: event.platformCommission,
     },
   });
 
@@ -100,9 +142,9 @@ export default function Home() {
     status: "draft" | "published",
   ) => {
     try {
-      // Handle file uploads
-      let eventImage = "placeholder-event-image.jpg";
-      let eventBanner: string | undefined = undefined;
+      // Handle file uploads - keep existing images if no new upload
+      let eventImage = event.eventImage;
+      let eventBanner = event.eventBanner;
 
       if (values.eventImage?.[0]) {
         try {
@@ -125,7 +167,8 @@ export default function Home() {
         }
       }
 
-      const result = await createEvent(
+      const result = await updateEvent(
+        event.id,
         {
           eventName: values.eventName,
           eventDescription: values.eventDescription,
@@ -160,6 +203,11 @@ export default function Home() {
         type: "success",
         message: result.message,
       });
+
+      // Redirect to event detail page after successful update
+      setTimeout(() => {
+        router.push(`/events/${event.id}`);
+      }, 1500);
     } catch (error) {
       handleToast({ type: "error", message: "Unexpected error occurred." });
     }
@@ -179,7 +227,51 @@ export default function Home() {
         <div className="pointer-events-none absolute right-0 top-20 h-64 w-64 rounded-full bg-blue-500/20 blur-[140px]" />
 
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
-          <PageHeader />
+          {/* Page Header with Back Button */}
+          <header className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <Link
+                href={`/events/${event.id}`}
+                className="rounded-xl border border-white/10 bg-zinc-950/60 p-2 transition hover:border-white/20 hover:bg-zinc-950/80"
+              >
+                <svg
+                  className="h-5 w-5 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-white">
+                  Edit Event
+                </h1>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Update event details and republish
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs text-purple-200">
+                {event.eventName}
+              </div>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-medium ${
+                  event.status === "published"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                }`}
+              >
+                {event.status === "published" ? "Published" : "Draft"}
+              </span>
+            </div>
+          </header>
 
           <form
             id="event-form"

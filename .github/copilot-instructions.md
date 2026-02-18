@@ -31,24 +31,33 @@ Event management platform built with Next.js 16, TypeScript, TailwindCSS, React 
 - `/` - Admin dashboard for creating events
 - `/events` - List all events (server-side with server actions)
 - `/events/[id]` - Event detail page (server-side with server actions)
+- `/events/[id]/edit` - Edit event page (client-side form with pre-populated data)
 
 ### API & Actions
 
 - `GET /api/events` - Fetch all events from MongoDB
 - Server Actions in `src/app/actions/events.ts`:
   - `createEvent()` - Create events with MongoDB
+  - `updateEvent()` - Update existing events
   - `updateEventStatus()` - Update event status
   - `deleteEvent()` - Delete events
   - `getAllEvents()` - Fetch all events
   - `getEventById()` - Fetch single event
+- Server Actions in `src/app/actions/upload.ts`:
+  - `uploadImage()` - Upload event images to local storage
 
 ### Key Files
 
 - `src/lib/mongodb.ts` - MongoDB connection with pooling and caching
 - `src/models/Event.ts` - Mongoose Event model with validation
 - `src/app/actions/events.ts` - Server actions for database operations
+- `src/app/actions/upload.ts` - Server action for image uploads
 - `src/components/forms/` - Reusable form components
+- `src/components/events/EventImage.tsx` - Image display compo
+- `src/components/events/EventEditForm.tsx` - Event edit form componentnent
+- `src/components/events/EventCard.tsx` - Event card component
 - `src/app/globals.css` - Dark theme styling
+- `public/uploads/` - Local image storage directory
 
 ## Environment Setup
 
@@ -70,7 +79,9 @@ npm start      # Run production server
 ## Notes
 
 - All mutations use server actions (Next.js "use server")
-- Read operations can use server actions or GET API
+- Read operatiostored locally in `public/uploads/` directory
+- Images validated for type (images only) and size (max 5MB)
+- Unique filenames generated using timestamp and random hash
 - MongoDB connection is cached globally to prevent connection exhaustion
 - Schema validation with Mongoose ensures data integrity
 - Indexes on frequently queried fields for optimal performance

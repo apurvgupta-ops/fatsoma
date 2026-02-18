@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventById } from "@/app/actions/events";
+import EventImage from "@/components/events/EventImage";
 
 export default async function EventDetailPage({
   params,
@@ -102,7 +103,7 @@ export default async function EventDetailPage({
                 <h2 className="mb-4 text-lg font-semibold text-white">
                   Event Details
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
                       Description
@@ -111,25 +112,21 @@ export default async function EventDetailPage({
                       {event.eventDescription}
                     </p>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-                        Event Image
-                      </p>
-                      <p className="mt-2 text-sm text-zinc-300">
-                        {event.eventImage}
-                      </p>
-                    </div>
-                    {event.eventBanner ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-                          Banner
-                        </p>
-                        <p className="mt-2 text-sm text-zinc-300">
-                          {event.eventBanner}
-                        </p>
-                      </div>
-                    ) : null}
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <EventImage
+                      src={event.eventImage}
+                      alt={event.eventName}
+                      title="Event Image"
+                      priority
+                    />
+                    {event.eventBanner && (
+                      <EventImage
+                        src={event.eventBanner}
+                        alt={`${event.eventName} banner`}
+                        title="Banner"
+                      />
+                    )}
                   </div>
                 </div>
               </section>

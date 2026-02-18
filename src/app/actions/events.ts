@@ -120,6 +120,68 @@ export async function updateEventStatus(
   }
 }
 
+export async function updateEvent(
+  eventId: string,
+  input: CreateEventInput,
+  status: "draft" | "published",
+) {
+  try {
+    await connectDB();
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return {
+        ok: false,
+        message: "Invalid event ID",
+      };
+    }
+
+    const updated = await Event.findByIdAndUpdate(
+      eventId,
+      {
+        ...input,
+        eventDate: new Date(input.eventDate),
+        status,
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!updated) {
+      return {
+        ok: false,
+        message: "Event not found",
+      };
+    }
+
+    revalidatePath("/events");
+    revalidatePath(`/events/${eventId}`);
+
+    return {
+      ok: true,
+      message:
+        status === "draft"
+          ? "Event updated and saved as draft"
+          : "Event updated and published successfully",
+      eventId: updated._id.toString(),
+    };
+  } catch (error) {
+    console.error("Error updating event:", error);
+
+    if (error instanceof mongoose.Error.ValidationError) {
+      const firstError = Object.values(error.errors)[0];
+      return {
+        ok: false,
+        message: firstError.message || "Validation error",
+      };
+    }
+
+    return {
+      ok: false,
+      message:
+        error instanceof Error ? error.message : "Failed to update event",
+    };
+  }
+}
+
 export async function deleteEvent(eventId: string) {
   try {
     await connectDB();
