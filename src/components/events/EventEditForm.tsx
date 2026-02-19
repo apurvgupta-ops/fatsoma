@@ -14,6 +14,7 @@ import PricingModelSection from "@/components/admin/PricingModelSection";
 import PublishSidebar from "@/components/admin/PublishSidebar";
 import Toast from "@/components/admin/Toast";
 import MobilePublishFooter from "@/components/admin/MobilePublishFooter";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { EventFormValues, ToastState } from "@/types/event-form";
 
 type Event = {
@@ -221,98 +222,93 @@ export default function EventEditForm({ event }: Props) {
   const handlePublish = handleSubmit((values) => onSubmit(values, "published"));
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100">
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-purple-500/20 blur-[120px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-64 w-64 rounded-full bg-blue-500/20 blur-[140px]" />
-
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
-          {/* Page Header with Back Button */}
-          <header className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href={`/events/${event.id}`}
-                className="rounded-xl border border-white/10 bg-zinc-950/60 p-2 transition hover:border-white/20 hover:bg-zinc-950/80"
+    <AuthenticatedLayout>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
+        {/* Page Header with Back Button */}
+        <header className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/events/${event.id}`}
+              className="rounded-xl border border-white/10 bg-zinc-950/60 p-2 transition hover:border-white/20 hover:bg-zinc-950/80"
+            >
+              <svg
+                className="h-5 w-5 text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="h-5 w-5 text-zinc-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">
-                  Edit Event
-                </h1>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Update event details and republish
-                </p>
-              </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                Edit Event
+              </h1>
+              <p className="mt-1 text-sm text-zinc-400">
+                Update event details and republish
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs text-purple-200">
-                {event.eventName}
-              </div>
-              <span
-                className={`rounded-full px-2 py-1 text-xs font-medium ${
-                  event.status === "published"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                    : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                }`}
-              >
-                {event.status === "published" ? "Published" : "Draft"}
-              </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs text-purple-200">
+              {event.eventName}
             </div>
-          </header>
+            <span
+              className={`rounded-full px-2 py-1 text-xs font-medium ${
+                event.status === "published"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+              }`}
+            >
+              {event.status === "published" ? "Published" : "Draft"}
+            </span>
+          </div>
+        </header>
 
-          <form
-            id="event-form"
-            onSubmit={handlePublish}
-            className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]"
-          >
-            <div className="space-y-8">
-              <EventDetailsSection register={register} errors={errors} />
-              <LocationDetailsSection register={register} errors={errors} />
-              <DateTimeSection register={register} errors={errors} />
-              <TicketConfigSection
-                register={register}
-                errors={errors}
-                fields={fields}
-                append={append}
-                remove={remove}
-                totals={totals}
-                totalTickets={totalTickets || 0}
-              />
-              <PricingModelSection
-                register={register}
-                errors={errors}
-                watch={watch}
-                setValue={setValue}
-                totals={totals}
-              />
-            </div>
-
-            <PublishSidebar
-              isSubmitting={isSubmitting}
-              eventName={watch("eventName")}
-              eventCategory={watch("eventCategory")}
+        <form
+          id="event-form"
+          onSubmit={handlePublish}
+          className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]"
+        >
+          <div className="space-y-8">
+            <EventDetailsSection register={register} errors={errors} />
+            <LocationDetailsSection register={register} errors={errors} />
+            <DateTimeSection register={register} errors={errors} />
+            <TicketConfigSection
+              register={register}
+              errors={errors}
+              fields={fields}
+              append={append}
+              remove={remove}
               totals={totals}
-              onSaveDraft={handleSaveDraft}
+              totalTickets={totalTickets || 0}
             />
-          </form>
-        </div>
+            <PricingModelSection
+              register={register}
+              errors={errors}
+              watch={watch}
+              setValue={setValue}
+              totals={totals}
+            />
+          </div>
+
+          <PublishSidebar
+            isSubmitting={isSubmitting}
+            eventName={watch("eventName")}
+            eventCategory={watch("eventCategory")}
+            totals={totals}
+            onSaveDraft={handleSaveDraft}
+          />
+        </form>
       </div>
 
       <Toast toast={toast} />
       <MobilePublishFooter />
-    </div>
+    </AuthenticatedLayout>
   );
 }

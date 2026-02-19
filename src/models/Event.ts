@@ -32,6 +32,7 @@ export interface IEvent extends Document {
   allowResale: boolean;
   platformCommission: number;
   status: "draft" | "published";
+  createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -188,6 +189,11 @@ const EventSchema = new Schema<IEvent>(
       type: String,
       enum: ["draft", "published"],
       default: "draft",
+      index: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       index: true,
     },
   },

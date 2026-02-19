@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import connectDB from "@/lib/mongodb";
 import Event from "@/models/Event";
 import mongoose from "mongoose";
+import { auth } from "@/auth";
 
 type CreateEventInput = {
   eventName: string;
@@ -39,12 +40,22 @@ export async function createEvent(
   status: "draft" | "published",
 ) {
   try {
+    const session = await auth();
+
+    if (!session) {
+      return {
+        ok: false,
+        message: "You must be logged in to create events",
+      };
+    }
+
     await connectDB();
 
     const event = await Event.create({
       ...input,
       eventDate: new Date(input.eventDate),
       status,
+      createdBy: session.user.id,
     });
 
     // Revalidate the events list page
@@ -126,6 +137,15 @@ export async function updateEvent(
   status: "draft" | "published",
 ) {
   try {
+    const session = await auth();
+
+    if (!session) {
+      return {
+        ok: false,
+        message: "You must be logged in to update events",
+      };
+    }
+
     await connectDB();
 
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
@@ -219,12 +239,27 @@ export async function deleteEvent(eventId: string) {
 
 export async function getAllEvents() {
   try {
+    const session = await auth();
+
+    if (!session) {
+      return [];
+    }
+
     await connectDB();
 
-    const events = await Event.find({}).sort({ createdAt: -1 }).lean().exec();
+    // Admin can see all events, regular users only see their own
+    const filter =
+      session.user.role === "admin"
+        ? {}
+        : { createdBy: new mongoose.Types.ObjectId(session.user.id) };
+
+    const events = await Event.find(filter)
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
 
     // Convert MongoDB documents to plain objects with string IDs
-    return events.map((event) => ({
+    return events.map((event: any) => ({
       ...event,
       id: event._id.toString(),
       _id: undefined,

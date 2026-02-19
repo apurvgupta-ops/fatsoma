@@ -42,6 +42,7 @@ export default function EventImage({
             alt={alt}
             fill
             priority={priority}
+            loading={priority ? "eager" : "lazy"}
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             unoptimized={isLocalUpload}
             onError={(e) => {

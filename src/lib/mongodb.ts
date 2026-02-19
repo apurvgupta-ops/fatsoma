@@ -13,19 +13,22 @@ interface MongooseCache {
   promise: Promise<typeof mongoose> | null;
 }
 
-declare global {
-  var mongoose: MongooseCache | undefined;
-}
-
 /**
  * Global is used here to maintain a cached connection across hot reloads
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+const globalForMongoose = globalThis as unknown as {
+  mongoose: MongooseCache | undefined;
+};
 
-if (!global.mongoose) {
-  global.mongoose = cached;
+let cached: MongooseCache = globalForMongoose.mongoose || {
+  conn: null,
+  promise: null,
+};
+
+if (!globalForMongoose.mongoose) {
+  globalForMongoose.mongoose = cached;
 }
 
 async function connectDB(): Promise<typeof mongoose> {
@@ -41,6 +44,7 @@ async function connectDB(): Promise<typeof mongoose> {
       minPoolSize: 2,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 10000,
+      family: 4, // Prevents the ::1 IPv6 error
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

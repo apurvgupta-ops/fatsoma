@@ -59,6 +59,7 @@ export default function EventCard({ event }: EventCardProps) {
           src={imageUrl}
           alt={event.eventName}
           fill
+          loading="lazy"
           className="object-cover transition-transform duration-500 group-hover:scale-110"
           unoptimized={isLocalUpload}
           onError={(e) => {
