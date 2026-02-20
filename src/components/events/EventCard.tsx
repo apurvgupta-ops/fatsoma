@@ -16,8 +16,9 @@ type EventCardProps = {
     status: "draft" | "published";
     ticketBatches: {
       quantity: number;
-      minPrice: number;
-      maxPrice: number;
+      basePrice: number;
+      minDiscount: number;
+      maxDiscount: number;
     }[];
   };
 };
@@ -29,14 +30,24 @@ export default function EventCard({ event }: EventCardProps) {
   );
 
   const minRevenue = event.ticketBatches.reduce(
-    (acc, batch) => acc + batch.quantity * batch.minPrice,
+    (acc, batch) =>
+      acc + batch.quantity * batch.basePrice * (1 - batch.maxDiscount / 100),
     0,
   );
 
   const maxRevenue = event.ticketBatches.reduce(
-    (acc, batch) => acc + batch.quantity * batch.maxPrice,
+    (acc, batch) =>
+      acc + batch.quantity * batch.basePrice * (1 - batch.minDiscount / 100),
     0,
   );
+
+  // Calculate discount range for display
+  const discounts = event.ticketBatches.map((batch) => ({
+    min: batch.minDiscount,
+    max: batch.maxDiscount,
+  }));
+  const maxDiscount = Math.max(...discounts.map((d) => d.max));
+  const minBasePrice = Math.min(...event.ticketBatches.map((b) => b.basePrice));
 
   // Check if it's a local uploaded image
   const isLocalUpload = event.eventImage.startsWith("/uploads/");
@@ -156,8 +167,33 @@ export default function EventCard({ event }: EventCardProps) {
               />
             </svg>
             <span>
-              {totalTicketsFromBatches} tickets · £{minRevenue.toLocaleString()}{" "}
-              - £{maxRevenue.toLocaleString()}
+              {totalTicketsFromBatches} tickets · From £
+              {minBasePrice.toFixed(2)}
+              {maxDiscount > 0 && (
+                <span className="ml-1 text-emerald-400">
+                  (up to {maxDiscount}% off)
+                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <svg
+              className="h-3.5 w-3.5 text-purple-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>
+              Revenue: £{minRevenue.toLocaleString()} - £
+              {maxRevenue.toLocaleString()}
             </span>
           </div>
         </div>

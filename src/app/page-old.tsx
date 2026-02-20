@@ -23,8 +23,8 @@ const defaultBatch: TicketBatch = {
   name: "Early Bird",
   quantity: 150,
   basePrice: 18,
-  minPrice: 15,
-  maxPrice: 24,
+  minDiscount: 0,
+  maxDiscount: 15,
 };
 
 export default function Home() {
@@ -65,12 +65,13 @@ export default function Home() {
 
     return (ticketBatches ?? []).reduce((acc, batch) => {
       const quantity = Number(batch.quantity) || 0;
-      const minPrice = Number(batch.minPrice) || 0;
-      const maxPrice = Number(batch.maxPrice) || 0;
+      const basePrice = Number(batch.basePrice) || 0;
+      const minDiscount = Number(batch.minDiscount) || 0;
+      const maxDiscount = Number(batch.maxDiscount) || 0;
 
       acc.tickets += quantity;
-      acc.minRevenue += quantity * minPrice;
-      acc.maxRevenue += quantity * maxPrice;
+      acc.minRevenue += quantity * basePrice * (1 - maxDiscount / 100);
+      acc.maxRevenue += quantity * basePrice * (1 - minDiscount / 100);
       return acc;
     }, totalsSeed);
   }, [ticketBatches]);

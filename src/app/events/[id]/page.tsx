@@ -22,12 +22,14 @@ export default async function EventDetailPage({
   );
 
   const minRevenue = event.ticketBatches.reduce(
-    (acc, batch) => acc + batch.quantity * batch.minPrice,
+    (acc, batch) =>
+      acc + batch.quantity * batch.basePrice * (1 - batch.maxDiscount / 100),
     0,
   );
 
   const maxRevenue = event.ticketBatches.reduce(
-    (acc, batch) => acc + batch.quantity * batch.maxPrice,
+    (acc, batch) =>
+      acc + batch.quantity * batch.basePrice * (1 - batch.minDiscount / 100),
     0,
   );
 
@@ -239,15 +241,15 @@ export default async function EventDetailPage({
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Min Price</p>
+                        <p className="text-xs text-zinc-500">Min Discount</p>
                         <p className="mt-1 text-sm text-zinc-300">
-                          £{batch.minPrice}
+                          {batch.minDiscount}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Max Price</p>
+                        <p className="text-xs text-zinc-500">Max Discount</p>
                         <p className="mt-1 text-sm text-zinc-300">
-                          £{batch.maxPrice}
+                          {batch.maxDiscount}%
                         </p>
                       </div>
                     </div>

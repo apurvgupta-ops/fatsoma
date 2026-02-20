@@ -41,3 +41,16 @@ body {
     transform: translateX(130%);
   }
 }
+
+/* Hide native date/time picker icons */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+}

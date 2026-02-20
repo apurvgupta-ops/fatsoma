@@ -62,26 +62,26 @@ export default function TicketBatchCard({
           error={errors.ticketBatches?.[index]?.basePrice?.message}
         />
         <InputField
-          label="Min Price (£)"
+          label="Min Discount (%)"
           type="number"
           min={0}
-          step="0.01"
-          {...register(`ticketBatches.${index}.minPrice`, {
-            required: "Minimum price is required.",
+          max={100}
+          {...register(`ticketBatches.${index}.minDiscount`, {
+            required: "Minimum discount is required.",
             valueAsNumber: true,
           })}
-          error={errors.ticketBatches?.[index]?.minPrice?.message}
+          error={errors.ticketBatches?.[index]?.minDiscount?.message}
         />
         <InputField
-          label="Max Price (£)"
+          label="Max Discount (%)"
           type="number"
           min={0}
-          step="0.01"
-          {...register(`ticketBatches.${index}.maxPrice`, {
-            required: "Maximum price is required.",
+          max={100}
+          {...register(`ticketBatches.${index}.maxDiscount`, {
+            required: "Maximum discount is required.",
             valueAsNumber: true,
           })}
-          error={errors.ticketBatches?.[index]?.maxPrice?.message}
+          error={errors.ticketBatches?.[index]?.maxDiscount?.message}
         />
       </div>
     </div>

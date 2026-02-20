@@ -1,6 +1,7 @@
 import { FieldErrors, UseFormRegister } from "react-hook-form";
 import InputField from "@/components/forms/InputField";
 import type { EventFormValues } from "@/types/event-form";
+import { Calendar, Clock } from "lucide-react";
 
 type Props = {
   register: UseFormRegister<EventFormValues>;
@@ -20,6 +21,7 @@ export default function DateTimeSection({ register, errors }: Props) {
         <InputField
           label="Event Date"
           type="date"
+          icon={Calendar}
           {...register("eventDate", {
             required: "Event date is required.",
           })}
@@ -28,6 +30,7 @@ export default function DateTimeSection({ register, errors }: Props) {
         <InputField
           label="Start Time"
           type="time"
+          icon={Clock}
           {...register("startTime", {
             required: "Start time is required.",
           })}
@@ -36,6 +39,7 @@ export default function DateTimeSection({ register, errors }: Props) {
         <InputField
           label="End Time"
           type="time"
+          icon={Clock}
           {...register("endTime", {
             required: "End time is required.",
           })}

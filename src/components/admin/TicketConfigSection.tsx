@@ -91,8 +91,8 @@ export default function TicketConfigSection({
               name: "Phase 2",
               quantity: 100,
               basePrice: 22,
-              minPrice: 18,
-              maxPrice: 28,
+              minDiscount: 0,
+              maxDiscount: 20,
             })
           }
           className="rounded-full border border-purple-500/50 bg-purple-500/10 px-4 py-2 text-sm text-purple-200 transition hover:border-purple-400 hover:bg-purple-500/20"

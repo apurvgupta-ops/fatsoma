@@ -26,8 +26,8 @@ type CreateEventInput = {
     name: string;
     quantity: number;
     basePrice: number;
-    minPrice: number;
-    maxPrice: number;
+    minDiscount: number;
+    maxDiscount: number;
   }[];
   dynamicPricing: boolean;
   bookingFee: number;

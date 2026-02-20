@@ -38,8 +38,8 @@ type Event = {
     name: string;
     quantity: number;
     basePrice: number;
-    minPrice: number;
-    maxPrice: number;
+    minDiscount: number;
+    maxDiscount: number;
   }[];
   dynamicPricing: boolean;
   bookingFee: number;
@@ -108,12 +108,13 @@ export default function EventEditForm({ event }: Props) {
 
     return (ticketBatches ?? []).reduce((acc, batch) => {
       const quantity = Number(batch.quantity) || 0;
-      const minPrice = Number(batch.minPrice) || 0;
-      const maxPrice = Number(batch.maxPrice) || 0;
+      const basePrice = Number(batch.basePrice) || 0;
+      const minDiscount = Number(batch.minDiscount) || 0;
+      const maxDiscount = Number(batch.maxDiscount) || 0;
 
       acc.tickets += quantity;
-      acc.minRevenue += quantity * minPrice;
-      acc.maxRevenue += quantity * maxPrice;
+      acc.minRevenue += quantity * basePrice * (1 - maxDiscount / 100);
+      acc.maxRevenue += quantity * basePrice * (1 - minDiscount / 100);
       return acc;
     }, totalsSeed);
   }, [ticketBatches]);

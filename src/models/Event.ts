@@ -5,8 +5,8 @@ export interface ITicketBatch {
   name: string;
   quantity: number;
   basePrice: number;
-  minPrice: number;
-  maxPrice: number;
+  minDiscount: number;
+  maxDiscount: number;
 }
 
 export interface IEvent extends Document {
@@ -55,15 +55,17 @@ const TicketBatchSchema = new Schema<ITicketBatch>(
       required: [true, "Base price is required"],
       min: [0, "Price cannot be negative"],
     },
-    minPrice: {
+    minDiscount: {
       type: Number,
-      required: [true, "Minimum price is required"],
-      min: [0, "Price cannot be negative"],
+      required: [true, "Minimum discount is required"],
+      min: [0, "Discount cannot be negative"],
+      max: [100, "Discount cannot exceed 100%"],
     },
-    maxPrice: {
+    maxDiscount: {
       type: Number,
-      required: [true, "Maximum price is required"],
-      min: [0, "Price cannot be negative"],
+      required: [true, "Maximum discount is required"],
+      min: [0, "Discount cannot be negative"],
+      max: [100, "Discount cannot exceed 100%"],
     },
   },
   { _id: false },
@@ -232,11 +234,13 @@ EventSchema.virtual("totalTicketsFromBatches").get(function () {
 // Virtual for calculating revenue range
 EventSchema.virtual("revenueRange").get(function () {
   const minRevenue = this.ticketBatches.reduce(
-    (sum, batch) => sum + batch.quantity * batch.minPrice,
+    (sum, batch) =>
+      sum + batch.quantity * batch.basePrice * (1 - batch.maxDiscount / 100),
     0,
   );
   const maxRevenue = this.ticketBatches.reduce(
-    (sum, batch) => sum + batch.quantity * batch.maxPrice,
+    (sum, batch) =>
+      sum + batch.quantity * batch.basePrice * (1 - batch.minDiscount / 100),
     0,
   );
   return { minRevenue, maxRevenue };
@@ -249,20 +253,18 @@ EventSchema.pre("save", function (next) {
     next(new Error("Event date must be in the future"));
   }
 
-  // Validate ticket batch prices
+  // Validate ticket batch discounts
   for (const batch of this.ticketBatches) {
-    if (batch.minPrice > batch.maxPrice) {
+    if (batch.minDiscount > batch.maxDiscount) {
       next(
         new Error(
-          `Batch "${batch.name}": minimum price cannot exceed maximum price`,
+          `Batch "${batch.name}": minimum discount cannot exceed maximum discount`,
         ),
       );
     }
-    if (batch.basePrice < batch.minPrice || batch.basePrice > batch.maxPrice) {
+    if (batch.basePrice <= 0) {
       next(
-        new Error(
-          `Batch "${batch.name}": base price must be between min and max price`,
-        ),
+        new Error(`Batch "${batch.name}": base price must be greater than 0`),
       );
     }
   }

@@ -19,8 +19,8 @@ type Event = {
     name: string;
     quantity: number;
     basePrice: number;
-    minPrice: number;
-    maxPrice: number;
+    minDiscount: number;
+    maxDiscount: number;
   }[];
 };
 
