@@ -319,8 +319,19 @@ export async function getEventById(eventId: string) {
         : [],
     };
     Object.keys(safeEvent).forEach((key) => {
-      if (safeEvent[key]?.type === "Buffer") {
-        safeEvent[key] = undefined;
+      const typedKey = key as keyof typeof safeEvent;
+      const value = safeEvent[typedKey];
+
+      // 1. Check if value exists and is an object
+      // 2. Check if it has the 'type' property and it equals "Buffer"
+      if (
+        value &&
+        typeof value === "object" &&
+        "type" in value &&
+        (value as any).type === "Buffer"
+      ) {
+        // Cast to any for the assignment to avoid narrow type conflicts
+        (safeEvent as any)[typedKey] = undefined;
       }
     });
     return safeEvent;
