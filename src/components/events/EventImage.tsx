@@ -18,15 +18,20 @@ export default function EventImage({
   priority = false,
 }: Props) {
   // Check if it's a local uploaded image
-  const isLocalUpload = src.startsWith("/uploads/");
+  const isLocalUpload = src.startsWith("/uploads/") || src.startsWith("/api/uploads/");
 
   // Check if it's a placeholder image (not an actual URL)
   const isPlaceholder = src.startsWith("placeholder-");
 
+  // Convert old-style URLs to new API route format
+  const normalizedImageUrl = src.startsWith("/uploads/")
+    ? src.replace("/uploads/", "/api/uploads/")
+    : src;
+
   // Determine the image URL
   const imageUrl = isPlaceholder
     ? `https://placehold.co/600x400/1a1a1a/9333ea.png?text=${encodeURIComponent(alt)}`
-    : src;
+    : normalizedImageUrl;
 
   return (
     <div className={className}>

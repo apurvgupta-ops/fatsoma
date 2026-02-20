@@ -3,6 +3,7 @@
 import { writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes } from "crypto";
+import { revalidatePath } from "next/cache";
 
 export async function uploadImage(formData: FormData) {
   try {
@@ -39,16 +40,19 @@ export async function uploadImage(formData: FormData) {
     // Create unique filename with timestamp and random string
     const uniqueSuffix = `${Date.now()}-${randomBytes(6).toString("hex")}`;
     const fileExtension = path.extname(file.name);
-    const filename = `${path.basename(file.name, fileExtension)}-${uniqueSuffix}${fileExtension}`;
+    const filename = `${path.basename(
+      file.name,
+      fileExtension
+    )}-${uniqueSuffix}${fileExtension}`;
 
-    // Save to public/uploads directory
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    // Save to uploads directory
+    const uploadsDir = path.join(process.cwd(), "uploads");
     const filepath = path.join(uploadsDir, filename);
 
     await writeFile(filepath, buffer);
-
-    // Return the URL path (relative to public folder)
-    const url = `/uploads/${filename}`;
+    revalidatePath("/events");
+    // Return the URL path (proxy through API route)
+    const url = `/api/uploads/${filename}`;
 
     return {
       ok: true,

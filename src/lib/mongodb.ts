@@ -7,8 +7,10 @@ import mongoose from "mongoose";
 // }
 
 // const MONGODB_URI: string = process.env.MONGODB_URI;
-const MONGODB_URI =
-  "mongodb://eventmanagement:9uv8sW9fefRo@192.168.1.47:29017/eventmanagement";
+// const MONGODB_URI =
+//   "mongodb://eventmanagement:9uv8sW9fefRo@192.168.1.47:29017/eventmanagement";
+
+const MONGODB_URI: string = "mongodb://localhost:27017/fatsoma-clone";
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;

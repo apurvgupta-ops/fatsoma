@@ -26,19 +26,19 @@ type EventCardProps = {
 export default function EventCard({ event }: EventCardProps) {
   const totalTicketsFromBatches = event.ticketBatches.reduce(
     (acc, batch) => acc + batch.quantity,
-    0,
+    0
   );
 
   const minRevenue = event.ticketBatches.reduce(
     (acc, batch) =>
       acc + batch.quantity * batch.basePrice * (1 - batch.maxDiscount / 100),
-    0,
+    0
   );
 
   const maxRevenue = event.ticketBatches.reduce(
     (acc, batch) =>
       acc + batch.quantity * batch.basePrice * (1 - batch.minDiscount / 100),
-    0,
+    0
   );
 
   // Calculate discount range for display
@@ -50,15 +50,22 @@ export default function EventCard({ event }: EventCardProps) {
   const minBasePrice = Math.min(...event.ticketBatches.map((b) => b.basePrice));
 
   // Check if it's a local uploaded image
-  const isLocalUpload = event.eventImage.startsWith("/uploads/");
-
+  const isLocalUpload = event.eventImage.startsWith("/uploads/") || event.eventImage.startsWith("/api/uploads/");
+  
   // Check if it's a placeholder image
   const isPlaceholder = event.eventImage.startsWith("placeholder-");
 
+  // Convert old-style URLs to new API route format
+  const normalizedImageUrl = event.eventImage.startsWith("/uploads/")
+    ? event.eventImage.replace("/uploads/", "/api/uploads/")
+    : event.eventImage;
+
   // Determine image URL
   const imageUrl = isPlaceholder
-    ? `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(event.eventName)}`
-    : event.eventImage;
+    ? `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(
+        event.eventName
+      )}`
+    : normalizedImageUrl;
 
   return (
     <Link
@@ -75,7 +82,9 @@ export default function EventCard({ event }: EventCardProps) {
           unoptimized={isLocalUpload}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
-            target.src = `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(event.eventName)}`;
+            target.src = `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(
+              event.eventName
+            )}`;
           }}
         />
         <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/40 to-transparent" />

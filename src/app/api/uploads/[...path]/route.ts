@@ -1,41 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createReadStream, statSync } from "fs";
-import { join } from "path";
+import { NextResponse } from 'next/server';
+import fs from 'fs/promises';
+import path from 'path';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> },
-) {
-  const { path } = await params;
-  const filePath = join(process.cwd(), "public", "uploads", ...path);
-
+export async function GET(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
   try {
-    const stat = statSync(filePath);
-    if (!stat.isFile()) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
-
-    const stream = createReadStream(filePath);
-    const ext = filePath.split(".").pop()?.toLowerCase();
-    const mimeType =
-      ext === "jpg" || ext === "jpeg"
-        ? "image/jpeg"
-        : ext === "png"
-          ? "image/png"
-          : ext === "gif"
-            ? "image/gif"
-            : ext === "webp"
-              ? "image/webp"
-              : "application/octet-stream";
-
-    return new NextResponse(stream as any, {
-      status: 200,
-      headers: {
-        "Content-Type": mimeType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
+    const { path: pathSegments } = await params;
+    const filePath = path.join(process.cwd(), 'uploads', ...pathSegments);
+    const data = await fs.readFile(filePath);
+    return new NextResponse(data, { 
+      headers: { 'Cache-Control': 'public, max-age=31536000' } 
     });
-  } catch (err) {
-    return new NextResponse("Not Found", { status: 404 });
+  } catch {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 }
