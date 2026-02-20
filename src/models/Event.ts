@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import User from "./User";
 
 // TypeScript interface for type safety
 export interface ITicketBatch {

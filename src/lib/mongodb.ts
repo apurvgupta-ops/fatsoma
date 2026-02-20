@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-if (!process.env.MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local",
-  );
-}
+// if (!process.env.MONGODB_URI) {
+//   throw new Error(
+//     "Please define the MONGODB_URI environment variable inside .env.local",
+//   );
+// }
 
 // const MONGODB_URI: string = process.env.MONGODB_URI;
 const MONGODB_URI =

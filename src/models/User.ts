@@ -57,6 +57,7 @@ const UserSchema = new Schema<IUser>(
 // Index for faster lookups (email index already created by unique: true)
 UserSchema.index({ role: 1, isActive: 1 });
 
-const User = models.User || model<IUser>("User", UserSchema);
+// const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+const User = models?.User || model<IUser>("User", UserSchema);
 
 export default User;

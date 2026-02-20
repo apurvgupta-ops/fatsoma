@@ -258,15 +258,31 @@ export async function getAllEvents() {
       .lean()
       .exec();
 
-    // Convert MongoDB documents to plain objects with string IDs
-    return events.map((event: any) => ({
-      ...event,
-      id: event._id.toString(),
-      _id: undefined,
-      eventDate: event.eventDate.toISOString(),
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
-    }));
+    // Convert MongoDB documents to plain objects with string IDs and serializable fields
+    return events.map((event: any) => {
+      // Convert nested ObjectIds and Dates
+      const safeEvent = {
+        ...event,
+        id: event._id?.toString?.() ?? event._id ?? undefined,
+        _id: undefined,
+        eventDate: event.eventDate?.toISOString?.() ?? event.eventDate,
+        createdAt: event.createdAt?.toISOString?.() ?? event.createdAt,
+        updatedAt: event.updatedAt?.toISOString?.() ?? event.updatedAt,
+        createdBy: event.createdBy?.toString?.() ?? event.createdBy,
+        ticketBatches: Array.isArray(event.ticketBatches)
+          ? event.ticketBatches.map((batch: any) => ({
+              ...batch,
+            }))
+          : [],
+      };
+      // Remove any Buffer fields
+      Object.keys(safeEvent).forEach((key) => {
+        if (safeEvent[key]?.type === "Buffer") {
+          safeEvent[key] = undefined;
+        }
+      });
+      return safeEvent;
+    });
   } catch (error) {
     console.error("Error fetching events:", error);
     return [];
@@ -287,15 +303,27 @@ export async function getEventById(eventId: string) {
       return null;
     }
 
-    // Convert MongoDB document to plain object with string ID
-    return {
+    // Convert MongoDB document to plain object with string ID and serializable fields
+    const safeEvent = {
       ...event,
-      id: event._id.toString(),
+      id: event._id?.toString?.() ?? event._id ?? undefined,
       _id: undefined,
-      eventDate: event.eventDate.toISOString(),
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
+      eventDate: event.eventDate?.toISOString?.() ?? event.eventDate,
+      createdAt: event.createdAt?.toISOString?.() ?? event.createdAt,
+      updatedAt: event.updatedAt?.toISOString?.() ?? event.updatedAt,
+      createdBy: event.createdBy?.toString?.() ?? event.createdBy,
+      ticketBatches: Array.isArray(event.ticketBatches)
+        ? event.ticketBatches.map((batch: any) => ({
+            ...batch,
+          }))
+        : [],
     };
+    Object.keys(safeEvent).forEach((key) => {
+      if (safeEvent[key]?.type === "Buffer") {
+        safeEvent[key] = undefined;
+      }
+    });
+    return safeEvent;
   } catch (error) {
     console.error("Error fetching event:", error);
     return null;
