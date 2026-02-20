@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createReadStream, statSync } from "fs";
 import { join } from "path";
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
-  const filePath = join(process.cwd(), "public", "uploads", ...params.path);
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  const filePath = join(process.cwd(), "public", "uploads", ...path);
 
   try {
     const stat = statSync(filePath);
@@ -17,12 +21,12 @@ export async function GET(req: NextRequest, { params }: { params: { path: string
       ext === "jpg" || ext === "jpeg"
         ? "image/jpeg"
         : ext === "png"
-        ? "image/png"
-        : ext === "gif"
-        ? "image/gif"
-        : ext === "webp"
-        ? "image/webp"
-        : "application/octet-stream";
+          ? "image/png"
+          : ext === "gif"
+            ? "image/gif"
+            : ext === "webp"
+              ? "image/webp"
+              : "application/octet-stream";
 
     return new NextResponse(stream as any, {
       status: 200,
