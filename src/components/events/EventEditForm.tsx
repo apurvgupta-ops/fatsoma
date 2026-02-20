@@ -14,7 +14,6 @@ import PricingModelSection from "@/components/admin/PricingModelSection";
 import PublishSidebar from "@/components/admin/PublishSidebar";
 import Toast from "@/components/admin/Toast";
 import MobilePublishFooter from "@/components/admin/MobilePublishFooter";
-import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { EventFormValues, ToastState } from "@/types/event-form";
 
 type Event = {
@@ -141,7 +140,7 @@ export default function EventEditForm({ event }: Props) {
 
   const onSubmit = async (
     values: EventFormValues,
-    status: "draft" | "published",
+    status: "draft" | "published"
   ) => {
     try {
       // Handle file uploads - keep existing images if no new upload
@@ -193,7 +192,7 @@ export default function EventEditForm({ event }: Props) {
           allowResale: values.allowResale,
           platformCommission: values.platformCommission,
         },
-        status,
+        status
       );
 
       if (!result.ok) {
@@ -223,7 +222,7 @@ export default function EventEditForm({ event }: Props) {
   const handlePublish = handleSubmit((values) => onSubmit(values, "published"));
 
   return (
-    <AuthenticatedLayout>
+    <>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
         {/* Page Header with Back Button */}
         <header className="flex flex-col gap-4">
@@ -310,6 +309,6 @@ export default function EventEditForm({ event }: Props) {
 
       <Toast toast={toast} />
       <MobilePublishFooter />
-    </AuthenticatedLayout>
+    </>
   );
 }
