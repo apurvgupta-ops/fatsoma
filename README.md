@@ -14,6 +14,7 @@ A full-stack event ticketing platform built as a **Turborepo monorepo** with fou
   - [Admin (`apps/admin`)](#admin-appsadmin)
   - [Web (`apps/web`)](#web-appsweb)
   - [Mobile (`apps/mobile`)](#mobile-appsmobile)
+- [API Architecture](#api-architecture)
 - [Shared Packages](#shared-packages)
   - [`@fatsoma/shared`](#fatsomashard)
   - [`@fatsoma/api-client`](#fatsomaapi-client)
@@ -110,26 +111,42 @@ The `packages/` directory contains internal packages (`@fatsoma/shared`, `@fatso
 fatsoma-clone/
 │
 ├── apps/
-│   ├── api/                        # Express.js REST API
+│   ├── api/                        # Express.js REST API (layered architecture)
 │   │   ├── src/
-│   │   │   ├── index.ts            # Server entry point
-│   │   │   ├── lib/
-│   │   │   │   ├── db.ts           # MongoDB connection
-│   │   │   │   └── jwt.ts          # JWT token generation/verification
-│   │   │   ├── middleware/
-│   │   │   │   ├── auth.ts         # JWT authentication & role guard
-│   │   │   │   ├── error.ts        # Global error handler
-│   │   │   │   └── validate.ts     # Zod schema validation middleware
+│   │   │   ├── index.ts            # Server entry point + createApp()
+│   │   │   ├── controllers/        # HTTP layer — parse req, call service, send res
+│   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── checkout.controller.ts
+│   │   │   │   ├── event.controller.ts
+│   │   │   │   ├── upload.controller.ts
+│   │   │   │   └── user.controller.ts
+│   │   │   ├── services/           # Pure business logic — no req/res, throws AppError
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   ├── checkout.service.ts
+│   │   │   │   ├── event.service.ts
+│   │   │   │   └── user.service.ts
+│   │   │   ├── routes/             # Thin — only middleware → controller wiring
+│   │   │   │   ├── auth.ts
+│   │   │   │   ├── checkout.ts
+│   │   │   │   ├── events.ts
+│   │   │   │   ├── uploads.ts
+│   │   │   │   └── users.ts
 │   │   │   ├── models/
 │   │   │   │   ├── Event.ts        # Mongoose Event schema
 │   │   │   │   ├── Order.ts        # Mongoose Order schema (Stripe)
 │   │   │   │   └── User.ts         # Mongoose User schema
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts         # POST /login, /register, /refresh, GET /me
-│   │   │   │   ├── checkout.ts     # Stripe checkout session & webhooks
-│   │   │   │   ├── events.ts       # CRUD for events
-│   │   │   │   ├── uploads.ts      # Image upload via Multer
-│   │   │   │   └── users.ts        # Admin user management
+│   │   │   ├── middleware/
+│   │   │   │   ├── auth.ts         # JWT authentication & role guard
+│   │   │   │   ├── error.ts        # Global error handler (AppError, Zod, Mongoose)
+│   │   │   │   └── validate.ts     # Zod safeParse validation middleware
+│   │   │   ├── utils/
+│   │   │   │   ├── AppError.ts     # Custom error class with HTTP status codes
+│   │   │   │   ├── asyncHandler.ts # Eliminates try/catch in route handlers
+│   │   │   │   ├── paramId.ts      # Extract + validate ObjectId from params
+│   │   │   │   └── response.ts     # Standardised sendSuccess/sendMessage helpers
+│   │   │   ├── lib/
+│   │   │   │   ├── db.ts           # MongoDB connection
+│   │   │   │   └── jwt.ts          # JWT token generation/verification
 │   │   │   └── scripts/
 │   │   │       └── seed.ts         # Database seeder
 │   │   ├── .env.example
@@ -247,29 +264,34 @@ fatsoma-clone/
 | | |
 |---|---|
 | **Framework** | Express.js 5 |
+| **Architecture** | Route → Controller → Service → Model |
 | **Database** | MongoDB via Mongoose |
 | **Auth** | JWT (access + refresh tokens) |
 | **Payments** | Stripe Checkout + Webhooks |
 | **Uploads** | Multer (file → `uploads/` directory) |
+| **Error Handling** | Custom `AppError` class + global handler |
 | **Port** | `4000` |
 
 **Key endpoints:**
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/auth/register` | Public user registration |
-| `POST` | `/api/auth/login` | Login (returns JWT tokens) |
-| `POST` | `/api/auth/refresh` | Refresh access token |
-| `GET` | `/api/auth/me` | Get current user (protected) |
-| `GET` | `/api/events` | List all events |
-| `GET` | `/api/events/published` | List published events |
-| `GET` | `/api/events/:id` | Get single event |
-| `POST` | `/api/events` | Create event (admin) |
-| `PUT` | `/api/events/:id` | Update event (admin) |
-| `DELETE` | `/api/events/:id` | Delete event (admin) |
-| `POST` | `/api/checkout/create-session` | Create Stripe checkout |
-| `POST` | `/api/checkout/webhook` | Stripe webhook handler |
-| `POST` | `/api/uploads` | Upload image (admin) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/auth/register` | Public | User registration |
+| `POST` | `/api/auth/login` | Public | Login (returns JWT tokens) |
+| `POST` | `/api/auth/refresh` | Public | Refresh access token |
+| `GET` | `/api/auth/me` | Bearer | Get current user |
+| `GET` | `/api/events/published` | Public | List published events |
+| `GET` | `/api/events` | Bearer | List all events (admin: all, user: own) |
+| `GET` | `/api/events/:id` | Bearer | Get single event |
+| `POST` | `/api/events` | Bearer | Create event |
+| `PUT` | `/api/events/:id` | Bearer | Update event |
+| `PATCH` | `/api/events/:id/status` | Bearer | Update event status |
+| `DELETE` | `/api/events/:id` | Bearer | Delete event |
+| `POST` | `/api/checkout/create-session` | Public | Create Stripe checkout session |
+| `GET` | `/api/checkout/session/:id` | Public | Get order by session ID |
+| `POST` | `/api/checkout/webhook` | Stripe | Stripe webhook handler |
+| `POST` | `/api/uploads` | Bearer | Upload image |
+| `GET` | `/api/health` | Public | Health check (uptime + timestamp) |
 
 ### Admin (`apps/admin`)
 
@@ -319,6 +341,49 @@ The mobile app provides:
 - Bottom tab navigation (Explore, Tickets, Profile)
 - Login/Signup flow with conditional navigation
 - Dark theme matching the web app
+
+---
+
+## API Architecture
+
+The API follows a **layered architecture** pattern for production-level code quality:
+
+```
+Request → Route → Middleware → Controller → Service → Model → Database
+```
+
+### Layer Responsibilities
+
+| Layer | Responsibility | Knows about HTTP? |
+|-------|---------------|-------------------|
+| **Routes** | Wire middleware to controller methods. ~10 lines per file. | Yes (Express Router) |
+| **Controllers** | Parse `req` params/body, call service, format `res`. | Yes (req/res) |
+| **Services** | Pure business logic, DB queries, validation. Throws `AppError` on failure. | No |
+| **Models** | Mongoose schemas, indexes, virtuals, pre-save hooks. | No |
+| **Middleware** | Auth, validation, error handling — cross-cutting concerns. | Yes |
+| **Utils** | `AppError`, `asyncHandler`, `paramId`, `response` helpers. | Minimal |
+
+### Why This Structure?
+
+- **Testability** — Services can be unit-tested without spinning up Express. `createApp()` exports the configured app for integration tests.
+- **Single Responsibility** — Each layer does one thing. Routes don't contain business logic. Services don't know about HTTP status codes (they throw typed errors instead).
+- **No try/catch boilerplate** — `asyncHandler` wraps every controller so thrown errors automatically reach the global error handler.
+- **Consistent error responses** — `AppError.notFound()`, `AppError.conflict()`, etc. are caught by the error handler and mapped to the correct HTTP status + `{ ok, message }` JSON shape.
+- **Consistent success responses** — `sendSuccess(res, data, message)` and `sendMessage(res, message)` enforce the `{ ok, message, data? }` contract.
+
+### Error Handling
+
+The global error handler (`middleware/error.ts`) maps error types to HTTP responses:
+
+| Error Type | HTTP Status | Example |
+|------------|-------------|---------|
+| `AppError` | `.statusCode` | `AppError.notFound("Event not found")` → 404 |
+| `ZodError` | 400 | Schema validation failure with field-level details |
+| Mongoose `ValidationError` | 400 | Model-level validation (e.g. required field) |
+| Mongoose `CastError` | 400 | Invalid ObjectId format |
+| MongoDB duplicate key (11000) | 409 | Unique constraint violation |
+| Multer file size | 413 | File exceeds 5 MB limit |
+| Unknown | 500 | Unexpected errors (logged to console) |
 
 ---
 

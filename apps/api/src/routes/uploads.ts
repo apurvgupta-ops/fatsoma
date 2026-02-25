@@ -3,6 +3,8 @@ import multer from "multer";
 import path from "path";
 import { randomBytes } from "crypto";
 import { authenticate } from "../middleware/auth";
+import { asyncHandler } from "../utils/asyncHandler";
+import * as uploadCtrl from "../controllers/upload.controller";
 
 const UPLOADS_DIR = path.resolve(process.cwd(), "../../uploads");
 
@@ -30,12 +32,4 @@ const upload = multer({
 
 export const uploadRouter = Router();
 
-uploadRouter.post("/", authenticate, upload.single("file"), (req, res) => {
-  if (!req.file) {
-    res.status(400).json({ ok: false, message: "No file provided" });
-    return;
-  }
-
-  const url = `/uploads/${req.file.filename}`;
-  res.json({ ok: true, message: "File uploaded", data: { url, filename: req.file.filename } });
-});
+uploadRouter.post("/", authenticate, upload.single("file"), asyncHandler(uploadCtrl.uploadImage));

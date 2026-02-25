@@ -5,7 +5,12 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
-import { Section, InputField, SelectField, ToggleField } from "@/components/events/EventFormPrimitives";
+import {
+  Section,
+  InputField,
+  SelectField,
+  ToggleField,
+} from "@/components/events/EventFormPrimitives";
 import type { TicketBatch } from "@fatsoma/shared";
 import { EVENT_CATEGORIES } from "@fatsoma/shared";
 import {
@@ -113,17 +118,28 @@ export default function EditEventPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateBatch = (index: number, field: keyof TicketBatch, value: string | number) => {
+  const updateBatch = (
+    index: number,
+    field: keyof TicketBatch,
+    value: string | number,
+  ) => {
     setTicketBatches((prev) =>
       prev.map((b, i) =>
         i === index
-          ? { ...b, [field]: typeof DEFAULT_BATCH[field] === "number" ? Number(value) : value }
+          ? {
+              ...b,
+              [field]:
+                typeof DEFAULT_BATCH[field] === "number"
+                  ? Number(value)
+                  : value,
+            }
           : b,
       ),
     );
   };
 
-  const addBatch = () => setTicketBatches((prev) => [...prev, { ...DEFAULT_BATCH }]);
+  const addBatch = () =>
+    setTicketBatches((prev) => [...prev, { ...DEFAULT_BATCH }]);
   const removeBatch = (index: number) =>
     setTicketBatches((prev) => prev.filter((_, i) => i !== index));
 
@@ -259,11 +275,15 @@ export default function EditEventPage() {
               className="md:col-span-2"
             />
             <div className="md:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-zinc-300">Description</label>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+                Description
+              </label>
               <textarea
                 rows={4}
                 value={form.eventDescription}
-                onChange={(e) => updateField("eventDescription", e.target.value)}
+                onChange={(e) =>
+                  updateField("eventDescription", e.target.value)
+                }
                 placeholder="Describe your event..."
                 className="w-full rounded-xl border border-white/10 bg-zinc-900/60 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30"
               />
@@ -303,7 +323,13 @@ export default function EditEventPage() {
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             {imageUrl ? (
               <div className="relative h-40 w-60 overflow-hidden rounded-2xl border border-white/10">
-                <Image src={imageUrl} alt="Event" fill className="object-cover" unoptimized />
+                <Image
+                  src={imageUrl}
+                  alt="Event"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
                 <button
                   onClick={() => updateField("eventImage", "")}
                   className="absolute right-2 top-2 rounded-lg bg-zinc-900/80 p-1.5 text-zinc-400 backdrop-blur-sm transition hover:text-rose-400"
@@ -321,7 +347,12 @@ export default function EditEventPage() {
                     <span className="text-xs">Upload Image</span>
                   </>
                 )}
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
               </label>
             )}
             <p className="text-xs text-zinc-500">PNG, JPG, WEBP up to 5MB.</p>
@@ -331,12 +362,46 @@ export default function EditEventPage() {
         {/* Venue */}
         <Section title="Venue Details" icon={<MapPin className="h-5 w-5" />}>
           <div className="grid gap-5 md:grid-cols-2">
-            <InputField label="Venue Name" value={form.venueName} onChange={(v) => updateField("venueName", v)} placeholder="e.g. The Warehouse" required />
-            <InputField label="Address Line" value={form.addressLine} onChange={(v) => updateField("addressLine", v)} placeholder="e.g. 123 High Street" required />
-            <InputField label="City" value={form.city} onChange={(v) => updateField("city", v)} placeholder="e.g. London" required />
-            <InputField label="Postcode" value={form.postcode} onChange={(v) => updateField("postcode", v)} placeholder="e.g. EC1A 1BB" required />
-            <InputField label="Country" value={form.country} onChange={(v) => updateField("country", v)} required />
-            <InputField label="Google Maps Link" value={form.mapsLink} onChange={(v) => updateField("mapsLink", v)} placeholder="https://maps.google.com/..." />
+            <InputField
+              label="Venue Name"
+              value={form.venueName}
+              onChange={(v) => updateField("venueName", v)}
+              placeholder="e.g. The Warehouse"
+              required
+            />
+            <InputField
+              label="Address Line"
+              value={form.addressLine}
+              onChange={(v) => updateField("addressLine", v)}
+              placeholder="e.g. 123 High Street"
+              required
+            />
+            <InputField
+              label="City"
+              value={form.city}
+              onChange={(v) => updateField("city", v)}
+              placeholder="e.g. London"
+              required
+            />
+            <InputField
+              label="Postcode"
+              value={form.postcode}
+              onChange={(v) => updateField("postcode", v)}
+              placeholder="e.g. EC1A 1BB"
+              required
+            />
+            <InputField
+              label="Country"
+              value={form.country}
+              onChange={(v) => updateField("country", v)}
+              required
+            />
+            <InputField
+              label="Google Maps Link"
+              value={form.mapsLink}
+              onChange={(v) => updateField("mapsLink", v)}
+              placeholder="https://maps.google.com/..."
+            />
           </div>
         </Section>
 
@@ -344,9 +409,14 @@ export default function EditEventPage() {
         <Section title="Ticket Batches" icon={<Ticket className="h-5 w-5" />}>
           <div className="flex flex-col gap-4">
             {ticketBatches.map((batch, i) => (
-              <div key={i} className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+              <div
+                key={i}
+                className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5"
+              >
                 <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm font-medium text-zinc-300">Batch {i + 1}</span>
+                  <span className="text-sm font-medium text-zinc-300">
+                    Batch {i + 1}
+                  </span>
                   {ticketBatches.length > 1 && (
                     <button
                       type="button"
@@ -357,12 +427,30 @@ export default function EditEventPage() {
                     </button>
                   )}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                  <InputField label="Name" value={batch.name} onChange={(v) => updateBatch(i, "name", v)} placeholder="e.g. Early Bird" required />
-                  <InputField label="Quantity" type="number" value={String(batch.quantity)} onChange={(v) => updateBatch(i, "quantity", v)} required />
-                  <InputField label="Price (£)" type="number" value={String(batch.basePrice)} onChange={(v) => updateBatch(i, "basePrice", v)} required />
-                  <InputField label="Min Discount %" type="number" value={String(batch.minDiscount)} onChange={(v) => updateBatch(i, "minDiscount", v)} />
-                  <InputField label="Max Discount %" type="number" value={String(batch.maxDiscount)} onChange={(v) => updateBatch(i, "maxDiscount", v)} />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <InputField
+                    label="Name"
+                    value={batch.name}
+                    onChange={(v) => updateBatch(i, "name", v)}
+                    placeholder="e.g. Early Bird"
+                    required
+                  />
+                  <InputField
+                    label="Quantity"
+                    type="number"
+                    value={String(batch.quantity)}
+                    onChange={(v) => updateBatch(i, "quantity", v)}
+                    required
+                  />
+                  <InputField
+                    label="Price (£)"
+                    type="number"
+                    value={String(batch.basePrice)}
+                    onChange={(v) => updateBatch(i, "basePrice", v)}
+                    required
+                  />
+                  {/* <InputField label="Min Discount %" type="number" value={String(batch.minDiscount)} onChange={(v) => updateBatch(i, "minDiscount", v)} />
+                  <InputField label="Max Discount %" type="number" value={String(batch.maxDiscount)} onChange={(v) => updateBatch(i, "maxDiscount", v)} /> */}
                 </div>
               </div>
             ))}
@@ -377,12 +465,37 @@ export default function EditEventPage() {
         </Section>
 
         {/* Platform Settings */}
-        <Section title="Platform Settings" icon={<Settings className="h-5 w-5" />}>
+        <Section
+          title="Platform Settings"
+          icon={<Settings className="h-5 w-5" />}
+        >
           <div className="grid gap-5 md:grid-cols-2">
-            <InputField label="Booking Fee (%)" type="number" value={String(form.bookingFee)} onChange={(v) => updateField("bookingFee", Number(v))} required />
-            <InputField label="Platform Commission (%)" type="number" value={String(form.platformCommission)} onChange={(v) => updateField("platformCommission", Number(v))} required />
-            <ToggleField label="Dynamic Pricing" checked={form.dynamicPricing} onChange={(v) => updateField("dynamicPricing", v)} description="Automatically adjust prices based on demand" />
-            <ToggleField label="Allow Resale" checked={form.allowResale} onChange={(v) => updateField("allowResale", v)} description="Let ticket holders resell their tickets" />
+            <InputField
+              label="Booking Fee (%)"
+              type="number"
+              value={String(form.bookingFee)}
+              onChange={(v) => updateField("bookingFee", Number(v))}
+              required
+            />
+            <InputField
+              label="Platform Commission (%)"
+              type="number"
+              value={String(form.platformCommission)}
+              onChange={(v) => updateField("platformCommission", Number(v))}
+              required
+            />
+            <ToggleField
+              label="Dynamic Pricing"
+              checked={form.dynamicPricing}
+              onChange={(v) => updateField("dynamicPricing", v)}
+              description="Automatically adjust prices based on demand"
+            />
+            <ToggleField
+              label="Allow Resale"
+              checked={form.allowResale}
+              onChange={(v) => updateField("allowResale", v)}
+              description="Let ticket holders resell their tickets"
+            />
           </div>
         </Section>
 
@@ -393,7 +506,9 @@ export default function EditEventPage() {
           </h2>
           {showDeleteConfirm ? (
             <div className="flex items-center gap-3">
-              <p className="text-sm text-zinc-400">Are you sure? This cannot be undone.</p>
+              <p className="text-sm text-zinc-400">
+                Are you sure? This cannot be undone.
+              </p>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
@@ -434,7 +549,11 @@ export default function EditEventPage() {
             disabled={saving}
             className="rounded-xl bg-linear-to-r from-indigo-500 via-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110 disabled:opacity-50"
           >
-            {saving ? "Saving..." : form.status === "published" ? "Update & Publish" : "Publish Event"}
+            {saving
+              ? "Saving..."
+              : form.status === "published"
+                ? "Update & Publish"
+                : "Publish Event"}
           </button>
         </div>
       </div>
