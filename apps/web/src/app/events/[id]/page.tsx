@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createPublicClient } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import type { EventResponse, TicketBatch } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import Image from "next/image";
@@ -25,6 +26,7 @@ import {
   ExternalLink,
   Copy,
   Check,
+  Lock,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -151,6 +153,8 @@ export default function EventDetailPage() {
 /* ── Ticket Purchase Panel ── */
 
 function TicketPurchasePanel({ event }: { event: EventResponse }) {
+  const { user } = useAuth();
+  const router = useRouter();
   const [selectedBatch, setSelectedBatch] = useState<TicketBatch>(event.ticketBatches[0]);
   const [quantity, setQuantity] = useState(1);
   const [buying, setBuying] = useState(false);
@@ -163,6 +167,11 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
   const grandTotal = baseTotal + feeTotal;
 
   const handleBuyNow = useCallback(async () => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/events/${event.id}`)}`);
+      return;
+    }
+
     setBuyError(null);
     setBuying(true);
 
@@ -185,7 +194,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
       setBuyError(err instanceof Error ? err.message : "Checkout failed");
       setBuying(false);
     }
-  }, [event.id, selectedBatch.name, quantity, currentFee]);
+  }, [event.id, selectedBatch.name, quantity, currentFee, user, router]);
 
   const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-rose-400" : "text-zinc-400";
   const sparkColor = trend === "up" ? "#34d399" : trend === "down" ? "#fb7185" : "#a1a1aa";
@@ -356,6 +365,13 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         )}
 
         {/* Buy Now Button */}
+        {!user && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-300/90">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            Please sign in to purchase tickets
+          </div>
+        )}
+
         <button
           onClick={handleBuyNow}
           disabled={buying}
@@ -364,6 +380,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           {buying ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Redirecting to Stripe...
+            </>
+          ) : !user ? (
+            <>
+              <Lock className="h-4 w-4" /> Sign in to Buy — £{grandTotal.toFixed(2)}
             </>
           ) : (
             <>

@@ -3,26 +3,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createPublicClient } from "@/lib/api";
+import type { CheckoutOrder } from "@fatsoma/api-client";
 import Link from "next/link";
 import { CheckCircle, Ticket, ArrowLeft, Loader2 } from "lucide-react";
-
-interface OrderData {
-  id: string;
-  eventName: string;
-  ticketBatchName: string;
-  quantity: number;
-  basePrice: number;
-  capturedBookingFee: number;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-}
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
 
-  const [order, setOrder] = useState<OrderData | null>(null);
+  const [order, setOrder] = useState<CheckoutOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +24,7 @@ export default function CheckoutSuccessPage() {
 
     const client = createPublicClient();
     client
-      .getCheckoutSession(sessionId)
+      .confirmCheckoutSession(sessionId)
       .then((res) => {
         if (res.ok && res.data) setOrder(res.data);
         else setError("Order not found");

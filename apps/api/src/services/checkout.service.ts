@@ -29,7 +29,9 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   const { eventId, batchName, quantity, capturedFee } = input;
 
   if (!eventId || !batchName || !quantity || capturedFee == null) {
-    throw AppError.badRequest("Missing required fields: eventId, batchName, quantity, capturedFee");
+    throw AppError.badRequest(
+      "Missing required fields: eventId, batchName, quantity, capturedFee",
+    );
   }
 
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
@@ -40,7 +42,7 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     throw AppError.badRequest("Quantity must be between 1 and 10");
   }
 
-  const event = await Event.findById(eventId).lean() as any;
+  const event = (await Event.findById(eventId).lean()) as any;
   if (!event || event.status !== "published") {
     throw AppError.notFound("Event not found or not published");
   }
@@ -102,13 +104,50 @@ export async function createCheckoutSession(input: CreateSessionInput) {
 }
 
 export async function getOrderBySessionId(sessionId: string) {
-  const order = await Order.findOne({ stripeSessionId: sessionId }).lean() as any;
+  const order = (await Order.findOne({
+    stripeSessionId: sessionId,
+  }).lean()) as any;
   if (!order) {
     throw AppError.notFound("Order not found");
   }
 
+  return formatOrder(order);
+}
+
+/**
+ * Verify payment with Stripe and update the order status accordingly.
+ * Called from the success page to handle cases where the webhook hasn't arrived yet.
+ */
+export async function confirmSession(sessionId: string) {
+  const order = await Order.findOne({ stripeSessionId: sessionId });
+  if (!order) {
+    throw AppError.notFound("Order not found");
+  }
+
+  if (order.status === "paid") {
+    return formatOrder(order.toObject());
+  }
+
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (session.payment_status === "paid") {
+    order.status = "paid";
+    order.stripePaymentIntentId = session.payment_intent as string;
+    order.customerEmail = session.customer_details?.email ?? undefined;
+    order.customerName = session.customer_details?.name ?? undefined;
+    await order.save();
+  } else if (session.status === "expired") {
+    order.status = "expired";
+    await order.save();
+  }
+
+  return formatOrder(order.toObject());
+}
+
+function formatOrder(order: any) {
   return {
-    id: order._id.toString(),
+    id: (order._id ?? order.id).toString(),
     eventName: order.eventName,
     ticketBatchName: order.ticketBatchName,
     quantity: order.quantity,
@@ -116,7 +155,9 @@ export async function getOrderBySessionId(sessionId: string) {
     capturedBookingFee: order.capturedBookingFee,
     totalAmount: order.totalAmount,
     status: order.status,
-    createdAt: order.createdAt.toISOString(),
+    createdAt: order.createdAt instanceof Date
+      ? order.createdAt.toISOString()
+      : order.createdAt,
   };
 }
 
@@ -125,7 +166,11 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
 
   let stripeEvent: Stripe.Event;
   try {
-    stripeEvent = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
+    stripeEvent = getStripe().webhooks.constructEvent(
+      rawBody,
+      signature,
+      webhookSecret,
+    );
   } catch {
     throw AppError.badRequest("Webhook signature verification failed");
   }

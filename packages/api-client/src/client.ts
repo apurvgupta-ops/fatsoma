@@ -14,6 +14,18 @@ export interface ClientConfig {
   getToken?: () => string | null;
 }
 
+export interface CheckoutOrder {
+  id: string;
+  eventName: string;
+  ticketBatchName: string;
+  quantity: number;
+  basePrice: number;
+  capturedBookingFee: number;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
+
 export class FatsomaClient {
   private baseUrl: string;
   private getToken: () => string | null;
@@ -179,18 +191,17 @@ export class FatsomaClient {
 
   async getCheckoutSession(
     sessionId: string,
-  ): Promise<ApiResponse<{
-    id: string;
-    eventName: string;
-    ticketBatchName: string;
-    quantity: number;
-    basePrice: number;
-    capturedBookingFee: number;
-    totalAmount: number;
-    status: string;
-    createdAt: string;
-  }>> {
+  ): Promise<ApiResponse<CheckoutOrder>> {
     return this.request(`/api/checkout/session/${sessionId}`);
+  }
+
+  /** Verify payment with Stripe and update the order status. */
+  async confirmCheckoutSession(
+    sessionId: string,
+  ): Promise<ApiResponse<CheckoutOrder>> {
+    return this.request(`/api/checkout/session/${sessionId}/confirm`, {
+      method: "POST",
+    });
   }
 
   // ── Upload ────────────────────────────────────────────

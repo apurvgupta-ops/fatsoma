@@ -19,12 +19,14 @@ import { useEvent } from "../hooks/useEvents";
 import { useLiveFee } from "../hooks/useLiveFee";
 import { SparkLine } from "../components/SparkLine";
 import { apiClient } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EventDetail">;
 
 export function EventDetailScreen({ route, navigation }: Props) {
   const { eventId } = route.params;
+  const { user } = useAuth();
   const { event, loading, error } = useEvent(eventId);
   const { fee, delta, history } = useLiveFee(event?.bookingFee ?? 5);
   const [selectedBatch, setSelectedBatch] = useState<TicketBatch | null>(null);
@@ -66,6 +68,15 @@ export function EventDetailScreen({ route, navigation }: Props) {
   const grandTotal = totalPerTicket * qty;
 
   const handleBuyNow = async () => {
+    if (!user) {
+      Alert.alert(
+        "Sign In Required",
+        "Please sign in to purchase tickets.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
     if (!selectedBatch) {
       Alert.alert("Select Ticket", "Please select a ticket tier first.");
       return;

@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -23,7 +25,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push("/");
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -123,7 +125,7 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-sm text-zinc-500">
             Don&apos;t have an account?{" "}
             <Link
-              href="/signup"
+              href={redirectTo !== "/" ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : "/signup"}
               className="font-medium text-purple-400 hover:text-purple-300"
             >
               Sign up

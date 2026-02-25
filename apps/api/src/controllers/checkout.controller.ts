@@ -16,6 +16,15 @@ export async function getSession(req: Request, res: Response) {
   sendSuccess(res, order, "Order retrieved");
 }
 
+export async function confirmSession(req: Request, res: Response) {
+  const sid = Array.isArray(req.params.sessionId)
+    ? req.params.sessionId[0]
+    : req.params.sessionId;
+
+  const order = await checkoutService.confirmSession(sid);
+  sendSuccess(res, order, "Order confirmed");
+}
+
 export async function webhook(req: Request, res: Response) {
   const signature = req.headers["stripe-signature"] as string;
   await checkoutService.handleWebhookEvent(req.body as Buffer, signature);

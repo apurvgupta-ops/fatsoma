@@ -1,6 +1,10 @@
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+
 import express from "express";
 import cors from "cors";
-import path from "path";
 import { connectDB } from "./lib/db";
 import { authRouter } from "./routes/auth";
 import { eventRouter } from "./routes/events";
@@ -17,7 +21,9 @@ export function createApp() {
   const app = express();
 
   // ── CORS ────────────────────────────────────────────
-  const origins = (process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001")
+  const origins = (
+    process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001"
+  )
     .split(",")
     .map((s) => s.trim());
   app.use(cors({ origin: origins, credentials: true }));
@@ -41,7 +47,11 @@ export function createApp() {
 
   // ── Health check ────────────────────────────────────
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, uptime: process.uptime(), timestamp: new Date().toISOString() });
+    res.json({
+      ok: true,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
   });
 
   // ── Global error handler (must be last) ─────────────

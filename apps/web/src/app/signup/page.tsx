@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, User, Sparkles, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const { register } = useAuth();
 
   const [name, setName] = useState("");
@@ -31,7 +33,7 @@ export default function SignupPage() {
 
     try {
       await register({ name, email, password });
-      router.push("/");
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -167,7 +169,7 @@ export default function SignupPage() {
           <p className="mt-6 text-center text-sm text-zinc-500">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href={redirectTo !== "/" ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
               className="font-medium text-purple-400 hover:text-purple-300"
             >
               Sign in

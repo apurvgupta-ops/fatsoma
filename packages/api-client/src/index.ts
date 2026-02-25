@@ -1,2 +1,2 @@
 export { FatsomaClient } from "./client";
-export type { ClientConfig } from "./client";
+export type { ClientConfig, CheckoutOrder } from "./client";
