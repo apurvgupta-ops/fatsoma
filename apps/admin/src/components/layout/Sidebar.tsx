@@ -10,6 +10,7 @@ import {
   LogOut,
   Sparkles,
   BarChart3,
+  CreditCard,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -19,6 +20,7 @@ export default function Sidebar() {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Events", href: "/events", icon: Calendar },
+    { name: "Payments", href: "/payments", icon: CreditCard },
     { name: "Panel", href: "/panel", icon: BarChart3 },
     ...(user?.role === "admin"
       ? [{ name: "Users", href: "/users", icon: Users }]

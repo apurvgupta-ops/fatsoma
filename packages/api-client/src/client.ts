@@ -26,6 +26,33 @@ export interface CheckoutOrder {
   createdAt: string;
 }
 
+export interface OrderResponse {
+  id: string;
+  eventId: string;
+  eventName: string;
+  ticketBatchName: string;
+  quantity: number;
+  basePrice: number;
+  capturedBookingFee: number;
+  totalAmount: number;
+  currency: string;
+  stripeSessionId: string;
+  stripePaymentIntentId: string | null;
+  status: string;
+  customerEmail: string | null;
+  customerName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderStats {
+  totalOrders: number;
+  paidOrders: number;
+  pendingOrders: number;
+  totalRevenue: number;
+  totalFees: number;
+}
+
 export class FatsomaClient {
   private baseUrl: string;
   private getToken: () => string | null;
@@ -143,19 +170,14 @@ export class FatsomaClient {
     return this.request("/api/users");
   }
 
-  async createUser(
-    input: CreateUserInput,
-  ): Promise<ApiResponse<UserResponse>> {
+  async createUser(input: CreateUserInput): Promise<ApiResponse<UserResponse>> {
     return this.request("/api/users", {
       method: "POST",
       body: JSON.stringify(input),
     });
   }
 
-  async updateUserStatus(
-    id: string,
-    isActive: boolean,
-  ): Promise<ApiResponse> {
+  async updateUserStatus(id: string, isActive: boolean): Promise<ApiResponse> {
     return this.request(`/api/users/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ isActive }),
@@ -182,7 +204,9 @@ export class FatsomaClient {
     batchName: string;
     quantity: number;
     capturedFee: number;
-  }): Promise<ApiResponse<{ sessionId: string; url: string; orderId: string }>> {
+  }): Promise<
+    ApiResponse<{ sessionId: string; url: string; orderId: string }>
+  > {
     return this.request("/api/checkout/create-session", {
       method: "POST",
       body: JSON.stringify(input),
@@ -204,6 +228,24 @@ export class FatsomaClient {
     });
   }
 
+  // ── Orders (admin) ─────────────────────────────────────
+  async getOrders(params?: {
+    status?: string;
+    eventId?: string;
+    search?: string;
+  }): Promise<ApiResponse<OrderResponse[]>> {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.eventId) qs.set("eventId", params.eventId);
+    if (params?.search) qs.set("search", params.search);
+    const query = qs.toString();
+    return this.request(`/api/orders${query ? `?${query}` : ""}`);
+  }
+
+  async getOrderStats(): Promise<ApiResponse<OrderStats>> {
+    return this.request("/api/orders/stats");
+  }
+
   // ── Upload ────────────────────────────────────────────
   async uploadImage(file: File): Promise<ApiResponse<{ url: string }>> {
     const token = this.getToken();
@@ -223,11 +265,7 @@ export class FatsomaClient {
 
     if (!res.ok) {
       const body: any = await res.json().catch(() => ({}));
-      throw new ApiError(
-        body.message || "Upload failed",
-        res.status,
-        body,
-      );
+      throw new ApiError(body.message || "Upload failed", res.status, body);
     }
 
     return res.json() as Promise<ApiResponse<{ url: string }>>;
