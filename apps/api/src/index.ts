@@ -12,6 +12,8 @@ import { userRouter } from "./routes/users";
 import { uploadRouter } from "./routes/uploads";
 import { checkoutRouter } from "./routes/checkout";
 import { orderRouter } from "./routes/orders";
+import { ticketRouter } from "./routes/tickets";
+import { resaleRouter } from "./routes/resale";
 import { errorHandler } from "./middleware/error";
 
 /**
@@ -46,6 +48,8 @@ export function createApp() {
   app.use("/api/uploads", uploadRouter);
   app.use("/api/checkout", checkoutRouter);
   app.use("/api/orders", orderRouter);
+  app.use("/api/tickets", ticketRouter);
+  app.use("/api/resale", resaleRouter);
 
   // ── Health check ────────────────────────────────────
   app.get("/api/health", (_req, res) => {

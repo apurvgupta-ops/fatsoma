@@ -61,7 +61,6 @@ export default function CreateEventPage() {
     startTime: "",
     endTime: "",
     dynamicPricing: false,
-    bookingFee: BOOKING_FEE_PERCENT,
     allowResale: false,
     platformCommission: 5,
   });
@@ -402,19 +401,17 @@ export default function CreateEventPage() {
         >
           <div className="grid gap-5 md:grid-cols-2">
             <InputField
-              label="Booking Fee (%)"
-              type="number"
-              value={String(form.bookingFee)}
-              onChange={(v) => updateField("bookingFee", Number(v))}
-              required
-            />
-            <InputField
               label="Platform Commission (%)"
               type="number"
               value={String(form.platformCommission)}
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
             />
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <span className="text-sm text-zinc-400">Booking Fee</span>
+              <span className="ml-auto font-mono text-sm font-semibold text-purple-300">{BOOKING_FEE_PERCENT}%</span>
+              <span className="text-xs text-zinc-600">(platform-wide)</span>
+            </div>
             <ToggleField
               label="Dynamic Pricing"
               checked={form.dynamicPricing}

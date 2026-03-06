@@ -17,6 +17,7 @@ import {
   Banknote,
   TicketCheck,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
@@ -32,6 +33,7 @@ export default function PaymentsPage() {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -47,6 +49,7 @@ export default function PaymentsPage() {
     const [ordersRes, statsRes] = await Promise.all([
       client.getOrders({
         status: statusFilter !== "all" ? statusFilter : undefined,
+        type: typeFilter !== "all" ? typeFilter : undefined,
         search: debouncedSearch || undefined,
       }),
       client.getOrderStats(),
@@ -55,7 +58,7 @@ export default function PaymentsPage() {
     if (ordersRes.ok && ordersRes.data) setOrders(ordersRes.data);
     if (statsRes.ok && statsRes.data) setStats(statsRes.data);
     setLoading(false);
-  }, [token, statusFilter, debouncedSearch]);
+  }, [token, statusFilter, typeFilter, debouncedSearch]);
 
   useEffect(() => {
     setLoading(true);
@@ -84,13 +87,13 @@ export default function PaymentsPage() {
           </div>
           <h1 className="text-3xl font-semibold text-white sm:text-4xl">Payment History</h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-            Track all ticket purchases, revenue, and booking fees collected from end users.
+            Track all ticket purchases, resale transactions, revenue, and booking fees.
           </p>
         </header>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
             <StatCard
               icon={<Receipt className="h-5 w-5" />}
               label="Total Orders"
@@ -99,7 +102,7 @@ export default function PaymentsPage() {
             />
             <StatCard
               icon={<CheckCircle className="h-5 w-5" />}
-              label="Paid Orders"
+              label="Paid"
               value={stats.paidOrders.toString()}
               color="text-emerald-400"
             />
@@ -111,7 +114,7 @@ export default function PaymentsPage() {
             />
             <StatCard
               icon={<Banknote className="h-5 w-5" />}
-              label="Total Revenue"
+              label="Revenue"
               value={formatCurrency(stats.totalRevenue)}
               color="text-emerald-400"
             />
@@ -120,6 +123,18 @@ export default function PaymentsPage() {
               label="Fees Collected"
               value={formatCurrency(stats.totalFees)}
               color="text-blue-400"
+            />
+            <StatCard
+              icon={<RefreshCw className="h-5 w-5" />}
+              label="Resale Orders"
+              value={stats.resaleOrders.toString()}
+              color="text-amber-400"
+            />
+            <StatCard
+              icon={<CreditCard className="h-5 w-5" />}
+              label="Resale Revenue"
+              value={formatCurrency(stats.resaleRevenue)}
+              color="text-amber-400"
             />
           </div>
         )}
@@ -137,10 +152,30 @@ export default function PaymentsPage() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {/* Type filter */}
+            {["all", "primary", "resale"].map((t) => (
+              <button
+                key={`type-${t}`}
+                onClick={() => setTypeFilter(t)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
+                  typeFilter === t
+                    ? t === "resale"
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                      : "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                    : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
+                }`}
+              >
+                {t === "all" ? "All Types" : t}
+              </button>
+            ))}
+
+            <div className="mx-1 w-px bg-white/10" />
+
+            {/* Status filter */}
             {["all", "paid", "pending", "failed", "expired"].map((s) => (
               <button
-                key={s}
+                key={`status-${s}`}
                 onClick={() => setStatusFilter(s)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
                   statusFilter === s
@@ -165,7 +200,7 @@ export default function PaymentsPage() {
               <TicketCheck className="mx-auto mb-3 h-10 w-10 text-zinc-600" />
               <h3 className="text-lg font-semibold text-white">No payments found</h3>
               <p className="mt-2 text-sm text-zinc-400">
-                {debouncedSearch || statusFilter !== "all"
+                {debouncedSearch || statusFilter !== "all" || typeFilter !== "all"
                   ? "Try adjusting your filters or search query."
                   : "Payments will appear here once users purchase tickets."}
               </p>
@@ -178,6 +213,7 @@ export default function PaymentsPage() {
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Order</th>
+                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Type</th>
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Customer</th>
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Event</th>
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Ticket</th>
@@ -185,6 +221,12 @@ export default function PaymentsPage() {
                     <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-400">Base</th>
                     <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-400">Fee</th>
                     <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-400">Total</th>
+                    {typeFilter === "resale" && (
+                      <>
+                        <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-amber-400">Seller Gets</th>
+                        <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-amber-400">Organiser Gets</th>
+                      </>
+                    )}
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Status</th>
                     <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Date</th>
                     <th className="px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-400">Stripe</th>
@@ -194,11 +236,23 @@ export default function PaymentsPage() {
                   {orders.map((order) => {
                     const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
                     const StatusIcon = cfg.icon;
+                    const isResale = order.type === "resale";
+
                     return (
                       <tr key={order.id} className="transition hover:bg-white/2">
                         <td className="px-5 py-4">
                           <span className="font-mono text-xs text-zinc-500">
                             {order.id.slice(-8).toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            isResale
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                              : "bg-purple-500/10 text-purple-400 border border-purple-500/30"
+                          }`}>
+                            {isResale && <RefreshCw className="h-2.5 w-2.5" />}
+                            {isResale ? "Resale" : "Primary"}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -235,6 +289,20 @@ export default function PaymentsPage() {
                             {formatCurrency(order.totalAmount)}
                           </span>
                         </td>
+                        {typeFilter === "resale" && (
+                          <>
+                            <td className="px-5 py-4 text-right">
+                              <span className="font-mono text-sm text-amber-300">
+                                {order.sellerPayout != null ? formatCurrency(order.sellerPayout) : "—"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <span className="font-mono text-sm text-amber-300">
+                                {order.organiserRevenue != null ? formatCurrency(order.organiserRevenue) : "—"}
+                              </span>
+                            </td>
+                          </>
+                        )}
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.color}`}>
                             <StatusIcon className="h-3 w-3" />

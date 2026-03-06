@@ -144,7 +144,7 @@ function PanelEventRow({ event }: { event: EventResponse }) {
           <p className="text-[10px] uppercase tracking-wider text-zinc-500">Fee Rev</p>
           <p className="font-mono text-sm text-emerald-300">£{feeRevenue.toFixed(2)}</p>
         </div>
-        <BookingFeeStock fee={event.bookingFee} />
+        <BookingFeeStock fee={event.bookingFee ?? BOOKING_FEE_PERCENT} />
       </div>
     </div>
   );

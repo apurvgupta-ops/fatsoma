@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Event from "../models/Event";
 import { AppError } from "../utils/AppError";
+import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import type { IEvent } from "../models/Event";
 
 /** Serialize a Mongoose event doc into an API response shape. */
@@ -54,9 +55,10 @@ export async function getEventById(id: string) {
 }
 
 export async function createEvent(input: Record<string, any>, userId: string) {
-  const { status, ...data } = input;
+  const { status, bookingFee: _ignored, ...data } = input;
   const event = await Event.create({
     ...data,
+    bookingFee: BOOKING_FEE_PERCENT,
     eventDate: new Date(data.eventDate),
     status,
     createdBy: userId,
@@ -67,10 +69,10 @@ export async function createEvent(input: Record<string, any>, userId: string) {
 }
 
 export async function updateEvent(id: string, input: Record<string, any>) {
-  const { status, ...data } = input;
+  const { status, bookingFee: _ignored, ...data } = input;
   const updated = await Event.findByIdAndUpdate(
     id,
-    { ...data, eventDate: data.eventDate ? new Date(data.eventDate) : undefined, status },
+    { ...data, bookingFee: BOOKING_FEE_PERCENT, eventDate: data.eventDate ? new Date(data.eventDate) : undefined, status },
     { new: true, runValidators: true },
   );
 

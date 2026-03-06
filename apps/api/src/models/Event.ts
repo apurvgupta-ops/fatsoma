@@ -66,7 +66,7 @@ const EventSchema = new Schema<IEvent>(
     totalTickets: { type: Number, required: [true, "Total tickets is required"], min: [0, "Total tickets cannot be negative"] },
     ticketBatches: { type: [TicketBatchSchema], required: [true, "At least one ticket batch is required"], validate: { validator: (batches: ITicketBatch[]) => batches.length > 0, message: "At least one ticket batch is required" } },
     dynamicPricing: { type: Boolean, default: true },
-    bookingFee: { type: Number, required: [true, "Booking fee is required"], min: [0, "Booking fee cannot be negative"], max: [100, "Booking fee cannot exceed 100%"] },
+    bookingFee: { type: Number, default: 10, min: [0, "Booking fee cannot be negative"], max: [100, "Booking fee cannot exceed 100%"] },
     allowResale: { type: Boolean, default: false },
     platformCommission: { type: Number, required: [true, "Platform commission is required"], min: [0, "Commission cannot be negative"], max: [100, "Commission cannot exceed 100%"] },
     status: { type: String, enum: ["draft", "published"], default: "draft", index: true },

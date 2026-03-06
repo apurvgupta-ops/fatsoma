@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Minus, MapPin, CalendarDays, Ticket } from "l
 import Image from "next/image";
 import Link from "next/link";
 import type { EventResponse } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 
 interface TickerPoint {
   value: number;
@@ -129,7 +130,7 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
           </svg>
           <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-600">
             <span>0</span>
-            <span className="font-mono text-zinc-500">{event.bookingFee}% booking fee</span>
+            <span className="font-mono text-zinc-500">{event.bookingFee ?? BOOKING_FEE_PERCENT}% booking fee</span>
             <span>5</span>
           </div>
         </div>

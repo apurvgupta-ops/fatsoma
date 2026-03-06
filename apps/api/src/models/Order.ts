@@ -3,6 +3,7 @@ import mongoose, { Schema, model, models } from "mongoose";
 export interface IOrder {
   _id: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
   eventName: string;
   ticketBatchName: string;
   quantity: number;
@@ -12,6 +13,8 @@ export interface IOrder {
   currency: string;
   stripeSessionId: string;
   stripePaymentIntentId?: string;
+  type: "primary" | "resale";
+  resaleListingId?: mongoose.Types.ObjectId;
   status: "pending" | "paid" | "failed" | "expired";
   customerEmail?: string;
   customerName?: string;
@@ -22,6 +25,7 @@ export interface IOrder {
 const OrderSchema = new Schema<IOrder>(
   {
     eventId: { type: Schema.Types.ObjectId, ref: "Event", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
     eventName: { type: String, required: true },
     ticketBatchName: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
@@ -31,6 +35,8 @@ const OrderSchema = new Schema<IOrder>(
     currency: { type: String, default: "gbp" },
     stripeSessionId: { type: String, required: true, unique: true },
     stripePaymentIntentId: { type: String },
+    type: { type: String, enum: ["primary", "resale"], default: "primary", index: true },
+    resaleListingId: { type: Schema.Types.ObjectId, ref: "ResaleListing" },
     status: {
       type: String,
       enum: ["pending", "paid", "failed", "expired"],

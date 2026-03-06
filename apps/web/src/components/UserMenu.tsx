@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, Ticket } from "lucide-react";
 
 export default function UserMenu() {
   const { user, loading, logout } = useAuth();
@@ -70,6 +70,14 @@ export default function UserMenu() {
             <p className="truncate text-xs text-zinc-500">{user.email}</p>
           </div>
           <div className="p-1">
+            <Link
+              href="/tickets"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-purple-400"
+            >
+              <Ticket className="h-4 w-4" />
+              My Tickets
+            </Link>
             <button
               onClick={() => {
                 setOpen(false);

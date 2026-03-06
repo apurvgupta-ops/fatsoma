@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createPublicClient } from "@/lib/api";
+import { createPublicClient, createBrowserClient } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import type { EventResponse, TicketBatch } from "@fatsoma/shared";
+import type { EventResponse, TicketBatch, ResaleListingResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +27,8 @@ import {
   Copy,
   Check,
   Lock,
+  RefreshCw,
+  Tag,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -137,6 +139,9 @@ export default function EventDetailPage() {
 
               {/* Venue */}
               <VenueCard event={event} />
+
+              {/* Resale Listings */}
+              {event.allowResale && <ResaleListingsSection eventId={event.id} eventName={event.eventName} />}
             </div>
 
             {/* Right — Ticket Purchase */}
@@ -160,7 +165,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
 
-  const { currentFee, history, trend, change } = useLiveFee(event.id, event.bookingFee);
+  const { currentFee, history, trend, change } = useLiveFee(event.id, event.bookingFee ?? BOOKING_FEE_PERCENT);
 
   const baseTotal = selectedBatch.basePrice * quantity;
   const feeTotal = currentFee * quantity;
@@ -176,7 +181,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
     setBuying(true);
 
     try {
-      const client = createPublicClient();
+      const client = createBrowserClient();
       const res = await client.createCheckoutSession({
         eventId: event.id,
         batchName: selectedBatch.name,
@@ -565,6 +570,127 @@ function VenueDetail({ icon, label, value }: { icon: React.ReactNode; label: str
         <p className="text-[10px] uppercase tracking-wider text-zinc-600">{label}</p>
         <p className="truncate text-sm text-zinc-300">{value}</p>
       </div>
+    </div>
+  );
+}
+
+/* ── Resale Listings Section ── */
+
+function ResaleListingsSection({ eventId, eventName }: { eventId: string; eventName: string }) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [listings, setListings] = useState<ResaleListingResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const client = createPublicClient();
+    client
+      .getResaleListings(eventId)
+      .then((res) => {
+        if (res.ok && res.data) setListings(res.data);
+      })
+      .finally(() => setLoading(false));
+  }, [eventId]);
+
+  const handleBuyResale = async (listing: ResaleListingResponse) => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/events/${eventId}`)}`);
+      return;
+    }
+
+    setBuyingId(listing.id);
+    setBuyError(null);
+    try {
+      const client = createBrowserClient();
+      const fee = listing.askingPrice * (BOOKING_FEE_PERCENT / 100);
+      const res = await client.buyResaleTicket(listing.id, Math.round(fee * 100) / 100);
+      if (res.ok && res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        setBuyError(res.message || "Failed to start checkout");
+        setBuyingId(null);
+      }
+    } catch (err: unknown) {
+      setBuyError(err instanceof Error ? err.message : "Checkout failed");
+      setBuyingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-6">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 animate-spin text-zinc-500" />
+          <span className="text-sm text-zinc-500">Loading resale listings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (listings.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-amber-500/20 bg-zinc-950/60 p-6">
+      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+        <RefreshCw className="h-5 w-5 text-amber-400" />
+        Resale Tickets
+        <span className="ml-auto rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+          {listings.length} available
+        </span>
+      </h2>
+
+      {buyError && (
+        <div className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+          {buyError}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {listings.map((listing) => {
+          const fee = listing.askingPrice * (BOOKING_FEE_PERCENT / 100);
+          const total = listing.askingPrice + fee;
+
+          return (
+            <div
+              key={listing.id}
+              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <Tag className="h-3.5 w-3.5 text-zinc-500" />
+                  <span className="text-sm font-medium text-white">
+                    £{listing.askingPrice.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-zinc-600">
+                    + £{fee.toFixed(2)} fee
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-zinc-600">
+                  Originally £{listing.originalPurchasePrice.toFixed(2)}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleBuyResale(listing)}
+                disabled={buyingId === listing.id}
+                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+              >
+                {buyingId === listing.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  `Buy £${total.toFixed(2)}`
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-[10px] text-zinc-600">
+        Resale tickets are capped at the current ticket price. Seller gets their original purchase price back.
+      </p>
     </div>
   );
 }

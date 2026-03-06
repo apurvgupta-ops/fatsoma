@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { TicketBatch } from "@fatsoma/shared";
+import type { TicketBatch, ResaleListingResponse } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import type { RootStackParamList } from "../navigation/types";
 import { useEvent } from "../hooks/useEvents";
 import { useLiveFee } from "../hooks/useLiveFee";
@@ -28,7 +29,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
   const { eventId } = route.params;
   const { user } = useAuth();
   const { event, loading, error } = useEvent(eventId);
-  const { fee, delta, history } = useLiveFee(event?.bookingFee ?? 5);
+  const { fee, delta, history } = useLiveFee(event?.bookingFee ?? 10);
   const [selectedBatch, setSelectedBatch] = useState<TicketBatch | null>(null);
   const [qty, setQty] = useState(1);
   const [purchasing, setPurchasing] = useState(false);
@@ -165,7 +166,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
                 </View>
               </View>
             </View>
-            <SparkLine data={history} max={event.bookingFee} width={280} height={50} />
+            <SparkLine data={history} max={event.bookingFee ?? 10} width={280} height={50} />
           </View>
 
           {/* Ticket Selection */}
@@ -233,6 +234,11 @@ export function EventDetailScreen({ route, navigation }: Props) {
               </Pressable>
             </View>
           </View>
+
+          {/* Resale Listings */}
+          {event.allowResale && (
+            <ResaleSection eventId={event.id} user={user} />
+          )}
         </View>
       </ScrollView>
 
@@ -262,6 +268,141 @@ export function EventDetailScreen({ route, navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+function ResaleSection({ eventId, user }: { eventId: string; user: any }) {
+  const [listings, setListings] = useState<ResaleListingResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiClient
+      .getResaleListings(eventId)
+      .then((res) => {
+        if (res.ok && res.data) setListings(res.data);
+      })
+      .finally(() => setLoading(false));
+  }, [eventId]);
+
+  const handleBuyResale = async (listing: ResaleListingResponse) => {
+    if (!user) {
+      Alert.alert("Sign In Required", "Please sign in to purchase resale tickets.");
+      return;
+    }
+    setBuyingId(listing.id);
+    try {
+      const fee = Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+      const res = await apiClient.buyResaleTicket(listing.id, fee);
+      if (res.data?.url) {
+        await Linking.openURL(res.data.url);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to start checkout");
+    } finally {
+      setBuyingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.section}>
+        <ActivityIndicator size="small" color={colors.purple.DEFAULT} />
+      </View>
+    );
+  }
+
+  if (listings.length === 0) return null;
+
+  return (
+    <View style={styles.section}>
+      <View style={resaleStyles.header}>
+        <Ionicons name="swap-horizontal" size={18} color="#f59e0b" />
+        <Text style={styles.sectionTitle}>Resale Tickets</Text>
+        <View style={resaleStyles.countBadge}>
+          <Text style={resaleStyles.countText}>{listings.length}</Text>
+        </View>
+      </View>
+
+      {listings.map((listing) => {
+        const fee = Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+        const total = listing.askingPrice + fee;
+
+        return (
+          <View key={listing.id} style={resaleStyles.card}>
+            <View style={resaleStyles.cardLeft}>
+              <Text style={resaleStyles.price}>£{listing.askingPrice.toFixed(2)}</Text>
+              <Text style={resaleStyles.feeText}>+ £{fee.toFixed(2)} fee</Text>
+              <Text style={resaleStyles.originalText}>
+                Originally £{listing.originalPurchasePrice.toFixed(2)}
+              </Text>
+            </View>
+            <Pressable
+              style={[resaleStyles.buyBtn, buyingId === listing.id && { opacity: 0.5 }]}
+              onPress={() => handleBuyResale(listing)}
+              disabled={buyingId === listing.id}
+            >
+              {buyingId === listing.id ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={resaleStyles.buyBtnText}>Buy £{total.toFixed(2)}</Text>
+              )}
+            </Pressable>
+          </View>
+        );
+      })}
+
+      <Text style={resaleStyles.disclaimer}>
+        Resale tickets are capped at the current ticket price.
+      </Text>
+    </View>
+  );
+}
+
+const resaleStyles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  countBadge: {
+    backgroundColor: "rgba(245,158,11,0.12)",
+    borderRadius: radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: "auto",
+  },
+  countText: { color: "#f59e0b", fontSize: 12, fontWeight: "700" },
+  card: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.bg.card,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.15)",
+  },
+  cardLeft: { flex: 1 },
+  price: { color: colors.text.primary, fontSize: 16, fontWeight: "700" },
+  feeText: { color: colors.text.muted, fontSize: 12, marginTop: 2 },
+  originalText: { color: colors.text.dim, fontSize: 11, marginTop: 2 },
+  buyBtn: {
+    backgroundColor: "#d97706",
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  buyBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  disclaimer: {
+    color: colors.text.dim,
+    fontSize: 11,
+    marginTop: spacing.sm,
+    textAlign: "center",
+  },
+});
 
 function InfoChip({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   return (

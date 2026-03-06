@@ -24,7 +24,7 @@ export interface EventBase {
   totalTickets: number;
   ticketBatches: TicketBatch[];
   dynamicPricing: boolean;
-  bookingFee: number;
+  bookingFee?: number;
   allowResale: boolean;
   platformCommission: number;
 }
@@ -89,4 +89,40 @@ export interface TicketTotals {
   tickets: number;
   minRevenue: number;
   maxRevenue: number;
+}
+
+export interface TicketResponse {
+  id: string;
+  orderId: string;
+  eventId: string;
+  userId: string;
+  eventName: string;
+  ticketBatchName: string;
+  purchasePrice: number;
+  originalPrice: number;
+  status: "active" | "listed" | "transferred" | "used" | "cancelled";
+  qrCode: string;
+  allowResale: boolean;
+  currentBatchPrice: number;
+  eventDate: string | null;
+  eventImage: string | null;
+  venueName: string | null;
+  city: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResaleListingResponse {
+  id: string;
+  ticketId: string;
+  eventId: string;
+  sellerId: string;
+  askingPrice: number;
+  originalPurchasePrice: number;
+  status: "active" | "sold" | "cancelled" | "expired";
+  buyerId: string | null;
+  platformFee: number;
+  sellerPayout: number;
+  organiserRevenue: number;
+  createdAt: string;
 }

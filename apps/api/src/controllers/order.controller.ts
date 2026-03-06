@@ -3,10 +3,11 @@ import * as orderService from "../services/order.service";
 import { sendSuccess } from "../utils/response";
 
 export async function list(req: Request, res: Response) {
-  const { status, eventId, search } = req.query;
+  const { status, type, eventId, search } = req.query;
 
   const orders = await orderService.listOrders({
     status: status as string | undefined,
+    type: type as string | undefined,
     eventId: eventId as string | undefined,
     search: search as string | undefined,
   });

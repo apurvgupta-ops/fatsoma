@@ -1,14 +1,16 @@
 import Stripe from "stripe";
 import mongoose from "mongoose";
+import crypto from "crypto";
 import Event from "../models/Event";
 import Order from "../models/Order";
+import Ticket from "../models/Ticket";
+import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
 
 let _stripe: Stripe | null = null;
 
-/** Lazy-initialise Stripe client so the server can start without the key set. */
 function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;
@@ -18,15 +20,18 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
+// ── Primary checkout ────────────────────────────────────
+
 interface CreateSessionInput {
   eventId: string;
   batchName: string;
   quantity: number;
   capturedFee: number;
+  userId: string;
 }
 
 export async function createCheckoutSession(input: CreateSessionInput) {
-  const { eventId, batchName, quantity, capturedFee } = input;
+  const { eventId, batchName, quantity, capturedFee, userId } = input;
 
   if (!eventId || !batchName || !quantity || capturedFee == null) {
     throw AppError.badRequest(
@@ -74,6 +79,7 @@ export async function createCheckoutSession(input: CreateSessionInput) {
       },
     ],
     metadata: {
+      type: "primary",
       eventId,
       batchName,
       quantity: String(quantity),
@@ -86,6 +92,7 @@ export async function createCheckoutSession(input: CreateSessionInput) {
 
   const order = await Order.create({
     eventId,
+    userId,
     eventName: event.eventName,
     ticketBatchName: batchName,
     quantity,
@@ -93,6 +100,7 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     capturedBookingFee: fee,
     totalAmount,
     stripeSessionId: session.id,
+    type: "primary",
     status: "pending",
   });
 
@@ -103,21 +111,91 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   };
 }
 
-export async function getOrderBySessionId(sessionId: string) {
-  const order = (await Order.findOne({
-    stripeSessionId: sessionId,
-  }).lean()) as any;
-  if (!order) {
-    throw AppError.notFound("Order not found");
-  }
+// ── Resale checkout ─────────────────────────────────────
 
-  return formatOrder(order);
+interface CreateResaleSessionInput {
+  listingId: string;
+  capturedFee: number;
+  userId: string;
 }
 
-/**
- * Verify payment with Stripe and update the order status accordingly.
- * Called from the success page to handle cases where the webhook hasn't arrived yet.
- */
+export async function createResaleCheckoutSession(input: CreateResaleSessionInput) {
+  const { listingId, capturedFee, userId } = input;
+
+  if (!mongoose.Types.ObjectId.isValid(listingId)) {
+    throw AppError.badRequest("Invalid listing ID");
+  }
+
+  const listing = await ResaleListing.findById(listingId);
+  if (!listing || listing.status !== "active") {
+    throw AppError.notFound("Listing not found or no longer active");
+  }
+
+  if (listing.sellerId.toString() === userId) {
+    throw AppError.badRequest("You cannot buy your own listing");
+  }
+
+  const ticket = await Ticket.findById(listing.ticketId);
+  if (!ticket || ticket.status !== "listed") {
+    throw AppError.badRequest("Ticket is no longer available");
+  }
+
+  const event = (await Event.findById(listing.eventId).lean()) as any;
+  if (!event) throw AppError.notFound("Event not found");
+
+  const fee = Math.round(capturedFee * 100) / 100;
+  const unitTotal = listing.askingPrice + fee;
+
+  const session = await getStripe().checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "gbp",
+          product_data: {
+            name: `${event.eventName} — ${ticket.ticketBatchName} (Resale)`,
+            description: `Resale: £${listing.askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+          },
+          unit_amount: Math.round(unitTotal * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      type: "resale",
+      listingId: listing._id.toString(),
+      eventId: listing.eventId.toString(),
+      ticketId: ticket._id.toString(),
+    },
+    success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${WEB_URL}/events/${listing.eventId}`,
+  });
+
+  const order = await Order.create({
+    eventId: listing.eventId,
+    userId,
+    eventName: event.eventName,
+    ticketBatchName: ticket.ticketBatchName,
+    quantity: 1,
+    basePrice: listing.askingPrice,
+    capturedBookingFee: fee,
+    totalAmount: Math.round(unitTotal * 100) / 100,
+    stripeSessionId: session.id,
+    type: "resale",
+    resaleListingId: listing._id,
+    status: "pending",
+  });
+
+  return {
+    sessionId: session.id,
+    url: session.url,
+    orderId: order._id.toString(),
+  };
+}
+
+// ── Confirm & ticket generation ─────────────────────────
+
 export async function confirmSession(sessionId: string) {
   const order = await Order.findOne({ stripeSessionId: sessionId });
   if (!order) {
@@ -137,12 +215,88 @@ export async function confirmSession(sessionId: string) {
     order.customerEmail = session.customer_details?.email ?? undefined;
     order.customerName = session.customer_details?.name ?? undefined;
     await order.save();
+
+    if (order.type === "primary") {
+      await generateTickets(order);
+    } else if (order.type === "resale") {
+      await completeResaleTransfer(order);
+    }
   } else if (session.status === "expired") {
     order.status = "expired";
     await order.save();
+
+    if (order.type === "resale" && order.resaleListingId) {
+      await cancelResaleOnExpiry(order.resaleListingId);
+    }
   }
 
   return formatOrder(order.toObject());
+}
+
+async function generateTickets(order: any) {
+  const existingCount = await Ticket.countDocuments({ orderId: order._id });
+  if (existingCount > 0) return;
+
+  const tickets = [];
+  for (let i = 0; i < order.quantity; i++) {
+    tickets.push({
+      orderId: order._id,
+      eventId: order.eventId,
+      userId: order.userId,
+      eventName: order.eventName,
+      ticketBatchName: order.ticketBatchName,
+      purchasePrice: order.basePrice,
+      originalPrice: order.basePrice,
+      status: "active",
+      qrCode: crypto.randomUUID(),
+    });
+  }
+  await Ticket.insertMany(tickets);
+}
+
+async function completeResaleTransfer(order: any) {
+  if (!order.resaleListingId) return;
+
+  const listing = await ResaleListing.findById(order.resaleListingId);
+  if (!listing || listing.status === "sold") return;
+
+  const ticket = await Ticket.findById(listing.ticketId);
+  if (!ticket) return;
+
+  const sellerPayout = listing.originalPurchasePrice;
+  const organiserRevenue = listing.askingPrice - listing.originalPurchasePrice;
+
+  listing.status = "sold";
+  listing.buyerId = order.userId;
+  listing.resaleOrderId = order._id;
+  listing.platformFee = order.capturedBookingFee;
+  listing.sellerPayout = sellerPayout;
+  listing.organiserRevenue = organiserRevenue;
+  await listing.save();
+
+  ticket.userId = order.userId;
+  ticket.purchasePrice = listing.askingPrice;
+  ticket.status = "active";
+  ticket.qrCode = crypto.randomUUID();
+  await ticket.save();
+}
+
+async function cancelResaleOnExpiry(listingId: mongoose.Types.ObjectId) {
+  const listing = await ResaleListing.findById(listingId);
+  if (!listing || listing.status !== "active") return;
+
+  listing.status = "cancelled";
+  await listing.save();
+
+  await Ticket.findByIdAndUpdate(listing.ticketId, { status: "active" });
+}
+
+// ── Read helpers ────────────────────────────────────────
+
+export async function getOrderBySessionId(sessionId: string) {
+  const order = (await Order.findOne({ stripeSessionId: sessionId }).lean()) as any;
+  if (!order) throw AppError.notFound("Order not found");
+  return formatOrder(order);
 }
 
 function formatOrder(order: any) {
@@ -154,6 +308,7 @@ function formatOrder(order: any) {
     basePrice: order.basePrice,
     capturedBookingFee: order.capturedBookingFee,
     totalAmount: order.totalAmount,
+    type: order.type || "primary",
     status: order.status,
     createdAt: order.createdAt instanceof Date
       ? order.createdAt.toISOString()
@@ -161,16 +316,14 @@ function formatOrder(order: any) {
   };
 }
 
+// ── Webhook ─────────────────────────────────────────────
+
 export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
   let stripeEvent: Stripe.Event;
   try {
-    stripeEvent = getStripe().webhooks.constructEvent(
-      rawBody,
-      signature,
-      webhookSecret,
-    );
+    stripeEvent = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch {
     throw AppError.badRequest("Webhook signature verification failed");
   }
@@ -178,24 +331,30 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
   switch (stripeEvent.type) {
     case "checkout.session.completed": {
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
-      await Order.findOneAndUpdate(
-        { stripeSessionId: session.id },
-        {
-          status: "paid",
-          stripePaymentIntentId: session.payment_intent as string,
-          customerEmail: session.customer_details?.email,
-          customerName: session.customer_details?.name,
-        },
-      );
+      const order = await Order.findOne({ stripeSessionId: session.id });
+      if (order && order.status !== "paid") {
+        order.status = "paid";
+        order.stripePaymentIntentId = session.payment_intent as string;
+        order.customerEmail = session.customer_details?.email ?? undefined;
+        order.customerName = session.customer_details?.name ?? undefined;
+        await order.save();
+
+        if (order.type === "primary") await generateTickets(order);
+        else if (order.type === "resale") await completeResaleTransfer(order);
+      }
       break;
     }
 
     case "checkout.session.expired": {
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
-      await Order.findOneAndUpdate(
-        { stripeSessionId: session.id },
-        { status: "expired" },
-      );
+      const order = await Order.findOne({ stripeSessionId: session.id });
+      if (order && order.status === "pending") {
+        order.status = "expired";
+        await order.save();
+        if (order.type === "resale" && order.resaleListingId) {
+          await cancelResaleOnExpiry(order.resaleListingId);
+        }
+      }
       break;
     }
   }

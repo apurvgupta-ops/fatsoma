@@ -3,7 +3,10 @@ import * as checkoutService from "../services/checkout.service";
 import { sendSuccess } from "../utils/response";
 
 export async function createSession(req: Request, res: Response) {
-  const data = await checkoutService.createCheckoutSession(req.body);
+  const data = await checkoutService.createCheckoutSession({
+    ...req.body,
+    userId: req.user!.userId,
+  });
   sendSuccess(res, data, "Checkout session created");
 }
 

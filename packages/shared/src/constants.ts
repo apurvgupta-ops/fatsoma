@@ -1,4 +1,4 @@
-export const BOOKING_FEE_PERCENT = 5;
+export const BOOKING_FEE_PERCENT = 10;
 
 export const EVENT_CATEGORIES = [
   "Party",

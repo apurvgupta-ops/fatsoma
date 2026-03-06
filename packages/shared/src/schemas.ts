@@ -30,7 +30,7 @@ export const createEventSchema = z.object({
   totalTickets: z.number().min(0),
   ticketBatches: z.array(ticketBatchSchema).min(1, "At least one ticket batch is required"),
   dynamicPricing: z.boolean(),
-  bookingFee: z.number().min(0).max(100),
+  bookingFee: z.number().min(0).max(100).optional(),
   allowResale: z.boolean(),
   platformCommission: z.number().min(0).max(100),
   status: z.enum(EVENT_STATUSES),

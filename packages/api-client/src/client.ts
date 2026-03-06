@@ -7,6 +7,8 @@ import type {
   RegisterInput,
   UserResponse,
   CreateUserInput,
+  TicketResponse,
+  ResaleListingResponse,
 } from "@fatsoma/shared";
 
 export interface ClientConfig {
@@ -29,6 +31,7 @@ export interface CheckoutOrder {
 export interface OrderResponse {
   id: string;
   eventId: string;
+  userId: string | null;
   eventName: string;
   ticketBatchName: string;
   quantity: number;
@@ -36,11 +39,16 @@ export interface OrderResponse {
   capturedBookingFee: number;
   totalAmount: number;
   currency: string;
+  type: "primary" | "resale";
+  resaleListingId: string | null;
   stripeSessionId: string;
   stripePaymentIntentId: string | null;
   status: string;
   customerEmail: string | null;
   customerName: string | null;
+  sellerPayout?: number;
+  organiserRevenue?: number;
+  originalPurchasePrice?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +59,8 @@ export interface OrderStats {
   pendingOrders: number;
   totalRevenue: number;
   totalFees: number;
+  resaleOrders: number;
+  resaleRevenue: number;
 }
 
 export class FatsomaClient {
@@ -228,14 +238,54 @@ export class FatsomaClient {
     });
   }
 
+  // ── Tickets ──────────────────────────────────────────────
+  async getMyTickets(): Promise<ApiResponse<TicketResponse[]>> {
+    return this.request("/api/tickets/my");
+  }
+
+  async getTicket(id: string): Promise<ApiResponse<TicketResponse>> {
+    return this.request(`/api/tickets/${id}`);
+  }
+
+  // ── Resale ──────────────────────────────────────────────
+  async listTicketForResale(input: {
+    ticketId: string;
+    askingPrice: number;
+  }): Promise<ApiResponse<ResaleListingResponse>> {
+    return this.request("/api/resale/list", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async cancelResaleListing(id: string): Promise<ApiResponse<ResaleListingResponse>> {
+    return this.request(`/api/resale/${id}`, { method: "DELETE" });
+  }
+
+  async getResaleListings(eventId: string): Promise<ApiResponse<ResaleListingResponse[]>> {
+    return this.request(`/api/resale/event/${eventId}`);
+  }
+
+  async buyResaleTicket(
+    listingId: string,
+    capturedFee: number,
+  ): Promise<ApiResponse<{ sessionId: string; url: string; orderId: string }>> {
+    return this.request(`/api/resale/${listingId}/buy`, {
+      method: "POST",
+      body: JSON.stringify({ capturedFee }),
+    });
+  }
+
   // ── Orders (admin) ─────────────────────────────────────
   async getOrders(params?: {
     status?: string;
+    type?: string;
     eventId?: string;
     search?: string;
   }): Promise<ApiResponse<OrderResponse[]>> {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
+    if (params?.type) qs.set("type", params.type);
     if (params?.eventId) qs.set("eventId", params.eventId);
     if (params?.search) qs.set("search", params.search);
     const query = qs.toString();

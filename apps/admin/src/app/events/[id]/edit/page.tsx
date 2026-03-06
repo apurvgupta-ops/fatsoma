@@ -12,7 +12,7 @@ import {
   ToggleField,
 } from "@/components/events/EventFormPrimitives";
 import type { TicketBatch } from "@fatsoma/shared";
-import { EVENT_CATEGORIES } from "@fatsoma/shared";
+import { EVENT_CATEGORIES, BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import {
   ArrowLeft,
   Upload,
@@ -67,7 +67,6 @@ export default function EditEventPage() {
     startTime: "",
     endTime: "",
     dynamicPricing: false,
-    bookingFee: 5,
     allowResale: false,
     platformCommission: 5,
     status: "draft" as "draft" | "published",
@@ -100,7 +99,6 @@ export default function EditEventPage() {
             startTime: e.startTime,
             endTime: e.endTime,
             dynamicPricing: e.dynamicPricing,
-            bookingFee: e.bookingFee,
             allowResale: e.allowResale,
             platformCommission: e.platformCommission,
             status: e.status,
@@ -471,19 +469,17 @@ export default function EditEventPage() {
         >
           <div className="grid gap-5 md:grid-cols-2">
             <InputField
-              label="Booking Fee (%)"
-              type="number"
-              value={String(form.bookingFee)}
-              onChange={(v) => updateField("bookingFee", Number(v))}
-              required
-            />
-            <InputField
               label="Platform Commission (%)"
               type="number"
               value={String(form.platformCommission)}
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
             />
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <span className="text-sm text-zinc-400">Booking Fee</span>
+              <span className="ml-auto font-mono text-sm font-semibold text-purple-300">{BOOKING_FEE_PERCENT}%</span>
+              <span className="text-xs text-zinc-600">(platform-wide)</span>
+            </div>
             <ToggleField
               label="Dynamic Pricing"
               checked={form.dynamicPricing}
