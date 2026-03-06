@@ -1,11 +1,21 @@
 import mongoose from "mongoose";
 import Event from "../models/Event";
+import Ticket from "../models/Ticket";
 import { AppError } from "../utils/AppError";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import type { IEvent } from "../models/Event";
 
 /** Serialize a Mongoose event doc into an API response shape. */
-function toEventDTO(event: any) {
+function toEventDTO(event: any, soldMap?: Map<string, number>) {
+  const batches = (event.ticketBatches ?? []).map((b: any) => {
+    const batch = typeof b.toObject === "function" ? b.toObject() : { ...b };
+    const sold = soldMap?.get(batch.name) ?? 0;
+    batch.remaining = Math.max(0, batch.quantity - sold);
+    return batch;
+  });
+
+  const totalRemaining = batches.reduce((s: number, b: any) => s + b.remaining, 0);
+
   return {
     id: event._id?.toString() ?? event.id,
     eventName: event.eventName,
@@ -22,8 +32,8 @@ function toEventDTO(event: any) {
     eventDate: event.eventDate?.toISOString?.() ?? event.eventDate,
     startTime: event.startTime,
     endTime: event.endTime,
-    totalTickets: event.totalTickets,
-    ticketBatches: event.ticketBatches,
+    totalTickets: totalRemaining,
+    ticketBatches: batches,
     dynamicPricing: event.dynamicPricing,
     bookingFee: event.bookingFee,
     allowResale: event.allowResale,
@@ -35,15 +45,43 @@ function toEventDTO(event: any) {
   };
 }
 
+/**
+ * Count sold tickets per batch for the given event IDs.
+ * Returns a Map<eventId, Map<batchName, soldCount>>.
+ */
+async function getSoldCountsByEvent(eventIds: string[]): Promise<Map<string, Map<string, number>>> {
+  if (eventIds.length === 0) return new Map();
+
+  const pipeline = await Ticket.aggregate([
+    {
+      $match: {
+        eventId: { $in: eventIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        status: { $nin: ["cancelled"] },
+      },
+    },
+    { $group: { _id: { eventId: "$eventId", batch: "$ticketBatchName" }, count: { $sum: 1 } } },
+  ]);
+
+  const result = new Map<string, Map<string, number>>();
+  for (const row of pipeline) {
+    const eid = row._id.eventId.toString();
+    if (!result.has(eid)) result.set(eid, new Map());
+    result.get(eid)!.set(row._id.batch, row.count);
+  }
+  return result;
+}
+
 export async function getPublishedEvents() {
   const events = await Event.find({ status: "published" }).sort({ eventDate: 1 }).lean();
-  return events.map(toEventDTO);
+  const soldMap = await getSoldCountsByEvent(events.map((e: any) => e._id.toString()));
+  return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
 export async function getAllEvents(userId: string, role: string) {
   const filter = role === "admin" ? {} : { createdBy: new mongoose.Types.ObjectId(userId) };
   const events = await Event.find(filter).sort({ createdAt: -1 }).lean();
-  return events.map(toEventDTO);
+  const soldMap = await getSoldCountsByEvent(events.map((e: any) => e._id.toString()));
+  return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
 export async function getEventById(id: string) {
@@ -51,7 +89,8 @@ export async function getEventById(id: string) {
   if (!event) {
     throw AppError.notFound("Event not found");
   }
-  return toEventDTO(event);
+  const soldMap = await getSoldCountsByEvent([id]);
+  return toEventDTO(event, soldMap.get(id));
 }
 
 export async function createEvent(input: Record<string, any>, userId: string) {

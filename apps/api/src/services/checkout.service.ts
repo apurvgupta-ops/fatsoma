@@ -57,6 +57,20 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     throw AppError.badRequest(`Ticket batch "${batchName}" not found`);
   }
 
+  const soldCount = await Ticket.countDocuments({
+    eventId: new mongoose.Types.ObjectId(eventId),
+    ticketBatchName: batchName,
+    status: { $ne: "cancelled" },
+  });
+  const remaining = batch.quantity - soldCount;
+  if (remaining < quantity) {
+    throw AppError.badRequest(
+      remaining <= 0
+        ? `"${batchName}" tickets are sold out`
+        : `Only ${remaining} "${batchName}" ticket(s) remaining`,
+    );
+  }
+
   const basePrice = batch.basePrice;
   const fee = Math.round(capturedFee * 100) / 100;
   const unitTotal = basePrice + fee;

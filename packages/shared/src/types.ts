@@ -4,6 +4,7 @@ export interface TicketBatch {
   basePrice: number;
   minDiscount: number;
   maxDiscount: number;
+  remaining?: number;
 }
 
 export interface EventBase {

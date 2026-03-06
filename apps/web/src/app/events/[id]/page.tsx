@@ -207,25 +207,39 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
 
         {/* Batch Selection */}
         <div className="mb-4 space-y-2">
-          {event.ticketBatches.map((batch) => (
-            <button
-              key={batch.name}
-              onClick={() => setSelectedBatch(batch)}
-              className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                selectedBatch.name === batch.name
-                  ? "border-purple-500/50 bg-purple-500/10"
-                  : "border-white/10 bg-white/5 hover:border-white/20"
-              }`}
-            >
-              <div>
-                <p className="text-sm font-medium text-white">{batch.name}</p>
-                <p className="text-xs text-zinc-500">{batch.quantity} remaining</p>
-              </div>
-              <span className="font-mono text-sm font-semibold text-zinc-200">
-                £{batch.basePrice.toFixed(2)}
-              </span>
-            </button>
-          ))}
+          {event.ticketBatches.map((batch) => {
+            const batchRemaining = batch.remaining ?? batch.quantity;
+            const soldOut = batchRemaining <= 0;
+            return (
+              <button
+                key={batch.name}
+                onClick={() => {
+                  if (!soldOut) {
+                    setSelectedBatch(batch);
+                    if (quantity > batchRemaining) setQuantity(Math.max(1, batchRemaining));
+                  }
+                }}
+                disabled={soldOut}
+                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                  soldOut
+                    ? "cursor-not-allowed border-white/5 bg-white/2 opacity-50"
+                    : selectedBatch.name === batch.name
+                      ? "border-purple-500/50 bg-purple-500/10"
+                      : "border-white/10 bg-white/5 hover:border-white/20"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-medium text-white">{batch.name}</p>
+                  <p className="text-xs text-zinc-500">
+                    {soldOut ? "Sold out" : `${batchRemaining} remaining`}
+                  </p>
+                </div>
+                <span className="font-mono text-sm font-semibold text-zinc-200">
+                  £{batch.basePrice.toFixed(2)}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Quantity */}
@@ -242,7 +256,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity((q) => Math.min(10, q + 1))}
+              onClick={() => setQuantity((q) => Math.min(Math.min(10, (selectedBatch.remaining ?? selectedBatch.quantity)), q + 1))}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-300 transition hover:bg-white/10"
             >
               +
@@ -290,7 +304,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
 
         <button
           onClick={handleBuyNow}
-          disabled={buying}
+          disabled={buying || (selectedBatch.remaining ?? selectedBatch.quantity) <= 0}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-500 via-purple-500 to-blue-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110 disabled:opacity-60"
         >
           {buying ? (

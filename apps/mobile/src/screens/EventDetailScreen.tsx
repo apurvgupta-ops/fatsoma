@@ -160,15 +160,24 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>Select Tickets</Text>
             {event.ticketBatches.map((batch) => {
               const isSelected = selectedBatch?.name === batch.name;
+              const batchRemaining = batch.remaining ?? batch.quantity;
+              const soldOut = batchRemaining <= 0;
               return (
                 <Pressable
                   key={batch.name}
-                  style={[styles.batchCard, isSelected && styles.batchCardSelected]}
-                  onPress={() => setSelectedBatch(batch)}
+                  style={[styles.batchCard, isSelected && styles.batchCardSelected, soldOut && { opacity: 0.4 }]}
+                  onPress={() => {
+                    if (soldOut) return;
+                    setSelectedBatch(batch);
+                    if (qty > batchRemaining) setQty(Math.max(1, batchRemaining));
+                  }}
+                  disabled={soldOut}
                 >
                   <View>
                     <Text style={styles.batchName}>{batch.name}</Text>
-                    <Text style={styles.batchQty}>{batch.quantity} available</Text>
+                    <Text style={styles.batchQty}>
+                      {soldOut ? "Sold out" : `${batchRemaining} available`}
+                    </Text>
                   </View>
                   <Text style={styles.batchPrice}>£{batch.basePrice.toFixed(2)}</Text>
                 </Pressable>
@@ -188,7 +197,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
                   <Text style={styles.qtyValue}>{qty}</Text>
                   <Pressable
                     style={styles.qtyBtn}
-                    onPress={() => setQty((q) => Math.min(10, q + 1))}
+                    onPress={() => setQty((q) => Math.min(Math.min(10, (selectedBatch?.remaining ?? selectedBatch?.quantity ?? 10)), q + 1))}
                   >
                     <Ionicons name="add" size={18} color="#fff" />
                   </Pressable>
