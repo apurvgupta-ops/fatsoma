@@ -17,8 +17,6 @@ import type { TicketBatch, ResaleListingResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import type { RootStackParamList } from "../navigation/types";
 import { useEvent } from "../hooks/useEvents";
-import { useLiveFee } from "../hooks/useLiveFee";
-import { SparkLine } from "../components/SparkLine";
 import { apiClient } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme";
@@ -29,7 +27,6 @@ export function EventDetailScreen({ route, navigation }: Props) {
   const { eventId } = route.params;
   const { user } = useAuth();
   const { event, loading, error } = useEvent(eventId);
-  const { fee, delta, history } = useLiveFee(event?.bookingFee ?? 10);
   const [selectedBatch, setSelectedBatch] = useState<TicketBatch | null>(null);
   const [qty, setQty] = useState(1);
   const [purchasing, setPurchasing] = useState(false);
@@ -61,12 +58,10 @@ export function EventDetailScreen({ route, navigation }: Props) {
     year: "numeric",
   });
 
-  const isUp = delta >= 0;
-  const feeColor = isUp ? colors.stock.green : colors.stock.red;
-
   const basePrice = selectedBatch?.basePrice ?? 0;
-  const totalPerTicket = basePrice + fee;
-  const grandTotal = totalPerTicket * qty;
+  const feePerTicket = Math.round(basePrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+  const totalPerTicket = basePrice + feePerTicket;
+  const grandTotal = Math.round(totalPerTicket * qty * 100) / 100;
 
   const handleBuyNow = async () => {
     if (!user) {
@@ -83,15 +78,13 @@ export function EventDetailScreen({ route, navigation }: Props) {
       return;
     }
 
-    const capturedFee = fee;
-
     try {
       setPurchasing(true);
       const res = await apiClient.createCheckoutSession({
         eventId: event.id,
         batchName: selectedBatch.name,
         quantity: qty,
-        capturedFee,
+        capturedFee: feePerTicket,
       });
 
       if (res.data?.url) {
@@ -145,28 +138,21 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <Text style={styles.description}>{event.eventDescription}</Text>
           </View>
 
-          {/* Live Booking Fee */}
+          {/* Booking Fee Info */}
           <View style={styles.feeCard}>
             <View style={styles.feeHeader}>
-              <Text style={styles.feeLabel}>Live Booking Fee</Text>
+              <Text style={styles.feeLabel}>Platform Booking Fee</Text>
               <View style={styles.feeValueRow}>
-                <Text style={[styles.feeValue, { color: feeColor }]}>
-                  £{fee.toFixed(2)}
+                <Text style={[styles.feeValue, { color: colors.purple.light }]}>
+                  {BOOKING_FEE_PERCENT}%
                 </Text>
-                <View style={[styles.deltaChip, { backgroundColor: isUp ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)" }]}>
-                  <Ionicons
-                    name={isUp ? "trending-up" : "trending-down"}
-                    size={14}
-                    color={feeColor}
-                  />
-                  <Text style={[styles.deltaText, { color: feeColor }]}>
-                    {isUp ? "+" : ""}
-                    {delta.toFixed(2)}
+                <View style={[styles.deltaChip, { backgroundColor: colors.purple.dim }]}>
+                  <Text style={[styles.deltaText, { color: colors.purple.light }]}>
+                    £{feePerTicket.toFixed(2)} / ticket
                   </Text>
                 </View>
               </View>
             </View>
-            <SparkLine data={history} max={event.bookingFee ?? 10} width={280} height={50} />
           </View>
 
           {/* Ticket Selection */}
@@ -249,7 +235,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>£{grandTotal.toFixed(2)}</Text>
             <Text style={styles.totalBreakdown}>
-              {qty} × £{basePrice.toFixed(2)} + £{fee.toFixed(2)} fee
+              {qty} × £{basePrice.toFixed(2)} + £{feePerTicket.toFixed(2)} fee ({BOOKING_FEE_PERCENT}%)
             </Text>
           </View>
           <Pressable

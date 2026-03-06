@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createPublicClient, createBrowserClient } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -14,12 +14,8 @@ import {
   CalendarDays,
   Clock,
   Ticket,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   ShoppingCart,
   Loader2,
-  Zap,
   Navigation,
   Building2,
   Globe,
@@ -29,6 +25,7 @@ import {
   Lock,
   RefreshCw,
   Tag,
+  Percent,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -165,11 +162,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
 
-  const { currentFee, history, trend, change } = useLiveFee(event.id, event.bookingFee ?? BOOKING_FEE_PERCENT);
-
+  const feePerTicket = Math.round(selectedBatch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
   const baseTotal = selectedBatch.basePrice * quantity;
-  const feeTotal = currentFee * quantity;
-  const grandTotal = baseTotal + feeTotal;
+  const feeTotal = Math.round(feePerTicket * quantity * 100) / 100;
+  const grandTotal = Math.round((baseTotal + feeTotal) * 100) / 100;
 
   const handleBuyNow = useCallback(async () => {
     if (!user) {
@@ -186,7 +182,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         eventId: event.id,
         batchName: selectedBatch.name,
         quantity,
-        capturedFee: currentFee,
+        capturedFee: feePerTicket,
       });
 
       if (res.ok && res.data?.url) {
@@ -199,92 +195,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
       setBuyError(err instanceof Error ? err.message : "Checkout failed");
       setBuying(false);
     }
-  }, [event.id, selectedBatch.name, quantity, currentFee, user, router]);
-
-  const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-rose-400" : "text-zinc-400";
-  const sparkColor = trend === "up" ? "#34d399" : trend === "down" ? "#fb7185" : "#a1a1aa";
-  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
-
-  const sparkline = useMemo(() => {
-    const w = 220;
-    const h = 48;
-    const pts = history.map((v, i) => {
-      const x = (i / Math.max(history.length - 1, 1)) * w;
-      const y = h - (v / 5) * h;
-      return `${x},${y}`;
-    });
-    return { points: pts.join(" "), w, h };
-  }, [history]);
+  }, [event.id, selectedBatch.name, quantity, feePerTicket, user, router]);
 
   return (
     <div className="sticky top-8 space-y-4">
-      {/* Live Booking Fee Card */}
-      <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-400" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
-              Live Booking Fee
-            </span>
-          </div>
-          <div className={`flex items-center gap-1 text-xs font-semibold ${trendColor}`}>
-            <TrendIcon className="h-3 w-3" />
-            {change > 0 ? "+" : ""}{change.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="mb-3 flex items-baseline gap-2">
-          <span className="font-mono text-4xl font-bold text-white">
-            £{currentFee.toFixed(2)}
-          </span>
-          <span className="text-sm text-zinc-500">per ticket</span>
-        </div>
-
-        <svg
-          width="100%"
-          height={sparkline.h}
-          viewBox={`0 0 ${sparkline.w} ${sparkline.h}`}
-          preserveAspectRatio="none"
-          className="overflow-visible"
-        >
-          <defs>
-            <linearGradient id="fee-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={sparkColor} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={sparkColor} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {history.length > 1 && (
-            <>
-              <polygon
-                points={`0,${sparkline.h} ${sparkline.points} ${sparkline.w},${sparkline.h}`}
-                fill="url(#fee-grad)"
-              />
-              <polyline
-                points={sparkline.points}
-                fill="none"
-                stroke={sparkColor}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </>
-          )}
-          <circle
-            cx={sparkline.w}
-            cy={sparkline.h - (currentFee / 5) * sparkline.h}
-            r="4"
-            fill={sparkColor}
-            className="animate-pulse"
-          />
-        </svg>
-
-        <div className="mt-2 flex justify-between text-[10px] text-zinc-600">
-          <span>£0.00</span>
-          <span className="font-mono text-zinc-500">{BOOKING_FEE_PERCENT}% fee · updates live</span>
-          <span>£5.00</span>
-        </div>
-      </div>
-
       {/* Ticket Selection */}
       <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
@@ -345,11 +259,9 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           <div className="flex justify-between text-zinc-400">
             <span className="flex items-center gap-1">
               Booking fee
-              <span className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-semibold ${
-                trend === "up" ? "bg-emerald-500/20 text-emerald-400" : trend === "down" ? "bg-rose-500/20 text-rose-400" : "bg-zinc-500/20 text-zinc-400"
-              }`}>
-                <TrendIcon className="h-2.5 w-2.5" />
-                £{currentFee.toFixed(2)}
+              <span className="inline-flex items-center gap-0.5 rounded bg-purple-500/20 px-1 py-0.5 text-[10px] font-semibold text-purple-300">
+                <Percent className="h-2.5 w-2.5" />
+                {BOOKING_FEE_PERCENT}%
               </span>
               × {quantity}
             </span>
@@ -369,7 +281,6 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           </div>
         )}
 
-        {/* Buy Now Button */}
         {!user && (
           <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-300/90">
             <Lock className="h-3.5 w-3.5 shrink-0" />
@@ -398,54 +309,11 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         </button>
 
         <p className="mt-3 text-center text-[10px] text-zinc-600">
-          Secure checkout via Stripe. Fee captured at time of purchase.
+          Secure checkout via Stripe · {BOOKING_FEE_PERCENT}% platform booking fee
         </p>
       </div>
     </div>
   );
-}
-
-/* ── Live Fee Hook ── */
-
-function useLiveFee(eventId: string, baseFee: number) {
-  let seed = 0;
-  for (let i = 0; i < eventId.length; i++) {
-    seed = (Math.imul(31, seed) + eventId.charCodeAt(i)) | 0;
-  }
-  const initialValue = Math.abs(seed) % 50 / 10;
-
-  const [currentFee, setCurrentFee] = useState(initialValue);
-  const [history, setHistory] = useState<number[]>(() => {
-    const h: number[] = [];
-    for (let i = 0; i < 20; i++) {
-      h.push(Math.max(0, Math.min(5, initialValue + (Math.random() - 0.5) * 1.2)));
-    }
-    h.push(initialValue);
-    return h;
-  });
-
-  const prevRef = useRef(initialValue);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setCurrentFee((prev) => {
-        const delta = (Math.random() - 0.48) * 0.5;
-        const next = Math.min(5, Math.max(0, +(prev + delta).toFixed(2)));
-        prevRef.current = prev;
-        setHistory((h) => {
-          const updated = [...h, next];
-          return updated.length > 40 ? updated.slice(-40) : updated;
-        });
-        return next;
-      });
-    }, 2000);
-    return () => clearInterval(iv);
-  }, []);
-
-  const change = +(currentFee - prevRef.current).toFixed(2);
-  const trend: "up" | "down" | "flat" = change > 0 ? "up" : change < 0 ? "down" : "flat";
-
-  return { currentFee, history, trend, change };
 }
 
 /* ── Venue Card ── */

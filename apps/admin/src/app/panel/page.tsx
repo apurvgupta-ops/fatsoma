@@ -6,7 +6,7 @@ import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { EventResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
-import { TrendingUp, TrendingDown, Activity, BarChart3, Ticket, DollarSign } from "lucide-react";
+import { Activity, BarChart3, Ticket, DollarSign, Percent } from "lucide-react";
 
 export default function PanelPage() {
   const { token } = useAuth();
@@ -49,11 +49,11 @@ export default function PanelPage() {
         <header>
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-purple-300/80">
             <span className="h-px w-10 bg-linear-to-r from-purple-500 to-blue-400" />
-            Stock Panel
+            Panel
           </div>
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">Booking Fee Monitor</h1>
+          <h1 className="text-3xl font-semibold text-white sm:text-4xl">Fee Overview</h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-            Real-time stock-market style view of your events&apos; {BOOKING_FEE_PERCENT}% booking fee performance.
+            Platform-wide {BOOKING_FEE_PERCENT}% booking fee applied to all events.
           </p>
         </header>
 
@@ -103,8 +103,6 @@ export default function PanelPage() {
   );
 }
 
-/* ── Panel Event Row with Stock Indicator ── */
-
 function PanelEventRow({ event }: { event: EventResponse }) {
   const totalTickets = event.ticketBatches.reduce((s, b) => s + b.quantity, 0);
   const grossRevenue = event.ticketBatches.reduce((s, b) => s + b.quantity * b.basePrice, 0);
@@ -144,96 +142,14 @@ function PanelEventRow({ event }: { event: EventResponse }) {
           <p className="text-[10px] uppercase tracking-wider text-zinc-500">Fee Rev</p>
           <p className="font-mono text-sm text-emerald-300">£{feeRevenue.toFixed(2)}</p>
         </div>
-        <BookingFeeStock fee={event.bookingFee ?? BOOKING_FEE_PERCENT} />
+        <div className="flex items-center gap-2 rounded-2xl border border-purple-500/20 bg-purple-500/10 px-4 py-2">
+          <Percent className="h-4 w-4 text-purple-400" />
+          <span className="font-mono text-lg font-bold text-white">{BOOKING_FEE_PERCENT}%</span>
+        </div>
       </div>
     </div>
   );
 }
-
-/* ── Stock-Style 0-5 Indicator ── */
-
-function BookingFeeStock({ fee }: { fee: number }) {
-  const [display, setDisplay] = useState(fee);
-  const [history, setHistory] = useState<number[]>(() => {
-    const h: number[] = [];
-    for (let i = 0; i < 20; i++) {
-      h.push(Math.max(0, Math.min(5, fee + (Math.random() - 0.5) * 1.5)));
-    }
-    return h;
-  });
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setDisplay((prev) => {
-        const delta = (Math.random() - 0.5) * 0.6;
-        const next = Math.max(0, Math.min(5, prev + delta));
-        setHistory((h) => [...h.slice(-19), next]);
-        return next;
-      });
-    }, 2000);
-    return () => clearInterval(iv);
-  }, []);
-
-  const change = display - fee;
-  const isUp = change >= 0;
-  const color = isUp ? "text-emerald-400" : "text-rose-400";
-  const bgColor = isUp ? "bg-emerald-500" : "bg-rose-500";
-
-  const sparkline = useMemo(() => {
-    const min = Math.min(...history);
-    const max = Math.max(...history);
-    const range = max - min || 1;
-    const h = 32;
-    const w = 80;
-    const step = w / (history.length - 1);
-    const points = history
-      .map((v, i) => `${i * step},${h - ((v - min) / range) * h}`)
-      .join(" ");
-    return { points, w, h };
-  }, [history]);
-
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/60 px-4 py-2">
-      <div className="flex flex-col items-end">
-        <span className="font-mono text-lg font-bold text-white">{display.toFixed(2)}</span>
-        <span className={`flex items-center gap-0.5 text-xs font-semibold ${color}`}>
-          {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {isUp ? "+" : ""}
-          {change.toFixed(2)}
-        </span>
-      </div>
-      <svg width={sparkline.w} height={sparkline.h} className="shrink-0">
-        <defs>
-          <linearGradient id={`grad-${isUp ? "up" : "down"}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isUp ? "#10b981" : "#f43f5e"} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={isUp ? "#10b981" : "#f43f5e"} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <polygon
-          points={`0,${sparkline.h} ${sparkline.points} ${sparkline.w},${sparkline.h}`}
-          fill={`url(#grad-${isUp ? "up" : "down"})`}
-        />
-        <polyline
-          points={sparkline.points}
-          fill="none"
-          stroke={isUp ? "#10b981" : "#f43f5e"}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle
-          cx={sparkline.w}
-          cy={sparkline.points.split(" ").pop()?.split(",")[1]}
-          r="2.5"
-          className={`${bgColor} animate-pulse`}
-          fill={isUp ? "#10b981" : "#f43f5e"}
-        />
-      </svg>
-    </div>
-  );
-}
-
-/* ── Summary Card ── */
 
 function SummaryCard({
   icon,
