@@ -8,6 +8,6 @@ export async function getMyTickets(req: Request, res: Response) {
 }
 
 export async function getTicket(req: Request, res: Response) {
-  const ticket = await ticketService.getTicketById(req.params.id, req.user!.userId);
+  const ticket = await ticketService.getTicketById(req.params.id as string, req.user!.userId);
   sendSuccess(res, ticket, "Ticket retrieved");
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createPublicClient } from "@/lib/api";
 import type { CheckoutOrder } from "@fatsoma/api-client";
@@ -8,6 +8,20 @@ import Link from "next/link";
 import { CheckCircle, Ticket, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        </div>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
 

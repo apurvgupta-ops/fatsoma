@@ -48,7 +48,7 @@ export async function getMyTickets(userId: string) {
 }
 
 export async function getTicketById(ticketId: string, userId: string) {
-  const ticket = await Ticket.findById(ticketId).lean();
+  const ticket = await Ticket.findById(ticketId).lean() as any;
   if (!ticket) throw AppError.notFound("Ticket not found");
   if (ticket.userId.toString() !== userId) {
     throw AppError.forbidden("You do not own this ticket");

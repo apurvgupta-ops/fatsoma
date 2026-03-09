@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/fatsoma-clone";
+const MONGODB_URI =
+  "mongodb://onthelistapp:Hfz7UqehFbf7kt4fGk9wYg@192.168.1.47:29017/onthelistapp";
 
 let isConnected = false;
 

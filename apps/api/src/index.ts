@@ -70,7 +70,7 @@ export function createApp() {
  * Boot sequence: connect to MongoDB then start listening.
  */
 async function start() {
-  const PORT = process.env.PORT || 4000;
+  const PORT = 3016;
 
   await connectDB();
 
