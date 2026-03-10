@@ -13,6 +13,10 @@
     "dev:admin": "turbo run dev --filter=@fatsoma/admin",
     "dev:web": "turbo run dev --filter=@fatsoma/web",
     "build": "turbo run build",
+    "start": "turbo run start",
+    "start:api": "turbo run start --filter=@fatsoma/api",
+    "start:admin": "turbo run start --filter=@fatsoma/admin",
+    "start:web": "turbo run start --filter=@fatsoma/web",
     "lint": "turbo run lint",
     "seed": "turbo run seed --filter=@fatsoma/api"
   },
