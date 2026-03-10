@@ -18,7 +18,7 @@ module.exports = {
             args: 'start --port 3018',
             env: {
                 NODE_ENV: 'production',
-                PORT: 3000
+                PORT: 3018
             },
             watch: false,
             autorestart: true
@@ -30,7 +30,7 @@ module.exports = {
             args: 'start --port 3017',
             env: {
                 NODE_ENV: 'production',
-                PORT: 3001
+                PORT: 3017
             },
             watch: false,
             autorestart: true
