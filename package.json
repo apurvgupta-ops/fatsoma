@@ -14,10 +14,7 @@
     "dev:web": "turbo run dev --filter=@fatsoma/web",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "seed": "turbo run seed --filter=@fatsoma/api",
-    "dev:mobile": "cd apps/mobile && npx expo start",
-    "android": "cd apps/mobile && npx expo start --android",
-    "ios": "cd apps/mobile && npx expo start --ios"
+    "seed": "turbo run seed --filter=@fatsoma/api"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

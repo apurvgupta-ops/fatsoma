@@ -3,10 +3,9 @@ module.exports = {
         {
             name: 'api',
             cwd: './apps/api',
-            script: 'npm',
-            args: 'run dev',
+            script: 'dist/index.js',
             env: {
-                NODE_ENV: 'development',
+                NODE_ENV: 'production',
                 PORT: 3016
             },
             watch: false,
@@ -16,10 +15,10 @@ module.exports = {
             name: 'admin',
             cwd: './apps/admin',
             script: 'npm',
-            args: 'run dev',
+            args: 'start',
             env: {
-                NODE_ENV: 'development',
-                PORT: 3003
+                NODE_ENV: 'production',
+                PORT: 3000
             },
             watch: false,
             autorestart: true
@@ -28,9 +27,9 @@ module.exports = {
             name: 'web',
             cwd: './apps/web',
             script: 'npm',
-            args: 'run dev',
+            args: 'start',
             env: {
-                NODE_ENV: 'development',
+                NODE_ENV: 'production',
                 PORT: 3001
             },
             watch: false,
