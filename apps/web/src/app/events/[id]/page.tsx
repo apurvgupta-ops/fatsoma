@@ -28,7 +28,7 @@ import {
   Percent,
 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -220,13 +220,12 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                   }
                 }}
                 disabled={soldOut}
-                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                  soldOut
+                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${soldOut
                     ? "cursor-not-allowed border-white/5 bg-white/2 opacity-50"
                     : selectedBatch.name === batch.name
                       ? "border-purple-500/50 bg-purple-500/10"
                       : "border-white/10 bg-white/5 hover:border-white/20"
-                }`}
+                  }`}
               >
                 <div>
                   <p className="text-sm font-medium text-white">{batch.name}</p>

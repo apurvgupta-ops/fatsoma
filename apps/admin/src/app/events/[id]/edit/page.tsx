@@ -36,7 +36,7 @@ const DEFAULT_BATCH: TicketBatch = {
   maxDiscount: 0,
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
 
 export default function EditEventPage() {
   const { token } = useAuth();
@@ -125,12 +125,12 @@ export default function EditEventPage() {
       prev.map((b, i) =>
         i === index
           ? {
-              ...b,
-              [field]:
-                typeof DEFAULT_BATCH[field] === "number"
-                  ? Number(value)
-                  : value,
-            }
+            ...b,
+            [field]:
+              typeof DEFAULT_BATCH[field] === "number"
+                ? Number(value)
+                : value,
+          }
           : b,
       ),
     );
@@ -245,11 +245,10 @@ export default function EditEventPage() {
             </div>
           </div>
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              form.status === "published"
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${form.status === "published"
                 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                 : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-            }`}
+              }`}
           >
             {form.status === "published" ? "Published" : "Draft"}
           </span>

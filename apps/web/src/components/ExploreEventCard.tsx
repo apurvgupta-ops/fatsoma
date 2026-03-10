@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { EventResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
 
 export default function ExploreEventCard({ event }: { event: EventResponse }) {
   const minPrice = Math.min(...event.ticketBatches.map((b) => b.basePrice));

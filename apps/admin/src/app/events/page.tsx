@@ -59,7 +59,7 @@ export default function EventsPage() {
               const imageUrl = isPlaceholder
                 ? `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(event.eventName)}`
                 : event.eventImage.startsWith("/uploads/")
-                  ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${event.eventImage}`
+                  ? `${process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016"}${event.eventImage}`
                   : event.eventImage;
 
               return (

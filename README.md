@@ -403,7 +403,7 @@ A typed HTTP client class (`FatsomaClient`) that wraps `fetch` and provides meth
 
 ```typescript
 const client = new FatsomaClient({
-  baseUrl: "http://localhost:4000",
+  baseUrl: "https://onthelistapp.24livehost.com:3016",
   getToken: () => localStorage.getItem("accessToken"),
 });
 
@@ -471,7 +471,7 @@ npm run dev
 Or start individually:
 
 ```bash
-npm run dev:api       # API at http://localhost:4000
+npm run dev:api       # API at https://onthelistapp.24livehost.com:3016
 npm run dev:admin     # Admin at http://localhost:3000
 npm run dev:web       # Web at http://localhost:3001
 npm run dev:mobile    # Mobile at http://localhost:8081
@@ -520,7 +520,7 @@ npm run ios           # Launch on iOS simulator (macOS only)
 
 ### Web & Admin
 
-Both Next.js apps read `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:4000`).
+Both Next.js apps read `NEXT_PUBLIC_API_URL` (defaults to `https://onthelistapp.24livehost.com:3016`).
 
 ---
 

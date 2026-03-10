@@ -1,6 +1,6 @@
 import { FatsomaClient } from "@fatsoma/api-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
 
 export function createPublicClient() {
   return new FatsomaClient({ baseUrl: API_BASE_URL });
