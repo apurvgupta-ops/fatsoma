@@ -7,7 +7,7 @@ import Ticket from "../models/Ticket";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 
-const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
+const WEB_URL = process.env.WEB_URL || "https://onthelistwebapp.24livehost.com";
 
 let _stripe: Stripe | null = null;
 
