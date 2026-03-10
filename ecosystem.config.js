@@ -15,7 +15,7 @@ module.exports = {
             name: 'admin',
             cwd: './apps/admin',
             script: '../../node_modules/.bin/next',
-            args: 'start --port 3000',
+            args: 'start --port 3018',
             env: {
                 NODE_ENV: 'production',
                 PORT: 3000
@@ -27,7 +27,7 @@ module.exports = {
             name: 'web',
             cwd: './apps/web',
             script: '../../node_modules/.bin/next',
-            args: 'start --port 3001',
+            args: 'start --port 3017',
             env: {
                 NODE_ENV: 'production',
                 PORT: 3001
