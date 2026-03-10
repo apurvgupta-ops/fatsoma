@@ -19,7 +19,7 @@ module.exports = {
             args: 'run dev',
             env: {
                 NODE_ENV: 'development',
-                PORT: 3000
+                PORT: 3003
             },
             watch: false,
             autorestart: true
