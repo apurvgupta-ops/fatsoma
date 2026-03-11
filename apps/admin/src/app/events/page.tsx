@@ -26,28 +26,28 @@ export default function EventsPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-purple-300/80">
-              <span className="h-px w-10 bg-linear-to-r from-purple-500 to-blue-400" />
+            <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold/80">
+              <span className="h-px w-10 bg-linear-to-r from-gold to-gold-light" />
               Event Management
             </div>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Your Events</h1>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-400">Manage all your events in one place.</p>
+            <h1 className="text-3xl font-semibold text-cream sm:text-4xl">Your Events</h1>
+            <p className="mt-2 max-w-2xl text-sm text-cream/60">Manage all your events in one place.</p>
           </div>
           <Link href="/events/create"
-            className="rounded-xl bg-linear-to-r from-indigo-500 via-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110">
+            className="rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light px-6 py-3 text-sm font-semibold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110">
             + Create New Event
           </Link>
         </header>
 
         {loading ? (
           <div className="flex min-h-40 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
           </div>
         ) : events.length === 0 ? (
-          <div className="flex min-h-60 items-center justify-center rounded-3xl border border-white/10 bg-zinc-950/60 p-12">
+          <div className="flex min-h-60 items-center justify-center rounded-3xl border border-border bg-void/60 p-12">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white">No events yet</h3>
-              <p className="mt-2 text-sm text-zinc-400">Get started by creating your first event.</p>
+              <h3 className="text-lg font-semibold text-cream">No events yet</h3>
+              <p className="mt-2 text-sm text-cream/60">Get started by creating your first event.</p>
             </div>
           </div>
         ) : (
@@ -59,12 +59,12 @@ export default function EventsPage() {
               const imageUrl = isPlaceholder
                 ? `https://placehold.co/400x300/1a1a1a/9333ea.png?text=${encodeURIComponent(event.eventName)}`
                 : event.eventImage.startsWith("/uploads/")
-                  ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${event.eventImage}`
+                  ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016"}${event.eventImage}`
                   : event.eventImage;
 
               return (
-                <Link key={event.id} href={`/events/${event.id}/edit`} className="group overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition hover:border-white/20 hover:bg-zinc-950/80">
-                  <div className="relative aspect-video overflow-hidden bg-zinc-900">
+                <Link key={event.id} href={`/events/${event.id}/edit`} className="group overflow-hidden rounded-3xl border border-border bg-void/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition hover:border-border hover:bg-void/80">
+                  <div className="relative aspect-video overflow-hidden bg-surface">
                     <Image src={imageUrl} alt={event.eventName} fill loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized />
                     <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
                     <div className="absolute left-4 top-4 flex items-center gap-2">
@@ -74,14 +74,14 @@ export default function EventsPage() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition">{event.eventName}</h3>
-                    <p className="mt-2 line-clamp-2 text-sm text-zinc-400">{event.eventDescription}</p>
-                    <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4 text-sm text-zinc-300">
+                    <h3 className="text-lg font-semibold text-cream group-hover:text-gold transition">{event.eventName}</h3>
+                    <p className="mt-2 line-clamp-2 text-sm text-cream/60">{event.eventDescription}</p>
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm text-cream/90">
                       <div className="space-y-1">
                         <p>{event.venueName} · {new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
                         <p>{totalTickets} tickets · From £{minPrice.toFixed(2)}</p>
                       </div>
-                      <span className="rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-300 opacity-0 transition group-hover:opacity-100">
+                      <span className="rounded-lg bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold opacity-0 transition group-hover:opacity-100">
                         Edit
                       </span>
                     </div>

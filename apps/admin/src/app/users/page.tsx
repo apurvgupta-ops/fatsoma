@@ -56,8 +56,8 @@ export default function UsersPage() {
     <AuthenticatedLayout>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-white">User Management</h1>
-          <p className="mt-1 text-sm text-zinc-400">Manage users and permissions</p>
+          <h1 className="text-3xl font-bold tracking-tight text-cream">User Management</h1>
+          <p className="mt-1 text-sm text-cream/60">Manage users and permissions</p>
         </header>
 
         {message && (
@@ -68,44 +68,44 @@ export default function UsersPage() {
 
         {loading ? (
           <div className="flex min-h-40 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
           </div>
         ) : (
-          <div className="rounded-3xl border border-white/10 bg-zinc-950/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div className="rounded-3xl border border-border bg-void/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">User</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Role</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-400">Actions</th>
+                  <tr className="border-b border-border">
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">User</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Role</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Status</th>
+                    <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-border">
                   {users.map((u) => (
                     <tr key={u.id} className="transition hover:bg-white/5">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-white">{u.name}</p>
-                        <p className="text-sm text-zinc-400">{u.email}</p>
+                        <p className="font-medium text-cream">{u.name}</p>
+                        <p className="text-sm text-cream/60">{u.email}</p>
                       </td>
                       <td className="px-6 py-4">
                         <select value={u.role} onChange={(e) => handleChangeRole(u.id, e.target.value as "admin" | "user")}
                           disabled={u.id === currentUser?.id}
-                          className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-1 text-sm text-zinc-200 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                          className="rounded-lg border border-border bg-surface px-3 py-1 text-sm text-cream/90 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
                         </select>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${u.isActive ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40" : "bg-zinc-500/10 text-zinc-400 border border-zinc-500/40"}`}>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${u.isActive ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40" : "bg-zinc-500/10 text-cream/60 border border-zinc-500/40"}`}>
                           {u.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleToggleStatus(u.id, u.isActive)} disabled={u.id === currentUser?.id}
-                            className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-1 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                            className="rounded-lg border border-border bg-surface px-3 py-1 text-xs text-cream/90 transition hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed">
                             {u.isActive ? "Deactivate" : "Activate"}
                           </button>
                           <button onClick={() => handleDelete(u.id)} disabled={u.id === currentUser?.id}

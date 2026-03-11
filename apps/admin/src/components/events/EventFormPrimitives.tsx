@@ -11,9 +11,9 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-zinc-950/60 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-      <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-white">
-        <span className="text-purple-400">{icon}</span>
+    <section className="rounded-3xl border border-border bg-void/60 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+      <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-cream">
+        <span className="text-gold">{icon}</span>
         {title}
       </h2>
       {children}
@@ -44,9 +44,9 @@ export function InputField({
 
   return (
     <div className={className}>
-      <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+      <label className="mb-1.5 block text-sm font-medium text-cream/90">
         {label}
-        {required && <span className="ml-0.5 text-purple-400">*</span>}
+        {required && <span className="ml-0.5 text-gold">*</span>}
       </label>
       <div className="relative">
         <input
@@ -55,14 +55,14 @@ export function InputField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full rounded-xl border border-white/10 bg-zinc-900/60 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 ${hasIcon ? "pr-10" : ""}`}
+          className={`w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-cream placeholder-zinc-500 outline-none transition focus:border-gold/50 focus:ring-1 focus:ring-gold/30 ${hasIcon ? "pr-10" : ""}`}
         />
         {hasIcon && Icon && (
           <button
             type="button"
             tabIndex={-1}
             onClick={() => inputRef.current?.showPicker?.()}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 transition hover:text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-cream/70 transition hover:text-cream"
           >
             <Icon className="h-4 w-4" />
           </button>
@@ -85,11 +85,11 @@ export function SelectField({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-zinc-300">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-cream/90">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-zinc-900/60 px-4 py-2.5 text-sm text-white outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30"
+        className="w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-cream outline-none transition focus:border-gold/50 focus:ring-1 focus:ring-gold/30"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -113,10 +113,10 @@ export function ToggleField({
   description?: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl border border-border bg-surface/40 px-4 py-3">
       <div>
-        <p className="text-sm font-medium text-zinc-300">{label}</p>
-        {description && <p className="mt-0.5 text-xs text-zinc-500">{description}</p>}
+        <p className="text-sm font-medium text-cream/90">{label}</p>
+        {description && <p className="mt-0.5 text-xs text-cream/60">{description}</p>}
       </div>
       <button
         type="button"
@@ -124,7 +124,7 @@ export function ToggleField({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-          checked ? "bg-purple-500" : "bg-zinc-700"
+          checked ? "bg-gold" : "bg-zinc-700"
         }`}
       >
         <span

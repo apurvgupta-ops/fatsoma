@@ -25,7 +25,7 @@ export function createApp() {
 
   // ── CORS ────────────────────────────────────────────
   const origins = (
-    process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001"
+    process.env.CORS_ORIGIN || "http://localhost:3003,http://localhost:3001"
   )
     .split(",")
     .map((s) => s.trim());

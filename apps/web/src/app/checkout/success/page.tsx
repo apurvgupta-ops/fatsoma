@@ -12,7 +12,7 @@ export default function CheckoutSuccessPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
         </div>
       }
     >
@@ -50,7 +50,7 @@ function CheckoutSuccessContent() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-gold" />
       </div>
     );
   }
@@ -58,8 +58,8 @@ function CheckoutSuccessContent() {
   if (error || !order) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0f0f0f]">
-        <p className="text-lg text-zinc-400">{error || "Something went wrong"}</p>
-        <Link href="/" className="text-sm text-purple-400 hover:underline">
+        <p className="text-lg text-cream/60">{error || "Something went wrong"}</p>
+        <Link href="/" className="text-sm text-gold hover:underline">
           Back to events
         </Link>
       </div>
@@ -67,25 +67,25 @@ function CheckoutSuccessContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100">
+    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-emerald-500/15 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-purple-500/15 blur-[160px]" />
+        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold/15 blur-[160px]" />
 
         <div className="relative mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-4 py-20 text-center">
           <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
             <CheckCircle className="h-10 w-10 text-emerald-400" />
           </div>
 
-          <h1 className="text-3xl font-bold text-white sm:text-4xl">Booking Confirmed!</h1>
-          <p className="mt-3 max-w-md text-sm text-zinc-400">
+          <h1 className="text-3xl font-bold text-cream sm:text-4xl">Booking Confirmed!</h1>
+          <p className="mt-3 max-w-md text-sm text-cream/60">
             Your tickets have been reserved. You&apos;ll receive a confirmation email shortly.
           </p>
 
-          <div className="mt-8 w-full max-w-md rounded-3xl border border-white/10 bg-zinc-950/60 p-6 text-left shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+          <div className="mt-8 w-full max-w-md rounded-3xl border border-border bg-void/60 p-6 text-left shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
             <div className="mb-4 flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-purple-400" />
-              <h2 className="text-lg font-semibold text-white">Order Summary</h2>
+              <Ticket className="h-5 w-5 text-gold" />
+              <h2 className="text-lg font-semibold text-cream">Order Summary</h2>
             </div>
 
             <div className="space-y-3 text-sm">
@@ -97,7 +97,7 @@ function CheckoutSuccessContent() {
                 label="Booking Fee (captured)"
                 value={`£${order.capturedBookingFee.toFixed(2)} × ${order.quantity}`}
               />
-              <div className="border-t border-white/10 pt-3">
+              <div className="border-t border-border pt-3">
                 <Row
                   label="Total Paid"
                   value={`£${order.totalAmount.toFixed(2)}`}
@@ -120,7 +120,7 @@ function CheckoutSuccessContent() {
 
           <Link
             href="/"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/10"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl border border-border bg-white/5 px-6 py-3 text-sm font-semibold text-cream/90 transition hover:bg-white/10"
           >
             <ArrowLeft className="h-4 w-4" /> Browse More Events
           </Link>
@@ -133,8 +133,8 @@ function CheckoutSuccessContent() {
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex justify-between">
-      <span className="text-zinc-500">{label}</span>
-      <span className={bold ? "font-mono text-lg font-bold text-white" : "font-mono text-zinc-200"}>
+      <span className="text-cream/60">{label}</span>
+      <span className={bold ? "font-mono text-lg font-bold text-cream" : "font-mono text-cream/90"}>
         {value}
       </span>
     </div>

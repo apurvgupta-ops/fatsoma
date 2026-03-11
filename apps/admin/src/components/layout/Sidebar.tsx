@@ -8,10 +8,10 @@ import {
   Calendar,
   Users,
   LogOut,
-  Sparkles,
   BarChart3,
   CreditCard,
 } from "lucide-react";
+import { LogoIcon } from "../Logo";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -33,15 +33,13 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-white/10 bg-zinc-950/95 backdrop-blur-xl">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-void/95 backdrop-blur-xl">
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-purple-500 to-blue-500">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
+        <div className="flex items-center gap-3 border-b border-border px-6 py-5">
+          <LogoIcon className="h-10 w-auto text-gold" />
           <div>
-            <h2 className="text-lg font-semibold text-white">Fatsoma</h2>
-            <p className="text-xs text-zinc-500">Admin Panel</p>
+            <h2 className="text-xl font-serif italic tracking-[0.1em] text-cream">On The List</h2>
+            <p className="text-xs text-cream/60">Admin Panel</p>
           </div>
         </div>
 
@@ -51,31 +49,30 @@ export default function Sidebar() {
             const active = isActive(item.href);
             return (
               <Link key={item.name} href={item.href}
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  active ? "bg-purple-500/10 text-purple-300" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                }`}>
-                <Icon className={`h-5 w-5 transition-colors ${active ? "text-purple-400" : "text-zinc-500 group-hover:text-zinc-400"}`} />
+                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${active ? "bg-gold/10 text-gold" : "text-cream/60 hover:bg-white/5 hover:text-cream/90"
+                  }`}>
+                <Icon className={`h-5 w-5 transition-colors ${active ? "text-gold" : "text-cream/60 group-hover:text-cream/60"}`} />
                 {item.name}
-                {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-400" />}
+                {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-gold" />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-border p-4">
           <div className="mb-3 rounded-lg bg-white/5 p-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">{user?.name ?? "User"}</p>
-                <p className="truncate text-xs text-zinc-500">{user?.email ?? ""}</p>
+                <p className="truncate text-sm font-medium text-cream">{user?.name ?? "User"}</p>
+                <p className="truncate text-xs text-cream/60">{user?.email ?? ""}</p>
               </div>
               {user?.role === "admin" && (
-                <span className="ml-2 shrink-0 rounded-full border border-purple-500/40 bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">Admin</span>
+                <span className="ml-2 shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-xs text-gold">Admin</span>
               )}
             </div>
           </div>
           <button onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-rose-500/10 hover:text-rose-300">
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-cream/60 transition-all hover:bg-rose-500/10 hover:text-rose-300">
             <LogOut className="h-5 w-5" /> Sign Out
           </button>
         </div>

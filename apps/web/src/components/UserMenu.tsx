@@ -27,13 +27,13 @@ export default function UserMenu() {
       <div className="flex items-center gap-2">
         <Link
           href="/login"
-          className="rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-white/5 hover:text-white"
+          className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-cream/90 transition hover:bg-white/5 hover:text-cream"
         >
           Sign In
         </Link>
         <Link
           href="/signup"
-          className="rounded-lg bg-linear-to-r from-purple-600 to-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:from-purple-500 hover:to-blue-500"
+          className="rounded-lg bg-linear-to-r from-gold to-gold-light px-4 py-2 text-xs font-semibold text-cream transition hover:from-gold hover:to-gold-light"
         >
           Sign Up
         </Link>
@@ -52,28 +52,28 @@ export default function UserMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 transition hover:bg-white/10"
+        className="flex items-center gap-2 rounded-lg border border-border bg-white/5 px-3 py-1.5 transition hover:bg-white/10"
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-purple-500 to-blue-500 text-xs font-bold text-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-gold to-gold-light text-xs font-bold text-cream">
           {initials}
         </div>
-        <span className="max-w-[100px] truncate text-sm font-medium text-zinc-200">
+        <span className="max-w-[100px] truncate text-sm font-medium text-cream/90">
           {user.name}
         </span>
-        <ChevronDown className={`h-3.5 w-3.5 text-zinc-500 transition ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-3.5 w-3.5 text-cream/60 transition ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-white/10 bg-zinc-950 shadow-2xl">
-          <div className="border-b border-white/5 px-4 py-3">
-            <p className="text-sm font-medium text-white">{user.name}</p>
-            <p className="truncate text-xs text-zinc-500">{user.email}</p>
+        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-void shadow-2xl">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium text-cream">{user.name}</p>
+            <p className="truncate text-xs text-cream/60">{user.email}</p>
           </div>
           <div className="p-1">
             <Link
               href="/tickets"
               onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-purple-400"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-gold"
             >
               <Ticket className="h-4 w-4" />
               My Tickets
@@ -83,7 +83,7 @@ export default function UserMenu() {
                 setOpen(false);
                 logout();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-red-400"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-red-400"
             >
               <LogOut className="h-4 w-4" />
               Sign Out

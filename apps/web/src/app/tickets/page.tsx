@@ -21,8 +21,8 @@ import {
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   listed: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  transferred: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  used: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  transferred: "bg-gold-light/10 text-gold-light border-gold-light/20",
+  used: "bg-zinc-500/10 text-cream/60 border-zinc-500/20",
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
@@ -104,7 +104,7 @@ export default function MyTicketsPage() {
   if (authLoading || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-gold" />
       </div>
     );
   }
@@ -112,12 +112,12 @@ export default function MyTicketsPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
-          <Ticket className="h-5 w-5 text-purple-400" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10">
+          <Ticket className="h-5 w-5 text-gold" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">My Tickets</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold text-cream">My Tickets</h1>
+          <p className="text-sm text-cream/60">
             {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -131,15 +131,15 @@ export default function MyTicketsPage() {
       )}
 
       {tickets.length === 0 ? (
-        <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-12 text-center">
+        <div className="rounded-2xl border border-border bg-void/60 p-12 text-center">
           <Ticket className="mx-auto mb-4 h-12 w-12 text-zinc-700" />
-          <h2 className="mb-2 text-lg font-semibold text-zinc-300">No tickets yet</h2>
-          <p className="mb-6 text-sm text-zinc-600">
+          <h2 className="mb-2 text-lg font-semibold text-cream/90">No tickets yet</h2>
+          <p className="mb-6 text-sm text-cream/60">
             Browse events and purchase tickets to see them here.
           </p>
           <Link
             href="/explore"
-            className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-gold px-6 py-2.5 text-sm font-semibold text-cream transition hover:bg-gold"
           >
             Explore Events <ArrowRight className="h-4 w-4" />
           </Link>
@@ -149,14 +149,14 @@ export default function MyTicketsPage() {
           {tickets.map((ticket) => (
             <div
               key={ticket.id}
-              className="group relative overflow-hidden rounded-2xl border border-white/5 bg-zinc-950/60 p-5 transition hover:border-white/10"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-void/60 p-5 transition hover:border-border"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
                     <Link
                       href={`/events/${ticket.eventId}`}
-                      className="text-lg font-semibold text-white transition hover:text-purple-300"
+                      className="text-lg font-semibold text-cream transition hover:text-gold"
                     >
                       {ticket.eventName}
                     </Link>
@@ -167,7 +167,7 @@ export default function MyTicketsPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-500">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-cream/60">
                     <span className="flex items-center gap-1.5">
                       <Tag className="h-3.5 w-3.5" />
                       {ticket.ticketBatchName}
@@ -191,11 +191,11 @@ export default function MyTicketsPage() {
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-zinc-400">
-                      Paid: <span className="font-semibold text-white">£{ticket.purchasePrice.toFixed(2)}</span>
+                    <span className="text-cream/60">
+                      Paid: <span className="font-semibold text-cream">£{ticket.purchasePrice.toFixed(2)}</span>
                     </span>
                     {ticket.originalPrice !== ticket.purchasePrice && (
-                      <span className="text-zinc-600">
+                      <span className="text-cream/60">
                         Original: £{ticket.originalPrice.toFixed(2)}
                       </span>
                     )}
@@ -203,8 +203,8 @@ export default function MyTicketsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                    <QrCode className="h-8 w-8 text-zinc-500" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-white/5">
+                    <QrCode className="h-8 w-8 text-cream/60" />
                   </div>
 
                   {ticket.status === "active" && ticket.allowResale && (
@@ -238,31 +238,31 @@ export default function MyTicketsPage() {
       {/* Resale Modal */}
       {resaleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-void p-6 shadow-2xl">
             <button
               onClick={() => setResaleModal(null)}
-              className="absolute right-4 top-4 text-zinc-500 hover:text-white"
+              className="absolute right-4 top-4 text-cream/60 hover:text-cream"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="mb-1 text-lg font-semibold text-white">List Ticket for Resale</h3>
-            <p className="mb-5 text-sm text-zinc-500">
+            <h3 className="mb-1 text-lg font-semibold text-cream">List Ticket for Resale</h3>
+            <p className="mb-5 text-sm text-cream/60">
               {resaleModal.eventName} — {resaleModal.ticketBatchName}
             </p>
 
             <div className="mb-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-400">Your purchase price</span>
-                <span className="font-medium text-white">£{resaleModal.purchasePrice.toFixed(2)}</span>
+                <span className="text-cream/60">Your purchase price</span>
+                <span className="font-medium text-cream">£{resaleModal.purchasePrice.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-400">Max resale price</span>
+                <span className="text-cream/60">Max resale price</span>
                 <span className="font-medium text-amber-400">£{resaleModal.currentBatchPrice.toFixed(2)}</span>
               </div>
             </div>
 
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-cream/90">
               Asking Price (£)
             </label>
             <input
@@ -272,7 +272,7 @@ export default function MyTicketsPage() {
               max={resaleModal.currentBatchPrice}
               value={askingPrice}
               onChange={(e) => setAskingPrice(e.target.value)}
-              className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white outline-none focus:border-purple-500"
+              className="mb-4 w-full rounded-xl border border-border bg-white/5 px-4 py-2.5 text-cream outline-none focus:border-gold"
             />
 
             {actionError && (
@@ -282,14 +282,14 @@ export default function MyTicketsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setResaleModal(null)}
-                className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-white/5"
+                className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-cream/60 transition hover:bg-white/5"
               >
                 Cancel
               </button>
               <button
                 onClick={handleListForResale}
                 disabled={submitting}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-cream transition hover:bg-amber-500 disabled:opacity-50"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 List for £{parseFloat(askingPrice || "0").toFixed(2)}
