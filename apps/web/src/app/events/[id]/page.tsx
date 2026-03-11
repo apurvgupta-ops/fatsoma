@@ -95,7 +95,7 @@ export default function EventDetailPage() {
           </Link>
 
           {/* Hero Image */}
-          <div className="relative mb-8 aspect-21/9 overflow-hidden rounded-3xl border border-border">
+          <div className="relative mb-12 aspect-[21/9] overflow-hidden rounded-sm border-[0.5px] border-border/50">
             <Image
               src={imageUrl}
               alt={event.eventName}
@@ -106,10 +106,10 @@ export default function EventDetailPage() {
             />
             <div className="absolute inset-0 bg-linear-to-t from-[#0f0f0f] via-[#0f0f0f]/40 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
-              <span className="mb-2 inline-block rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-cream/90 backdrop-blur-sm">
+              <span className="mb-4 inline-block bg-void/80 px-4 py-1.5 text-[10px] uppercase font-mono tracking-widest text-cream/80 backdrop-blur-md border-[0.5px] border-border/50">
                 {event.eventCategory}
               </span>
-              <h1 className="text-3xl font-bold text-cream sm:text-4xl lg:text-5xl">
+              <h1 className="text-4xl font-serif font-light text-cream sm:text-5xl lg:text-7xl">
                 {event.eventName}
               </h1>
             </div>
@@ -119,7 +119,7 @@ export default function EventDetailPage() {
             {/* Left — Details */}
             <div className="space-y-6 lg:col-span-2">
               {/* Info Row */}
-              <div className="flex flex-wrap gap-4 rounded-2xl border border-border bg-void/60 p-5">
+              <div className="flex flex-wrap gap-x-8 gap-y-4 rounded-sm border-[0.5px] border-border/50 bg-void/60 p-6">
                 <InfoChip icon={<CalendarDays className="h-4 w-4" />} label="Date" value={new Date(event.eventDate).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} />
                 <InfoChip icon={<Clock className="h-4 w-4" />} label="Time" value={`${event.startTime} — ${event.endTime}`} />
                 <InfoChip icon={<MapPin className="h-4 w-4" />} label="Venue" value={`${event.venueName}, ${event.city}`} />
@@ -127,8 +127,8 @@ export default function EventDetailPage() {
               </div>
 
               {/* Description */}
-              <div className="rounded-2xl border border-border bg-void/60 p-6">
-                <h2 className="mb-3 text-lg font-semibold text-cream">About This Event</h2>
+              <div className="rounded-sm border-[0.5px] border-border/50 bg-void/60 p-8">
+                <h2 className="mb-6 font-serif text-2xl font-light text-cream/90 tracking-wide">About This Event</h2>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-cream/60">
                   {event.eventDescription}
                 </p>
@@ -198,11 +198,11 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
   }, [event.id, selectedBatch.name, quantity, feePerTicket, user, router]);
 
   return (
-    <div className="sticky top-8 space-y-4">
+    <div className="sticky top-12 space-y-6">
       {/* Ticket Selection */}
-      <div className="rounded-3xl border border-border bg-void/70 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-cream">
-          <Ticket className="h-5 w-5 text-gold" /> Select Tickets
+      <div className="rounded-sm border-[0.5px] border-border/50 bg-void/70 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+        <h3 className="mb-6 font-serif text-2xl font-light tracking-wide text-cream flex items-center gap-2">
+          <Ticket className="h-5 w-5 text-gold/60" /> Select Tickets
         </h3>
 
         {/* Batch Selection */}
@@ -345,7 +345,7 @@ function VenueCard({ event }: { event: EventResponse }) {
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-void/60">
+    <div className="overflow-hidden rounded-sm border-[0.5px] border-border/50 bg-void/60 mt-6">
       {/* Map-style header with gradient */}
       <div className="relative h-36 overflow-hidden bg-surface">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(147,51,234,0.15)_0%,transparent_70%)]" />
@@ -376,13 +376,13 @@ function VenueCard({ event }: { event: EventResponse }) {
 
       {/* Content */}
       <div className="p-6">
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-6 flex items-start justify-between">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-cream">
-              <Building2 className="h-4.5 w-4.5 text-gold" />
+            <h2 className="flex items-center gap-2 font-serif text-xl font-light tracking-wide text-cream">
+              <Building2 className="h-4.5 w-4.5 text-gold/60" />
               {event.venueName}
             </h2>
-            <p className="mt-1 text-xs text-cream/60">Event Venue</p>
+            <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-cream/40">Event Venue</p>
           </div>
           <button
             onClick={handleCopy}
@@ -445,7 +445,7 @@ function VenueCard({ event }: { event: EventResponse }) {
 
 function VenueDetail({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-border bg-surface/30 px-3.5 py-2.5">
+    <div className="flex items-start gap-3 rounded-none border-b border-border/30 bg-transparent px-2 py-3">
       <div className="mt-0.5 text-gold/70">{icon}</div>
       <div className="min-w-0">
         <p className="text-[10px] uppercase tracking-wider text-cream/60">{label}</p>
