@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { EventResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
 
 export default function ExploreEventCard({ event }: { event: EventResponse }) {
   const minPrice = Math.min(...event.ticketBatches.map((b) => b.basePrice));
@@ -21,9 +21,9 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/70 shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-500 hover:border-purple-500/30 hover:bg-zinc-950/90"
+      className="group relative flex flex-col overflow-hidden bg-void/50 transition-all duration-700 hover:bg-void"
     >
-      <div className="relative aspect-video overflow-hidden bg-zinc-900">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface">
         <Image
           src={imageUrl}
           alt={event.eventName}
@@ -32,53 +32,49 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           unoptimized
         />
-        <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
-        <div className="absolute left-4 top-4">
-          <span className="rounded-full border border-white/20 bg-zinc-900/70 px-2.5 py-1 text-xs font-medium text-zinc-200 backdrop-blur-sm">
+        {/* Subtle border overlay on image */}
+        <div className="pointer-events-none absolute inset-0 border border-border/30 z-10 transition-colors duration-700 group-hover:border-gold/30" />
+
+        <div className="absolute left-4 top-4 z-20">
+          <span className="bg-void/80 px-3 py-1 text-[9px] font-mono tracking-widest uppercase text-cream/80 border border-border/50 backdrop-blur-md">
             {event.eventCategory}
           </span>
         </div>
         <div className="absolute right-4 top-4">
-          <div className="flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-950/70 px-2.5 py-1 text-xs font-semibold text-purple-300 backdrop-blur-md">
+          <div className="flex items-center gap-1 rounded-full border border-gold/30 bg-gold/70 px-2.5 py-1 text-xs font-semibold text-gold backdrop-blur-md">
             <Percent className="h-3 w-3" />
             {BOOKING_FEE_PERCENT}% fee
           </div>
         </div>
       </div>
 
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-white transition group-hover:text-purple-300">
+      <div className="flex flex-col grow pt-5 pb-2 px-1">
+        <h3 className="text-2xl font-serif font-light text-cream transition duration-500 group-hover:text-gold line-clamp-2">
           {event.eventName}
         </h3>
-        <p className="mt-1.5 line-clamp-2 text-sm text-zinc-400">
-          {event.eventDescription}
-        </p>
 
-        <div className="mt-4 flex items-center gap-4 text-xs text-zinc-400">
-          <span className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-purple-400" />
-            <span className="truncate">{event.venueName}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-3.5 w-3.5 text-purple-400" />
+        <div className="mt-4 flex flex-col gap-2 font-mono text-[10px] uppercase tracking-wider text-cream/50">
+          <span className="flex items-center gap-2">
+            <CalendarDays className="h-3 w-3 text-gold/60" />
             {new Date(event.eventDate).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",
               year: "numeric",
             })}
           </span>
-          <span className="flex items-center gap-1.5">
-            <Ticket className="h-3.5 w-3.5 text-purple-400" />
-            From £{minPrice.toFixed(2)}
+          <span className="flex items-center gap-2">
+            <MapPin className="h-3 w-3 text-gold/60" />
+            <span className="truncate">{event.venueName}</span>
           </span>
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-white/5 bg-zinc-900/40 px-4 py-3">
-          <div className="text-sm text-zinc-400">
-            <span className="text-white font-semibold">£{minPrice.toFixed(2)}</span> + £{feeAmount.toFixed(2)} fee
+        <div className="mt-auto pt-6 flex items-end justify-between border-t border-border/30 mt-6">
+          <div className="font-mono flex flex-col gap-1">
+            <span className="text-[9px] uppercase tracking-widest text-cream/40">Tickets from</span>
+            <span className="text-sm text-cream">£{minPrice.toFixed(2)}</span>
           </div>
-          <span className="rounded-full bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-300">
-            {BOOKING_FEE_PERCENT}% booking fee
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gold text-right">
+            +{BOOKING_FEE_PERCENT}% fee
           </span>
         </div>
       </div>

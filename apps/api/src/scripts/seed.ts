@@ -7,10 +7,10 @@ async function seed() {
     console.log("🌱 Starting database seed...");
     await connectDB();
 
-    const existingAdmin = await User.findOne({ email: "admin@fatsoma.com" });
+    const existingAdmin = await User.findOne({ email: "admin@onthelist.com" });
     if (existingAdmin) {
       console.log("ℹ️  Admin user already exists");
-      console.log("\n📧 Email: admin@fatsoma.com");
+      console.log("\n📧 Email: admin@onthelist.com");
       console.log("🔑 Password: admin123");
       process.exit(0);
     }
@@ -18,14 +18,14 @@ async function seed() {
     const hashedPassword = await bcrypt.hash("admin123", 10);
     await User.create({
       name: "Admin User",
-      email: "admin@fatsoma.com",
+      email: "admin@onthelist.com",
       password: hashedPassword,
       role: "admin",
       isActive: true,
     });
 
     console.log("✅ Admin user created successfully!");
-    console.log("\n📧 Email: admin@fatsoma.com");
+    console.log("\n📧 Email: admin@onthelist.com");
     console.log("🔑 Password: admin123");
     process.exit(0);
   } catch (error) {

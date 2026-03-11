@@ -17,8 +17,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-void">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
       </div>
     );
   }
@@ -26,12 +26,12 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-[#0f0f0f]">
+    <div className="flex min-h-screen bg-void">
       <Sidebar />
       <main className="ml-64 flex-1">
         <div className="relative overflow-hidden">
-          <div className="pointer-events-none absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-purple-500/20 blur-[120px]" />
-          <div className="pointer-events-none absolute right-0 top-20 h-64 w-64 rounded-full bg-blue-500/20 blur-[140px]" />
+          <div className="pointer-events-none absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-gold/20 blur-[120px]" />
+          <div className="pointer-events-none absolute right-0 top-20 h-64 w-64 rounded-full bg-gold-light/20 blur-[140px]" />
           <div className="relative">{children}</div>
         </div>
       </main>

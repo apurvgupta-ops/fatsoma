@@ -35,7 +35,7 @@ const DEFAULT_BATCH: TicketBatch = {
   maxDiscount: 0,
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://onthelistapp.24livehost.com:3016";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
 
 export default function CreateEventPage() {
   const { token } = useAuth();
@@ -162,16 +162,16 @@ export default function CreateEventPage() {
         <header className="flex items-center gap-4">
           <Link
             href="/events"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface/40 text-cream/60 transition hover:bg-surface/60 hover:text-cream"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <div className="mb-1 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-purple-300/80">
-              <span className="h-px w-10 bg-linear-to-r from-purple-500 to-blue-400" />
+            <div className="mb-1 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold/80">
+              <span className="h-px w-10 bg-linear-to-r from-gold to-gold-light" />
               New Event
             </div>
-            <h1 className="text-3xl font-semibold text-white">Create Event</h1>
+            <h1 className="text-3xl font-semibold text-cream">Create Event</h1>
           </div>
         </header>
 
@@ -193,7 +193,7 @@ export default function CreateEventPage() {
               className="md:col-span-2"
             />
             <div className="md:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+              <label className="mb-1.5 block text-sm font-medium text-cream/90">
                 Description
               </label>
               <textarea
@@ -203,7 +203,7 @@ export default function CreateEventPage() {
                   updateField("eventDescription", e.target.value)
                 }
                 placeholder="Describe your event..."
-                className="w-full rounded-xl border border-white/10 bg-zinc-900/60 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30"
+                className="w-full rounded-xl border border-border bg-surface/60 px-4 py-3 text-sm text-cream placeholder-zinc-500 outline-none transition focus:border-gold/50 focus:ring-1 focus:ring-gold/30"
               />
             </div>
             <SelectField
@@ -240,7 +240,7 @@ export default function CreateEventPage() {
         <Section title="Event Image" icon={<ImageIcon className="h-5 w-5" />}>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             {imageUrl ? (
-              <div className="relative h-40 w-60 overflow-hidden rounded-2xl border border-white/10">
+              <div className="relative h-40 w-60 overflow-hidden rounded-2xl border border-border">
                 <Image
                   src={imageUrl}
                   alt="Event"
@@ -250,15 +250,15 @@ export default function CreateEventPage() {
                 />
                 <button
                   onClick={() => updateField("eventImage", "")}
-                  className="absolute right-2 top-2 rounded-lg bg-zinc-900/80 p-1.5 text-zinc-400 backdrop-blur-sm transition hover:text-rose-400"
+                  className="absolute right-2 top-2 rounded-lg bg-surface/80 p-1.5 text-cream/60 backdrop-blur-sm transition hover:text-rose-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <label className="flex h-40 w-60 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/10 bg-zinc-900/40 text-zinc-400 transition hover:border-purple-500/40 hover:text-purple-300">
+              <label className="flex h-40 w-60 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-surface/40 text-cream/60 transition hover:border-gold/40 hover:text-gold">
                 {uploading ? (
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gold border-t-transparent" />
                 ) : (
                   <>
                     <Upload className="h-6 w-6" />
@@ -273,7 +273,7 @@ export default function CreateEventPage() {
                 />
               </label>
             )}
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-cream/60">
               PNG, JPG, WEBP up to 5MB. Leave empty for a placeholder.
             </p>
           </div>
@@ -331,17 +331,17 @@ export default function CreateEventPage() {
             {ticketBatches.map((batch, i) => (
               <div
                 key={i}
-                className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5"
+                className="rounded-2xl border border-border bg-surface/40 p-5"
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm font-medium text-zinc-300">
+                  <span className="text-sm font-medium text-cream/90">
                     Batch {i + 1}
                   </span>
                   {ticketBatches.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeBatch(i)}
-                      className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-rose-500/10 hover:text-rose-400"
+                      className="rounded-lg p-1.5 text-cream/60 transition hover:bg-rose-500/10 hover:text-rose-400"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -387,7 +387,7 @@ export default function CreateEventPage() {
             <button
               type="button"
               onClick={addBatch}
-              className="flex items-center gap-2 self-start rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:border-purple-500/40 hover:text-purple-300"
+              className="flex items-center gap-2 self-start rounded-xl border border-dashed border-border bg-surface/40 px-4 py-2.5 text-sm font-medium text-cream/60 transition hover:border-gold/40 hover:text-gold"
             >
               <Plus className="h-4 w-4" /> Add Ticket Batch
             </button>
@@ -407,10 +407,10 @@ export default function CreateEventPage() {
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
             />
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-              <span className="text-sm text-zinc-400">Booking Fee</span>
-              <span className="ml-auto font-mono text-sm font-semibold text-purple-300">{BOOKING_FEE_PERCENT}%</span>
-              <span className="text-xs text-zinc-600">(platform-wide)</span>
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/40 px-4 py-3">
+              <span className="text-sm text-cream/60">Booking Fee</span>
+              <span className="ml-auto font-mono text-sm font-semibold text-gold">{BOOKING_FEE_PERCENT}%</span>
+              <span className="text-xs text-cream/60">(platform-wide)</span>
             </div>
             <ToggleField
               label="Dynamic Pricing"
@@ -428,12 +428,12 @@ export default function CreateEventPage() {
         </Section>
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={() => handleSubmit("draft")}
             disabled={saving}
-            className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
+            className="rounded-xl border border-border bg-surface/40 px-6 py-3 text-sm font-semibold text-cream/90 transition hover:bg-surface/60 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save as Draft"}
           </button>
@@ -441,7 +441,7 @@ export default function CreateEventPage() {
             type="button"
             onClick={() => handleSubmit("published")}
             disabled={saving}
-            className="rounded-xl bg-linear-to-r from-indigo-500 via-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light px-6 py-3 text-sm font-semibold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:opacity-50"
           >
             {saving ? "Publishing..." : "Publish Event"}
           </button>
