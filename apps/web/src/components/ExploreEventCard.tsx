@@ -35,17 +35,21 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
         {/* Subtle border overlay on image */}
         <div className="pointer-events-none absolute inset-0 border border-border/30 z-10 transition-colors duration-700 group-hover:border-gold/30" />
 
-        <div className="absolute left-4 top-4 z-20">
-          <span className="bg-void/80 px-3 py-1 text-[9px] font-mono tracking-widest uppercase text-cream/80 border border-border/50 backdrop-blur-md">
+        <div className="absolute left-4 top-4 z-20 flex flex-wrap gap-2">
+          <span className="rounded-full bg-black/80 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-cream backdrop-blur-sm">
             {event.eventCategory}
           </span>
+          {event.allowResale && (
+            <span className="rounded-full bg-gold px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-void backdrop-blur-sm">
+              Resale Available
+            </span>
+          )}
         </div>
-        <div className="absolute right-4 top-4">
-          <div className="flex items-center gap-1 rounded-full border border-gold/30 bg-gold/70 px-2.5 py-1 text-xs font-semibold text-gold backdrop-blur-md">
-            <Percent className="h-3 w-3" />
-            {BOOKING_FEE_PERCENT}% fee
-          </div>
-        </div>
+        {event.ticketBatches.every((b) => (b.remaining ?? b.quantity) <= 0) && (
+          <span className="absolute right-4 top-4 z-20 rounded px-2 py-0.5 bg-red-500/90 text-[10px] font-semibold uppercase text-white backdrop-blur-sm">
+            Sold Out
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col grow pt-5 pb-2 px-1">
@@ -53,29 +57,24 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
           {event.eventName}
         </h3>
 
-        <div className="mt-4 flex flex-col gap-2 font-mono text-[10px] uppercase tracking-wider text-cream/50">
-          <span className="flex items-center gap-2">
-            <CalendarDays className="h-3 w-3 text-gold/60" />
-            {new Date(event.eventDate).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-          <span className="flex items-center gap-2">
-            <MapPin className="h-3 w-3 text-gold/60" />
-            <span className="truncate">{event.venueName}</span>
-          </span>
-        </div>
+        <p className="mt-2 text-sm text-cream/60 truncate">
+          {event.venueName}{event.city ? `, ${event.city}` : ""}
+        </p>
+        <p className="mt-0.5 text-sm text-cream/60">
+          {new Date(event.eventDate).toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
+        </p>
 
-        <div className="mt-auto pt-6 flex items-end justify-between border-t border-border/30 mt-6">
-          <div className="font-mono flex flex-col gap-1">
-            <span className="text-[9px] uppercase tracking-widest text-cream/40">Tickets from</span>
-            <span className="text-sm text-cream">£{minPrice.toFixed(2)}</span>
-          </div>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-gold text-right">
-            +{BOOKING_FEE_PERCENT}% fee
-          </span>
+        <div className="mt-auto pt-4 flex items-end justify-end">
+          {event.ticketBatches.every((b) => (b.remaining ?? b.quantity) <= 0) ? (
+            <span className="text-sm text-cream/60">Check resale</span>
+          ) : (
+            <span className="text-sm font-semibold text-cream">From £{minPrice.toFixed(2)}</span>
+          )}
         </div>
       </div>
     </Link>

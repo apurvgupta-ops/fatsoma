@@ -20,7 +20,7 @@ import type { RootStackParamList, TabParamList } from "../navigation/types";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import { useEvents } from "../hooks/useEvents";
 import { EventCard } from "../components/EventCard";
-import { colors, spacing } from "../theme";
+import { colors, spacing, radius } from "../theme";
 
 type ExploreNavProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "ExploreTab">,
@@ -87,25 +87,44 @@ export function ExploreScreen({ navigation }: Props) {
       <View style={styles.orb2} />
       <View style={styles.orb3} />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Hero - matches design */}
+      <View style={styles.hero}>
         <View style={styles.brandRow}>
           <View style={styles.logoBox}>
-            <Ionicons name="checkmark" size={20} color={colors.gold.DEFAULT} />
+            <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
-          <View>
-            <Text style={styles.brandTitle}>On The List</Text>
-            <Text style={styles.brandSubtitle}>Discover events</Text>
-          </View>
+          <Text style={styles.brandTitle}>On The List</Text>
         </View>
-        <Text style={styles.pageTitle}>Explore Events</Text>
-        <Text style={styles.pageSubtitle}>
-          Browse upcoming events • Live booking-fee trends
+        <Text style={styles.heroTagline}>SECURE STUDENT TICKET PLATFORM</Text>
+        <Text style={styles.heroHeadline}>
+          You&apos;re <Text style={styles.heroHeadlineGold}>on the list</Text>
         </Text>
-        <View style={styles.countRow}>
-          <Text style={styles.countValue}>{filtered.length}</Text>
-          <Text style={styles.countLabel}>live events</Text>
+        <Text style={styles.heroDesc}>
+          The only student ticket platform with secure, no-scalping resale. You
+          always pay the current release price — never a penny more.
+        </Text>
+        <View style={styles.heroButtons}>
+          <Pressable
+            style={styles.heroBtnPrimary}
+            onPress={() => {}}
+          >
+            <Text style={styles.heroBtnPrimaryText}>Browse Events</Text>
+          </Pressable>
+          <Pressable
+            style={styles.heroBtnSecondary}
+            onPress={() => (navigation.getParent() as any)?.navigate("TicketsTab")}
+          >
+            <Text style={styles.heroBtnSecondaryText}>My Tickets</Text>
+          </Pressable>
         </View>
+      </View>
+
+      {/* Featured Events section */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Featured Events</Text>
+        <Text style={styles.sectionSubtitle}>
+          The ones everyone&apos;s talking about
+        </Text>
       </View>
 
       {/* Search */}
@@ -126,48 +145,53 @@ export function ExploreScreen({ navigation }: Props) {
       </View>
 
       {/* Category filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScroll}
-        style={styles.categoryContainer}
-      >
-        <Pressable
-          style={[
-            styles.categoryChip,
-            selectedCategory === "all" && styles.categoryChipActive,
-          ]}
-          onPress={() => setSelectedCategory("all")}
+      <View style={styles.categoryRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScroll}
+          style={styles.categoryContainer}
         >
-          <Text
-            style={[
-              styles.categoryChipText,
-              selectedCategory === "all" && styles.categoryChipTextActive,
-            ]}
-          >
-            All
-          </Text>
-        </Pressable>
-        {categories.map((cat) => (
           <Pressable
-            key={cat}
             style={[
-              styles.categoryChip,
-              selectedCategory === cat && styles.categoryChipActive,
+              styles.categoryAll,
+              selectedCategory === "all" && styles.categoryAllActive,
             ]}
-            onPress={() => setSelectedCategory(cat)}
+            onPress={() => setSelectedCategory("all")}
           >
             <Text
               style={[
-                styles.categoryChipText,
-                selectedCategory === cat && styles.categoryChipTextActive,
+                styles.categoryAllText,
+                selectedCategory === "all" && styles.categoryAllTextActive,
               ]}
             >
-              {cat}
+              All
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {categories.map((cat) => (
+            <Pressable
+              key={cat}
+              style={[
+                styles.categoryPill,
+                selectedCategory === cat && styles.categoryPillActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryPillText,
+                  selectedCategory === cat && styles.categoryPillTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={styles.feeTag}>
+          <Text style={styles.feeTagText}>{BOOKING_FEE_PERCENT}% fee</Text>
+        </View>
+      </View>
 
       <FlatList
         data={filtered}
@@ -192,12 +216,6 @@ export function ExploreScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       />
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Booking fee: {BOOKING_FEE_PERCENT}% · Powered by{" "}
-          <Text style={styles.footerBrand}>On The List</Text>
-        </Text>
-      </View>
     </SafeAreaView>
   );
 }
@@ -235,6 +253,78 @@ const styles = StyleSheet.create({
     borderRadius: 144,
     backgroundColor: "rgba(99,102,241,0.1)",
   },
+  hero: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  heroTagline: {
+    fontSize: 10,
+    color: colors.text.dim,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: spacing.sm,
+  },
+  heroHeadline: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+  },
+  heroHeadlineGold: {
+    color: colors.gold.DEFAULT,
+  },
+  heroDesc: {
+    fontSize: 14,
+    color: colors.text.muted,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
+  heroButtons: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  heroBtnPrimary: {
+    flex: 1,
+    backgroundColor: colors.gold.DEFAULT,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  heroBtnPrimaryText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.bg.primary,
+  },
+  heroBtnSecondary: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: colors.gold.DEFAULT,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  heroBtnSecondaryText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.gold.DEFAULT,
+  },
+  sectionHeader: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: colors.text.primary,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: colors.text.dim,
+    marginTop: 4,
+  },
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
@@ -247,12 +337,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   logoBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.gold.dim,
-    borderWidth: 1,
-    borderColor: colors.gold.border,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.gold.DEFAULT,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -304,11 +392,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
+    backgroundColor: colors.bg.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    paddingHorizontal: spacing.md,
   },
   searchIcon: {
-    paddingBottom: spacing.md,
     marginRight: spacing.sm,
   },
   searchInput: {
@@ -318,38 +408,75 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingRight: spacing.md,
   },
-  categoryContainer: {
-    maxHeight: 44,
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  categoryContainer: {
+    flex: 1,
+    maxHeight: 44,
   },
   categoryScroll: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    paddingRight: spacing.xl,
+    paddingRight: spacing.sm,
   },
-  categoryChip: {
+  categoryAll: {
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginRight: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    marginRight: spacing.lg,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  categoryChipActive: {
+  categoryAllActive: {
     borderBottomColor: colors.gold.DEFAULT,
   },
-  categoryChipText: {
+  categoryAllText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
     color: colors.text.dim,
   },
-  categoryChipTextActive: {
+  categoryAllTextActive: {
     color: colors.gold.DEFAULT,
+  },
+  categoryPill: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginRight: spacing.sm,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+  },
+  categoryPillActive: {
+    borderColor: colors.gold.DEFAULT,
+    backgroundColor: colors.gold.dim,
+  },
+  categoryPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: colors.text.primary,
+  },
+  categoryPillTextActive: {
+    color: colors.gold.DEFAULT,
+  },
+  feeTag: {
+    backgroundColor: colors.gold.DEFAULT,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  feeTagText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.bg.primary,
   },
   list: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
   center: {
     flex: 1,
@@ -371,23 +498,5 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 13,
     marginTop: 4,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 100,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-  },
-  footerText: {
-    fontSize: 11,
-    color: colors.text.dim,
-  },
-  footerBrand: {
-    color: colors.gold.DEFAULT,
-    fontWeight: "600",
   },
 });

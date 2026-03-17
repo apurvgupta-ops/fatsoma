@@ -24,20 +24,12 @@ export default function UserMenu() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
-        <Link
-          href="/login"
-          className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-cream/90 transition hover:bg-white/5 hover:text-cream"
-        >
-          Sign In
-        </Link>
-        <Link
-          href="/signup"
-          className="rounded-lg bg-linear-to-r from-gold to-gold-light px-4 py-2 text-xs font-semibold text-cream transition hover:from-gold hover:to-gold-light"
-        >
-          Sign Up
-        </Link>
-      </div>
+      <Link
+        href="/login"
+        className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-void transition hover:brightness-110"
+      >
+        Sign In
+      </Link>
     );
   }
 

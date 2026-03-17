@@ -28,11 +28,9 @@ export function EventCard({ event, onPress }: EventCardProps) {
       ? `https://placehold.co/400x300/141414/C9A96E.png?text=${encodeURIComponent(event.eventName)}`
       : `${API_BASE_URL}${event.eventImage}`;
 
-  const formattedDate = new Date(event.eventDate).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const d = new Date(event.eventDate);
+  const formattedDate =
+    `${String(d.getDate()).padStart(2, "0")} ${d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()} ${d.getFullYear()}`;
 
   const lowestPrice = event.ticketBatches?.length
     ? Math.min(...event.ticketBatches.map((b) => b.basePrice))
@@ -71,7 +69,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
         </View>
         <View style={styles.priceRow}>
           <View>
-            <Text style={styles.priceLabel}>Tickets from</Text>
+            <Text style={styles.priceLabel}>TICKETS FROM</Text>
             <Text style={styles.price}>£{lowestPrice.toFixed(2)}</Text>
           </View>
           <Text style={styles.feeLabel}>+{BOOKING_FEE_PERCENT}% fee</Text>
@@ -142,7 +140,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     letterSpacing: -0.3,
-    fontStyle: "italic",
+  },
+  bookingFeeLine: {
+    fontSize: 11,
+    color: colors.text.dim,
+    marginTop: 4,
   },
   meta: {
     flexDirection: "row",
