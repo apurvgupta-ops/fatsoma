@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -29,10 +29,14 @@ type ExploreNavProp = CompositeNavigationProp<
 
 type Props = { navigation: ExploreNavProp };
 
+const HEADER_ESTIMATE = 500;
+
 export function ExploreScreen({ navigation }: Props) {
   const { events, loading, error, refetch } = useEvents();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const flatListRef = useRef<FlatList>(null);
+  const [headerHeight, setHeaderHeight] = useState(HEADER_ESTIMATE);
 
   const categories = useMemo(() => {
     const cats = [...new Set(events.map((e) => e.eventCategory))];
@@ -80,13 +84,11 @@ export function ExploreScreen({ navigation }: Props) {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      {/* Decorative blur orbs */}
-      <View style={styles.orb1} />
-      <View style={styles.orb2} />
-      <View style={styles.orb3} />
-
+  const renderListHeader = () => (
+    <View
+      onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+      collapsable={false}
+    >
       {/* Hero - matches design */}
       <View style={styles.hero}>
         <View style={styles.brandRow}>
@@ -106,13 +108,20 @@ export function ExploreScreen({ navigation }: Props) {
         <View style={styles.heroButtons}>
           <Pressable
             style={styles.heroBtnPrimary}
-            onPress={() => {}}
+            onPress={() =>
+              flatListRef.current?.scrollToOffset({
+                offset: headerHeight,
+                animated: true,
+              })
+            }
           >
             <Text style={styles.heroBtnPrimaryText}>Browse Events</Text>
           </Pressable>
           <Pressable
             style={styles.heroBtnSecondary}
-            onPress={() => (navigation.getParent() as any)?.navigate("TicketsTab")}
+            onPress={() =>
+              navigation.navigate("Main", { screen: "TicketsTab" })
+            }
           >
             <Text style={styles.heroBtnSecondaryText}>My Tickets</Text>
           </Pressable>
@@ -192,10 +201,21 @@ export function ExploreScreen({ navigation }: Props) {
           <Text style={styles.feeTagText}>{BOOKING_FEE_PERCENT}% fee</Text>
         </View>
       </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      {/* Decorative blur orbs */}
+      <View style={styles.orb1} />
+      <View style={styles.orb2} />
+      <View style={styles.orb3} />
 
       <FlatList
+        ref={flatListRef}
         data={filtered}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderListHeader}
         renderItem={({ item }) => (
           <EventCard
             event={item}
@@ -215,7 +235,6 @@ export function ExploreScreen({ navigation }: Props) {
         }
         showsVerticalScrollIndicator={false}
       />
-
     </SafeAreaView>
   );
 }
