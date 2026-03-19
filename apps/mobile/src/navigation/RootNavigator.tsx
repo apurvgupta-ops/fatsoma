@@ -8,6 +8,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { SignupScreen } from "../screens/SignupScreen";
 import { ExploreScreen } from "../screens/ExploreScreen";
 import { EventDetailScreen } from "../screens/EventDetailScreen";
+import { InfoScreen } from "../screens/InfoScreen";
 import { TicketsScreen } from "../screens/TicketsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import type { AuthStackParamList, RootStackParamList, TabParamList } from "./types";
@@ -92,6 +93,7 @@ function MainNavigator() {
     >
       <Stack.Screen name="Main" component={HomeTabs} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="InfoPage" component={InfoScreen} />
     </Stack.Navigator>
   );
 }

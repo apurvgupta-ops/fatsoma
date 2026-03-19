@@ -23,3 +23,16 @@ export async function getMe(req: Request, res: Response) {
   const user = await authService.getCurrentUser(req.user!.userId);
   res.json({ ok: true, message: "User retrieved", data: user });
 }
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+  const webUrl = process.env.WEB_URL || "http://localhost:3000";
+  await authService.forgotPassword(email, webUrl);
+  res.json({ ok: true, message: "If an account with that email exists, a reset link has been sent." });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+  await authService.resetPassword(token, password);
+  res.json({ ok: true, message: "Password has been reset successfully." });
+}

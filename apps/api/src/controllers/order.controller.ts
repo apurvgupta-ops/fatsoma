@@ -15,6 +15,11 @@ export async function list(req: Request, res: Response) {
   sendSuccess(res, orders, "Orders retrieved");
 }
 
+export async function myOrders(req: Request, res: Response) {
+  const orders = await orderService.getMyOrders(req.user!.userId);
+  sendSuccess(res, orders, "Orders retrieved");
+}
+
 export async function stats(_req: Request, res: Response) {
   const data = await orderService.getOrderStats();
   sendSuccess(res, data, "Order stats retrieved");

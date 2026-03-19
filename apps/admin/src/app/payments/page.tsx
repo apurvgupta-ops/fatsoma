@@ -18,7 +18,11 @@ import {
   TicketCheck,
   ExternalLink,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+
+const PAGE_SIZE = 15;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   paid: { label: "Paid", color: "bg-gold/10 text-gold border-gold/40", icon: CheckCircle },
@@ -36,34 +40,53 @@ export default function PaymentsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, typeFilter]);
+
   const loadData = useCallback(async () => {
     if (!token) return;
-    const client = createApiClient(token);
+    try {
+      const client = createApiClient(token);
 
-    const [ordersRes, statsRes] = await Promise.all([
-      client.getOrders({
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        type: typeFilter !== "all" ? typeFilter : undefined,
-        search: debouncedSearch || undefined,
-      }),
-      client.getOrderStats(),
-    ]);
+      const [ordersRes, statsRes] = await Promise.all([
+        client.getOrders({
+          status: statusFilter !== "all" ? statusFilter : undefined,
+          type: typeFilter !== "all" ? typeFilter : undefined,
+          search: debouncedSearch || undefined,
+        }),
+        client.getOrderStats(),
+      ]);
 
-    if (ordersRes.ok && ordersRes.data) setOrders(ordersRes.data);
-    if (statsRes.ok && statsRes.data) setStats(statsRes.data);
-    setLoading(false);
+      if (ordersRes.ok && ordersRes.data) setOrders(ordersRes.data);
+      if (statsRes.ok && statsRes.data) setStats(statsRes.data);
+    } catch {
+      // keep existing data on error
+    } finally {
+      setLoading(false);
+    }
   }, [token, statusFilter, typeFilter, debouncedSearch]);
 
   useEffect(() => {
     setLoading(true);
     loadData();
   }, [loadData]);
+
+  const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  const paginatedOrders = orders.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString("en-GB", {
@@ -78,7 +101,7 @@ export default function PaymentsPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
+      <div className="flex w-full flex-col gap-8 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
         {/* Header */}
         <header>
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold/80">
@@ -108,7 +131,7 @@ export default function PaymentsPage() {
             />
             <StatCard
               icon={<Clock className="h-5 w-5" />}
-              label="Pending"
+              label="Failed / Expired"
               value={stats.pendingOrders.toString()}
               color="text-gold-light"
             />
@@ -141,11 +164,11 @@ export default function PaymentsPage() {
 
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-sm flex-1">
+          <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/60" />
             <input
               type="text"
-              placeholder="Search by event, customer, or session ID..."
+              placeholder="Search by order ID, event, or customer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-border bg-surface/60 py-2.5 pl-10 pr-4 text-sm text-cream outline-none transition placeholder:text-cream/60 focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
@@ -207,33 +230,33 @@ export default function PaymentsPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-3xl border border-border bg-void/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div className="min-w-0 rounded-3xl border border-border bg-void/60 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Order</th>
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Type</th>
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Customer</th>
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Event</th>
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Ticket</th>
-                    <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Qty</th>
-                    <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Base</th>
-                    <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Fee</th>
-                    <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Total</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Order</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Type</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Customer</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Event</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Ticket</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Qty</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Base</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Fee</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Total</th>
                     {typeFilter === "resale" && (
                       <>
-                        <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Seller Gets</th>
-                        <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Organiser Gets</th>
+                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Seller Gets</th>
+                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Organiser Gets</th>
                       </>
                     )}
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Status</th>
-                    <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Date</th>
-                    <th className="px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">Stripe</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Status</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Date</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">Stripe</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {orders.map((order) => {
+                  {paginatedOrders.map((order) => {
                     const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
                     const StatusIcon = cfg.icon;
                     const isResale = order.type === "resale";
@@ -266,7 +289,7 @@ export default function PaymentsPage() {
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="max-w-[160px] truncate text-sm text-cream/90">{order.eventName}</p>
+                          <p className="truncate text-sm text-cream/90">{order.eventName}</p>
                         </td>
                         <td className="px-5 py-4">
                           <p className="text-sm text-cream/60">{order.ticketBatchName}</p>
@@ -336,11 +359,53 @@ export default function PaymentsPage() {
               </table>
             </div>
 
-            {/* Footer */}
-            <div className="border-t border-border px-5 py-3">
+            {/* Pagination Footer */}
+            <div className="flex items-center justify-between border-t border-border px-5 py-3">
               <p className="text-xs text-cream/60">
-                Showing {orders.length} order{orders.length !== 1 ? "s" : ""}
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, orders.length)} of {orders.length} order{orders.length !== 1 ? "s" : ""}
               </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-border p-1.5 text-cream/60 transition hover:bg-surface/60 hover:text-cream disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <span key={`e-${idx}`} className="px-1 text-xs text-cream/40">…</span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setCurrentPage(item)}
+                          className={`min-w-[28px] rounded-lg px-2 py-1 text-xs font-medium transition ${
+                            currentPage === item
+                              ? "bg-gold/20 text-gold border border-gold/40"
+                              : "border border-border text-cream/60 hover:bg-surface/60 hover:text-cream"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ),
+                    )}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-border p-1.5 text-cream/60 transition hover:bg-surface/60 hover:text-cream disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

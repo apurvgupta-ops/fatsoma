@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList, TabParamList } from "../navigation/types";
+import type { RootStackParamList, TabParamList, InfoPageId } from "../navigation/types";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import { useEvents } from "../hooks/useEvents";
 import { EventCard } from "../components/EventCard";
@@ -204,6 +204,49 @@ export function ExploreScreen({ navigation }: Props) {
     </View>
   );
 
+  const footerLinks: { section: string; items: { label: string; pageId: InfoPageId; title: string }[] }[] = [
+    {
+      section: "PLATFORM",
+      items: [
+        { label: "How It Works", pageId: "how-it-works", title: "How It Works" },
+        { label: "Trust & Safety", pageId: "trust-safety", title: "Trust & Safety" },
+        { label: "Pricing", pageId: "pricing", title: "Pricing" },
+      ],
+    },
+    {
+      section: "SUPPORT",
+      items: [
+        { label: "Help Centre", pageId: "help-centre", title: "Help Centre" },
+        { label: "Contact", pageId: "contact", title: "Contact" },
+        { label: "Terms", pageId: "terms", title: "Terms" },
+      ],
+    },
+  ];
+
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      <View style={styles.footerColumns}>
+        {footerLinks.map((col) => (
+          <View key={col.section} style={styles.footerColumn}>
+            <Text style={styles.footerSectionTitle}>{col.section}</Text>
+            {col.items.map((link) => (
+              <Pressable
+                key={link.pageId}
+                onPress={() => navigation.navigate("InfoPage", { pageId: link.pageId, title: link.title })}
+                style={styles.footerLink}
+              >
+                <Text style={styles.footerLinkText}>{link.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+      </View>
+      <Text style={styles.footerCopy}>
+        &copy; {new Date().getFullYear()} On The List. All rights reserved.
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       {/* Decorative blur orbs */}
@@ -216,6 +259,7 @@ export function ExploreScreen({ navigation }: Props) {
         data={filtered}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderListHeader}
+        ListFooterComponent={renderFooter}
         renderItem={({ item }) => (
           <EventCard
             event={item}
@@ -517,5 +561,42 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 13,
     marginTop: 4,
+  },
+
+  /* Footer */
+  footer: {
+    marginTop: spacing.xxxl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
+    paddingTop: spacing.xl,
+  },
+  footerColumns: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  footerColumn: {
+    flex: 1,
+  },
+  footerSectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.text.dim,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: spacing.md,
+  },
+  footerLink: {
+    paddingVertical: spacing.xs,
+  },
+  footerLinkText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  footerCopy: {
+    fontSize: 12,
+    color: colors.text.dim,
+    textAlign: "center",
+    marginTop: spacing.xl,
+    paddingBottom: spacing.lg,
   },
 });

@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+const root = path.resolve(process.cwd(), "../..");
+dotenv.config({ path: path.resolve(root, ".env.local") });
+dotenv.config({ path: path.resolve(root, ".env") });
 
 import express from "express";
 import cors from "cors";
@@ -70,7 +72,7 @@ export function createApp() {
  * Boot sequence: connect to MongoDB then start listening.
  */
 async function start() {
-  const PORT = 3016;
+  const PORT = process.env.PORT || 3016;
 
   await connectDB();
 

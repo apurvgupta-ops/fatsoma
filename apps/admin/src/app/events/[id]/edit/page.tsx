@@ -61,7 +61,7 @@ export default function EditEventPage() {
     addressLine: "",
     city: "",
     postcode: "",
-    country: "United Kingdom",
+    country: "",
     mapsLink: "",
     eventDate: "",
     startTime: "",
@@ -391,6 +391,7 @@ export default function EditEventPage() {
               label="Country"
               value={form.country}
               onChange={(v) => updateField("country", v)}
+              placeholder="e.g. United Kingdom"
               required
             />
             <InputField
@@ -530,13 +531,23 @@ export default function EditEventPage() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
+          {form.status === "published" && (
+            <button
+              type="button"
+              onClick={() => handleSave("draft")}
+              disabled={saving}
+              className="rounded-xl border border-gold-light/30 bg-gold-light/10 px-6 py-3 text-sm font-semibold text-gold-light transition hover:bg-gold-light/20 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Unpublish"}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => handleSave("draft")}
+            onClick={() => handleSave(form.status === "published" ? "published" : "draft")}
             disabled={saving}
             className="rounded-xl border border-border bg-surface/40 px-6 py-3 text-sm font-semibold text-cream/90 transition hover:bg-surface/60 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save as Draft"}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
@@ -545,7 +556,7 @@ export default function EditEventPage() {
             className="rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light px-6 py-3 text-sm font-semibold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:opacity-50"
           >
             {saving
-              ? "Saving..."
+              ? "Publishing..."
               : form.status === "published"
                 ? "Update & Publish"
                 : "Publish Event"}

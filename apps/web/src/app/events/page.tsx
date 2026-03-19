@@ -229,7 +229,7 @@ function EventsHeader({
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onCategoryChange("all")}
-            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition ${
               selectedCategory === "all"
                 ? "bg-gold text-void"
                 : "bg-surface/60 text-cream/90 hover:bg-surface"
@@ -241,7 +241,7 @@ function EventsHeader({
             <button
               key={cat}
               onClick={() => onCategoryChange(cat)}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition ${
                 selectedCategory === cat
                   ? "bg-gold text-void"
                   : "bg-surface/60 text-cream/90 hover:bg-surface"

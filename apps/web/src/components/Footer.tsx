@@ -28,9 +28,9 @@ export default function Footer() {
                 Platform
               </h3>
               <ul className="space-y-3">
-                <li><Link href="/events#how-it-works" className="text-sm text-cream/80 hover:text-gold transition">How It Works</Link></li>
-                <li><Link href="#" className="text-sm text-cream/80 hover:text-gold transition">Trust & Safety</Link></li>
-                <li><Link href="#" className="text-sm text-cream/80 hover:text-gold transition">Pricing</Link></li>
+                <li><Link href="/how-it-works" className="text-sm text-cream/80 hover:text-gold transition">How It Works</Link></li>
+                <li><Link href="/trust-safety" className="text-sm text-cream/80 hover:text-gold transition">Trust & Safety</Link></li>
+                <li><Link href="/pricing" className="text-sm text-cream/80 hover:text-gold transition">Pricing</Link></li>
               </ul>
             </div>
             <div>
@@ -38,9 +38,9 @@ export default function Footer() {
                 Support
               </h3>
               <ul className="space-y-3">
-                <li><Link href="#" className="text-sm text-cream/80 hover:text-gold transition">Help Centre</Link></li>
-                <li><Link href="#" className="text-sm text-cream/80 hover:text-gold transition">Contact</Link></li>
-                <li><Link href="#" className="text-sm text-cream/80 hover:text-gold transition">Terms</Link></li>
+                <li><Link href="/help-centre" className="text-sm text-cream/80 hover:text-gold transition">Help Centre</Link></li>
+                <li><Link href="/contact" className="text-sm text-cream/80 hover:text-gold transition">Contact</Link></li>
+                <li><Link href="/terms" className="text-sm text-cream/80 hover:text-gold transition">Terms</Link></li>
               </ul>
             </div>
           </div>

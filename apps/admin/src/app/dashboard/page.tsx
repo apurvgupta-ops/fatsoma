@@ -47,10 +47,10 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Total Events" value={events.length.toString()} accent="purple" />
-              <StatCard label="Published" value={published.toString()} accent="emerald" />
-              <StatCard label="Drafts" value={drafts.toString()} accent="amber" />
-              <StatCard label="Gross Revenue" value={`£${totalRevenue.toLocaleString()}`} accent="blue" />
+              <StatCard label="Total Events" value={events.length.toString()} accent="purple" href="/events" />
+              <StatCard label="Published" value={published.toString()} accent="emerald" href="/events" />
+              <StatCard label="Drafts" value={drafts.toString()} accent="amber" href="/events" />
+              <StatCard label="Gross Revenue" value={`£${totalRevenue.toLocaleString()}`} accent="blue" href="/payments" />
             </div>
 
             <div className="space-y-4">
@@ -62,7 +62,7 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-3">
                 {events.slice(0, 5).map((event) => (
-                  <div key={event.id} className="flex items-center justify-between rounded-2xl border border-border bg-void/60 px-5 py-4 transition hover:border-border">
+                  <Link key={event.id} href={`/events/${event.id}/edit`} className="flex items-center justify-between rounded-2xl border border-border bg-void/60 px-5 py-4 transition hover:border-gold/30 hover:bg-void/80">
                     <div className="flex items-center gap-3">
                       <span className={`h-2 w-2 rounded-full ${event.status === "published" ? "bg-gold" : "bg-gold-light/60"}`} />
                       <div>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <span className="rounded-full border border-border bg-surface/60 px-2 py-0.5 text-xs text-cream/60">{event.eventCategory}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+function StatCard({ label, value, accent, href }: { label: string; value: string; accent: string; href?: string }) {
   const colors: Record<string, string> = {
     purple: "from-gold/20 to-gold/5 border-gold/30 text-gold",
     blue: "from-gold-light/20 to-gold-light/5 border-gold-light/30 text-gold-light",
@@ -90,10 +90,24 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
     amber: "from-gold-light/15 to-gold-light/5 border-gold-light/25 text-gold-light",
   };
   const c = colors[accent] || colors.purple;
-  return (
-    <div className={`rounded-2xl border bg-linear-to-br p-5 ${c}`}>
+  const content = (
+    <>
       <p className="text-xs font-medium uppercase tracking-wider text-cream/60">{label}</p>
       <p className="mt-2 font-mono text-2xl font-bold">{value}</p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={`block rounded-2xl border bg-linear-to-br p-5 transition hover:brightness-110 ${c}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={`rounded-2xl border bg-linear-to-br p-5 ${c}`}>
+      {content}
     </div>
   );
 }

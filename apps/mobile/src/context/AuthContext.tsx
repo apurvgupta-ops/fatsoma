@@ -7,7 +7,7 @@ import React, {
   type ReactNode,
 } from "react";
 import type { UserResponse } from "@fatsoma/shared";
-import { apiClient, loadStoredToken, setTokens, clearTokens } from "../lib/api";
+import { apiClient, loadStoredToken, setTokens, clearTokens, setOnAuthFailure } from "../lib/api";
 
 interface AuthState {
   user: UserResponse | null;
@@ -69,9 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = useCallback(() => {
-    clearTokens(); // clears currentToken synchronously
+    clearTokens();
     setState({ user: null, loading: false });
   }, []);
+
+  useEffect(() => {
+    setOnAuthFailure(logout);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ ...state, login, register, logout }}>

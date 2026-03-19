@@ -20,5 +20,17 @@ export function createBrowserClient() {
       if (typeof window === "undefined") return null;
       return localStorage.getItem("accessToken");
     },
+    getRefreshToken: () => {
+      if (typeof window === "undefined") return null;
+      return localStorage.getItem("refreshToken");
+    },
+    onTokenRefreshed: (accessToken) => {
+      localStorage.setItem("accessToken", accessToken);
+    },
+    onAuthFailure: () => {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.href = "/login";
+    },
   });
 }

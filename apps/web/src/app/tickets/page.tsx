@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { createBrowserClient } from "@/lib/api";
 import type { TicketResponse } from "@fatsoma/shared";
-import { Ticket, ArrowRight, X, Loader2, AlertCircle } from "lucide-react";
+import { Ticket, ArrowRight, X, Loader2, AlertCircle, Check, ZoomIn } from "lucide-react";
 
 // AlertCircle is used in error div
 import Header from "@/components/Header";
@@ -27,6 +27,8 @@ export default function MyTicketsPage() {
   const [askingPrice, setAskingPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [cancelConfirm, setCancelConfirm] = useState<TicketResponse | null>(null);
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -68,6 +70,8 @@ export default function MyTicketsPage() {
       await client.listTicketForResale({ ticketId: resaleModal.id, askingPrice: price });
       setResaleModal(null);
       setAskingPrice("");
+      setSuccessMessage("Ticket listed for resale successfully!");
+      setTimeout(() => setSuccessMessage(""), 5000);
       fetchTickets();
     } catch (err: any) {
       setActionError(err.message || "Failed to list ticket");
@@ -77,12 +81,15 @@ export default function MyTicketsPage() {
   };
 
   const handleCancelListing = async (ticket: TicketResponse) => {
+    setCancelConfirm(null);
     try {
       const client = createBrowserClient();
       const listings = await client.getResaleListings(ticket.eventId);
       const myListing = listings.data?.find((l) => l.ticketId === ticket.id && l.sellerId === user?.id);
       if (!myListing) return;
       await client.cancelResaleListing(myListing.id);
+      setSuccessMessage("Resale listing cancelled successfully!");
+      setTimeout(() => setSuccessMessage(""), 5000);
       fetchTickets();
     } catch (err: any) {
       setError(err.message || "Failed to cancel listing");
@@ -126,7 +133,7 @@ export default function MyTicketsPage() {
           <div className="mb-8 flex gap-2">
             <button
               onClick={() => setActiveTab("active")}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+              className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === "active"
                   ? "bg-gold text-void"
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
@@ -136,7 +143,7 @@ export default function MyTicketsPage() {
             </button>
             <button
               onClick={() => setActiveTab("resale")}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+              className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === "resale"
                   ? "bg-gold text-void"
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
@@ -146,7 +153,7 @@ export default function MyTicketsPage() {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+              className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === "history"
                   ? "bg-gold text-void"
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
@@ -155,6 +162,13 @@ export default function MyTicketsPage() {
               History ({historyTickets.length})
             </button>
           </div>
+
+          {successMessage && (
+            <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
+              <Check className="h-4 w-4 shrink-0" />
+              {successMessage}
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
@@ -196,7 +210,7 @@ export default function MyTicketsPage() {
                     setAskingPrice(String(ticket.purchasePrice));
                     setActionError("");
                   }}
-                  onCancelListing={() => handleCancelListing(ticket)}
+                  onCancelListing={() => setCancelConfirm(ticket)}
                 />
               ))}
             </div>
@@ -205,6 +219,32 @@ export default function MyTicketsPage() {
       </div>
 
       <Footer />
+
+      {/* Cancel Confirmation Modal */}
+      {cancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-void p-6 shadow-2xl">
+            <h3 className="mb-2 text-lg font-semibold text-cream">Cancel Resale Listing?</h3>
+            <p className="mb-5 text-sm text-cream/60">
+              Are you sure you want to cancel the resale listing for <span className="font-medium text-cream/80">{cancelConfirm.eventName}</span>? The ticket will be moved back to your active tickets.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCancelConfirm(null)}
+                className="flex-1 cursor-pointer rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-cream/60 transition hover:bg-white/5"
+              >
+                Keep Listed
+              </button>
+              <button
+                onClick={() => handleCancelListing(cancelConfirm)}
+                className="flex-1 cursor-pointer rounded-xl bg-red-500/20 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/30"
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resale Modal */}
       {resaleModal && (
@@ -278,7 +318,9 @@ function TicketCard({
   onListForResale: () => void;
   onCancelListing: () => void;
 }) {
+  const [showQr, setShowQr] = useState(false);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(ticket.qrCode)}`;
+  const qrUrlLarge = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ticket.qrCode)}`;
   const venue = [ticket.venueName, ticket.city].filter(Boolean).join(", ");
   const dateStr = ticket.eventDate
     ? new Date(ticket.eventDate).toLocaleDateString("en-GB", {
@@ -290,73 +332,113 @@ function TicketCard({
     : "";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-surface/60 p-5">
-      {/* Valid / status label - top right */}
-      <div className="absolute right-4 top-4">
-        <span
-          className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
-            ticket.status === "active"
-              ? "bg-emerald-500/20 text-emerald-400"
-              : ticket.status === "listed"
-                ? "bg-amber-500/20 text-amber-400"
-                : "bg-cream/10 text-cream/60"
-          }`}
-        >
-          {ticket.status === "active" ? "Valid" : ticket.status}
-        </span>
-      </div>
-
-      <div className="flex gap-5">
-        {/* QR code */}
-        <div className="shrink-0">
-          <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-border bg-white">
-            <Image
-              src={qrUrl}
-              alt="Ticket QR"
-              fill
-              unoptimized
-              className="object-contain p-1"
-            />
-          </div>
-          <p className="mt-1 truncate font-mono text-[10px] text-cream/50" title={ticket.qrCode}>
-            {ticket.qrCode.slice(0, 12)}...
-          </p>
-        </div>
-
-        {/* Event details */}
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/events/${ticket.eventId}`}
-            className="block text-base font-semibold text-cream transition hover:text-gold"
+    <>
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-surface/60 p-5">
+        <div className="absolute right-4 top-4">
+          <span
+            className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              ticket.status === "active"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : ticket.status === "listed"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-cream/10 text-cream/60"
+            }`}
           >
-            {ticket.eventName}
-          </Link>
-          {venue && <p className="mt-0.5 text-sm text-cream/60">{venue}</p>}
-          <p className="mt-1 text-sm text-cream/60">
-            {dateStr} · {ticket.ticketBatchName} · £{ticket.purchasePrice.toFixed(2)}
-          </p>
+            {ticket.status === "active" ? "Valid" : ticket.status}
+          </span>
+        </div>
 
-          {/* List for Resale button - bottom right of card */}
-          <div className="mt-4 flex justify-end">
-            {ticket.status === "active" && ticket.allowResale && (
-              <button
-                onClick={onListForResale}
-                className="rounded-lg bg-cream/10 px-4 py-2 text-sm font-medium text-cream/90 transition hover:bg-cream/15"
-              >
-                List for Resale
-              </button>
-            )}
-            {ticket.status === "listed" && (
-              <button
-                onClick={onCancelListing}
-                className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
-              >
-                Cancel Listing
-              </button>
-            )}
+        <div className="flex gap-5">
+          <div className="shrink-0">
+            <button
+              onClick={() => setShowQr(true)}
+              className="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-lg border border-border bg-white transition hover:border-gold/50"
+            >
+              <Image
+                src={qrUrl}
+                alt="Ticket QR"
+                fill
+                unoptimized
+                className="object-contain p-1"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/40">
+                <ZoomIn className="h-5 w-5 text-white opacity-0 transition group-hover:opacity-100" />
+              </div>
+            </button>
+            <p className="mt-1 truncate font-mono text-[10px] text-cream/50" title={ticket.qrCode}>
+              {ticket.qrCode.slice(0, 12)}...
+            </p>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/events/${ticket.eventId}`}
+              className="block text-base font-semibold text-cream transition hover:text-gold"
+            >
+              {ticket.eventName}
+            </Link>
+            {venue && <p className="mt-0.5 text-sm text-cream/60">{venue}</p>}
+            <p className="mt-1 text-sm text-cream/60">
+              {dateStr} · {ticket.ticketBatchName} · £{ticket.purchasePrice.toFixed(2)}
+            </p>
+
+            <div className="mt-4 flex justify-end">
+              {ticket.status === "active" && ticket.allowResale && (
+                <button
+                  onClick={onListForResale}
+                  className="cursor-pointer rounded-lg bg-cream/10 px-4 py-2 text-sm font-medium text-cream/90 transition hover:bg-cream/15"
+                >
+                  List for Resale
+                </button>
+              )}
+              {ticket.status === "listed" && (
+                <button
+                  onClick={onCancelListing}
+                  className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+                >
+                  Cancel Listing
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {showQr && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowQr(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl border border-border bg-void p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQr(false)}
+              className="absolute right-4 top-4 cursor-pointer text-cream/60 hover:text-cream"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h3 className="mb-1 text-center text-lg font-semibold text-cream">Your Ticket QR Code</h3>
+            <p className="mb-4 text-center text-sm text-cream/60">{ticket.eventName}</p>
+            <div className="mx-auto h-64 w-64 overflow-hidden rounded-xl border border-border bg-white p-2">
+              <div className="relative h-full w-full">
+                <Image
+                  src={qrUrlLarge}
+                  alt="Ticket QR Code"
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            <p className="mt-3 text-center font-mono text-xs text-cream/50">{ticket.qrCode}</p>
+            <p className="mt-1 text-center text-xs text-cream/40">
+              {ticket.ticketBatchName} · £{ticket.purchasePrice.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -323,8 +323,8 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                   soldOut
                     ? "cursor-not-allowed border-border bg-white/2 opacity-50"
                     : selectedBatch.name === batch.name
-                      ? "border-gold/50 bg-gold/10"
-                      : "border-border bg-white/5 hover:border-border"
+                      ? "cursor-pointer border-gold/50 bg-gold/10"
+                      : "cursor-pointer border-border bg-white/5 hover:border-border"
                 }`}
               >
                 <div>
@@ -349,7 +349,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10"
+              disabled={
+                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
+              }
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               −
             </button>
@@ -368,7 +371,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                   ),
                 )
               }
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10"
+              disabled={
+                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
+              }
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               +
             </button>
@@ -422,7 +428,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           disabled={
             buying || (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
           }
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:opacity-60"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {buying ? (
             <>
@@ -670,9 +676,9 @@ function ResaleListingsSection({
   return (
     <div className="rounded-2xl border border-amber-500/20 bg-void/60 p-6">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cream">
-        <RefreshCw className="h-5 w-5 text-amber-400" />
+        <RefreshCw className="h-5 w-5 text-gold/80" />
         Resale Tickets
-        <span className="ml-auto rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+        <span className="ml-auto rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium bg-gold/80">
           {listings.length} available
         </span>
       </h2>
@@ -711,7 +717,7 @@ function ResaleListingsSection({
               <button
                 onClick={() => handleBuyResale(listing)}
                 disabled={buyingId === listing.id}
-                className="rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:opacity-60 px-4"
+                className="cursor-pointer rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 px-4"
               >
                 {buyingId === listing.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User";
 import { AppError } from "../utils/AppError";
+import { sendAccountDeletedEmail } from "../lib/email";
 import type { IUser } from "../models/User";
 
 const SALT_ROUNDS = 10;
@@ -64,4 +65,6 @@ export async function deleteUser(id: string, requestingUserId: string) {
   if (!user) {
     throw AppError.notFound("User not found");
   }
+
+  sendAccountDeletedEmail(user.name, user.email);
 }

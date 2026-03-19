@@ -55,7 +55,7 @@ export default function CreateEventPage() {
     addressLine: "",
     city: "",
     postcode: "",
-    country: "United Kingdom",
+    country: "",
     mapsLink: "",
     eventDate: "",
     startTime: "",
@@ -314,6 +314,7 @@ export default function CreateEventPage() {
               label="Country"
               value={form.country}
               onChange={(v) => updateField("country", v)}
+              placeholder="e.g. United Kingdom"
               required
             />
             <InputField

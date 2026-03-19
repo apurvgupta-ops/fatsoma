@@ -36,6 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const client = createBrowserClient();
       const res = await client.getMe();
       if (res.ok && res.data) {
+        if (!res.data.isActive) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          setUser(null);
+          return;
+        }
         setUser(res.data);
       } else {
         localStorage.removeItem("accessToken");
@@ -44,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      setUser(null);
     } finally {
       setLoading(false);
     }

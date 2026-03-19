@@ -5,7 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { createPublicClient } from "@/lib/api";
 import type { EventResponse } from "@fatsoma/shared";
-import { ChevronDown, Ticket, QrCode, ShieldCheck, ShoppingCart } from "lucide-react";
+import {
+  ChevronDown,
+  Ticket,
+  QrCode,
+  ShieldCheck,
+  ShoppingCart,
+} from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ExploreEventCard from "@/components/ExploreEventCard";
@@ -18,9 +24,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const client = createPublicClient();
-    client.getPublishedEvents().then((res) => {
-      if (res.ok && res.data) setEvents(res.data);
-    }).finally(() => setLoading(false));
+    client
+      .getPublishedEvents()
+      .then((res) => {
+        if (res.ok && res.data) setEvents(res.data);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const featuredEvents = events.slice(0, 3);
@@ -38,31 +47,41 @@ export default function HomePage() {
             • Secure Student Ticket Platform
           </p>
           <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-6xl lg:text-7xl">
-            You&apos;re{" "}
-            <span className="text-gold">on the list</span>
+            You&apos;re <span className="text-gold">on the list</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
-            The only student ticket platform with secure, no-scalping resale. You always pay the current release price — never a penny more. Just the events you want, transferred safely.
+            The only student ticket platform with secure, no-scalping resale.
+            You always pay the current release price — never a penny more. Just
+            the events you want, transferred safely.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/events"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
             >
               <ShoppingCart className="h-4 w-4" />
               Browse Events
             </Link>
             <Link
               href="/tickets"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-gold px-8 py-3.5 text-sm font-bold text-gold transition hover:bg-gold/10"
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-gold px-8 py-3.5 text-sm font-bold text-gold transition hover:bg-gold/10"
             >
               <Ticket className="h-4 w-4" />
               My Tickets
             </Link>
           </div>
           <div className="mt-16 flex flex-col items-center gap-1 text-xs text-cream/40">
-            <span>Scroll</span>
-            <ChevronDown className="h-4 w-4 animate-bounce" />
+            <button
+              onClick={() =>
+                document
+                  .getElementById("how-it-works")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="mt-16 flex cursor-pointer flex-col items-center gap-1 text-xs text-cream/40 transition hover:text-cream/60"
+            >
+              <span>Scroll</span>
+              <ChevronDown className="h-4 w-4 animate-bounce" />
+            </button>
           </div>
         </div>
       </section>
@@ -128,7 +147,10 @@ export default function HomePage() {
           ) : (
             <div className="mt-12 rounded-xl border border-border/50 bg-surface/40 p-12 text-center">
               <p className="text-cream/70">No events yet. Check back soon!</p>
-              <Link href="/events" className="mt-4 inline-block text-sm font-medium text-gold hover:underline">
+              <Link
+                href="/events"
+                className="mt-4 inline-block text-sm font-medium text-gold hover:underline"
+              >
                 Browse all events
               </Link>
             </div>
@@ -144,11 +166,13 @@ export default function HomePage() {
               Got a ticket you can&apos;t use?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-cream/80">
-              List your ticket and let another student take your spot. They pay the current release price — you get your original money back. Secure, fair, instant.
+              List your ticket and let another student take your spot. They pay
+              the current release price — you get your original money back.
+              Secure, fair, instant.
             </p>
             <Link
               href="/tickets"
-              className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
+              className="mt-8 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
             >
               List a Ticket
             </Link>

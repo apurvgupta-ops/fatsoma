@@ -26,7 +26,7 @@ export default function UserMenu() {
     return (
       <Link
         href="/login"
-        className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-void transition hover:brightness-110"
+        className="cursor-pointer rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-void transition hover:brightness-110"
       >
         Sign In
       </Link>
@@ -44,7 +44,7 @@ export default function UserMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-border bg-white/5 px-3 py-1.5 transition hover:bg-white/10"
+        className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-white/5 px-3 py-1.5 transition hover:bg-white/10"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-gold to-gold-light text-xs font-bold text-cream">
           {initials}
@@ -62,6 +62,14 @@ export default function UserMenu() {
             <p className="truncate text-xs text-cream/60">{user.email}</p>
           </div>
           <div className="p-1">
+            <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-gold"
+            >
+              <User className="h-4 w-4" />
+              Profile
+            </Link>
             <Link
               href="/tickets"
               onClick={() => setOpen(false)}

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Order from "../models/Order";
 import ResaleListing from "../models/ResaleListing";
 
@@ -52,12 +53,26 @@ export async function listOrders(filters: OrderFilters = {}) {
   }
 
   if (filters.search) {
-    query.$or = [
-      { eventName: { $regex: filters.search, $options: "i" } },
-      { customerEmail: { $regex: filters.search, $options: "i" } },
-      { customerName: { $regex: filters.search, $options: "i" } },
-      { stripeSessionId: { $regex: filters.search, $options: "i" } },
+    const escaped = filters.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const orConditions: Record<string, any>[] = [
+      { eventName: { $regex: escaped, $options: "i" } },
+      { customerEmail: { $regex: escaped, $options: "i" } },
+      { customerName: { $regex: escaped, $options: "i" } },
+      { stripeSessionId: { $regex: escaped, $options: "i" } },
     ];
+
+    const hexSearch = filters.search.toLowerCase();
+    if (/^[a-f0-9]+$/.test(hexSearch)) {
+      if (hexSearch.length === 24 && mongoose.Types.ObjectId.isValid(hexSearch)) {
+        orConditions.push({ _id: new mongoose.Types.ObjectId(hexSearch) });
+      } else {
+        orConditions.push({
+          $expr: { $regexMatch: { input: { $toString: "$_id" }, regex: hexSearch, options: "i" } },
+        });
+      }
+    }
+
+    query.$or = orConditions;
   }
 
   const orders = await Order.find(query).sort({ createdAt: -1 }).lean();
@@ -85,11 +100,16 @@ export async function listOrders(filters: OrderFilters = {}) {
   });
 }
 
+export async function getMyOrders(userId: string) {
+  const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
+  return orders.map((o: any) => toOrderDTO(o));
+}
+
 export async function getOrderStats() {
   const [totalOrders, paidOrders, pendingOrders, revenue, resaleStats] = await Promise.all([
-    Order.countDocuments(),
+    Order.countDocuments({ status: { $in: ["paid", "failed", "expired"] } }),
     Order.countDocuments({ status: "paid" }),
-    Order.countDocuments({ status: "pending" }),
+    Order.countDocuments({ status: { $in: ["failed", "expired"] } }),
     Order.aggregate([
       { $match: { status: "paid" } },
       { $group: { _id: null, total: { $sum: "$totalAmount" }, fees: { $sum: "$capturedBookingFee" } } },

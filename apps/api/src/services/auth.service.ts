@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
 import {
@@ -6,6 +7,7 @@ import {
   verifyRefreshToken,
 } from "../lib/jwt";
 import { AppError } from "../utils/AppError";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../lib/email";
 import type { IUser } from "../models/User";
 
 const SALT_ROUNDS = 10;
@@ -41,6 +43,8 @@ export async function registerUser(name: string, email: string, password: string
   const user = await User.create({ name, email, password: hashed, role: "user" });
   const tokens = issueTokens(user);
 
+  sendWelcomeEmail(name, email);
+
   return { user: toUserDTO(user), tokens };
 }
 
@@ -70,9 +74,16 @@ export async function refreshAccessToken(token: string) {
 
   try {
     const payload = verifyRefreshToken(token);
+
+    const user = await User.findById(payload.userId).select("isActive").lean() as IUser | null;
+    if (!user || !user.isActive) {
+      throw AppError.forbidden("Your account has been deactivated");
+    }
+
     const accessToken = generateAccessToken({ userId: payload.userId, role: payload.role });
     return { accessToken };
-  } catch {
+  } catch (err) {
+    if (err instanceof AppError) throw err;
     throw AppError.unauthorized("Invalid refresh token");
   }
 }
@@ -83,5 +94,40 @@ export async function getCurrentUser(userId: string) {
     throw AppError.notFound("User not found");
   }
 
+  if (!user.isActive) {
+    throw AppError.forbidden("Your account has been deactivated");
+  }
+
   return toUserDTO(user);
+}
+
+export async function forgotPassword(email: string, webUrl: string) {
+  const user = await User.findOne({ email });
+  if (!user) {
+    return;
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
+  await user.save();
+
+  const resetLink = `${webUrl}/reset-password?token=${token}`;
+  sendPasswordResetEmail(user.name, email, resetLink);
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw AppError.badRequest("Invalid or expired reset token");
+  }
+
+  user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
 }

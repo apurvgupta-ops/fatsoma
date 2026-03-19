@@ -14,6 +14,9 @@ import type {
 export interface ClientConfig {
   baseUrl: string;
   getToken?: () => string | null;
+  getRefreshToken?: () => string | null;
+  onTokenRefreshed?: (accessToken: string) => void;
+  onAuthFailure?: () => void;
 }
 
 export interface CheckoutOrder {
@@ -66,15 +69,23 @@ export interface OrderStats {
 export class FatsomaClient {
   private baseUrl: string;
   private getToken: () => string | null;
+  private getRefreshToken: () => string | null;
+  private onTokenRefreshed?: (accessToken: string) => void;
+  private onAuthFailure?: () => void;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(config: ClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.getToken = config.getToken ?? (() => null);
+    this.getRefreshToken = config.getRefreshToken ?? (() => null);
+    this.onTokenRefreshed = config.onTokenRefreshed;
+    this.onAuthFailure = config.onAuthFailure;
   }
 
   private async request<T>(
     path: string,
     options: RequestInit = {},
+    isRetry = false,
   ): Promise<T> {
     const token = this.getToken();
     const headers: Record<string, string> = {
@@ -91,6 +102,14 @@ export class FatsomaClient {
       headers,
     });
 
+    if (res.status === 401 && !isRetry && !path.includes("/auth/refresh")) {
+      const newToken = await this.tryRefresh();
+      if (newToken) {
+        return this.request<T>(path, options, true);
+      }
+      this.onAuthFailure?.();
+    }
+
     if (!res.ok) {
       const body: any = await res.json().catch(() => ({}));
       throw new ApiError(
@@ -101,6 +120,37 @@ export class FatsomaClient {
     }
 
     return res.json() as Promise<T>;
+  }
+
+  private async tryRefresh(): Promise<string | null> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return null;
+
+    if (this.refreshPromise) return this.refreshPromise;
+
+    this.refreshPromise = (async () => {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) return null;
+        const data: any = await res.json();
+        const newToken: string | undefined = data.accessToken ?? data.data?.accessToken;
+        if (newToken) {
+          this.onTokenRefreshed?.(newToken);
+          return newToken;
+        }
+        return null;
+      } catch {
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
   }
 
   // ── Auth ──────────────────────────────────────────────
@@ -127,6 +177,20 @@ export class FatsomaClient {
 
   async getMe(): Promise<ApiResponse<UserResponse>> {
     return this.request("/api/auth/me");
+  }
+
+  async forgotPassword(email: string): Promise<ApiResponse> {
+    return this.request("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, password: string): Promise<ApiResponse> {
+    return this.request("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    });
   }
 
   // ── Events ────────────────────────────────────────────
@@ -215,7 +279,7 @@ export class FatsomaClient {
     quantity: number;
     capturedFee: number;
   }): Promise<
-    ApiResponse<{ sessionId: string; url: string; orderId: string }>
+    ApiResponse<{ sessionId: string; url: string }>
   > {
     return this.request("/api/checkout/create-session", {
       method: "POST",
@@ -269,14 +333,18 @@ export class FatsomaClient {
   async buyResaleTicket(
     listingId: string,
     capturedFee: number,
-  ): Promise<ApiResponse<{ sessionId: string; url: string; orderId: string }>> {
+  ): Promise<ApiResponse<{ sessionId: string; url: string }>> {
     return this.request(`/api/resale/${listingId}/buy`, {
       method: "POST",
       body: JSON.stringify({ capturedFee }),
     });
   }
 
-  // ── Orders (admin) ─────────────────────────────────────
+  // ── Orders ─────────────────────────────────────────────
+  async getMyOrders(): Promise<ApiResponse<OrderResponse[]>> {
+    return this.request("/api/orders/my");
+  }
+
   async getOrders(params?: {
     status?: string;
     type?: string;
