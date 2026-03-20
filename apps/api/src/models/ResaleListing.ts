@@ -13,6 +13,8 @@ export interface IResaleListing {
   platformFee: number;
   sellerPayout: number;
   organiserRevenue: number;
+  sellerRefundId?: string;
+  sellerRefundStatus?: "pending" | "succeeded" | "failed";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +37,11 @@ const ResaleListingSchema = new Schema<IResaleListing>(
     platformFee: { type: Number, default: 0 },
     sellerPayout: { type: Number, default: 0 },
     organiserRevenue: { type: Number, default: 0 },
+    sellerRefundId: { type: String },
+    sellerRefundStatus: {
+      type: String,
+      enum: ["pending", "succeeded", "failed"],
+    },
   },
   { timestamps: true },
 );

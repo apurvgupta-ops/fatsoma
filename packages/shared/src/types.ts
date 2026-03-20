@@ -125,5 +125,8 @@ export interface ResaleListingResponse {
   platformFee: number;
   sellerPayout: number;
   organiserRevenue: number;
+  sellerRefundId: string | null;
+  sellerRefundStatus: "pending" | "succeeded" | "failed" | null;
   createdAt: string;
+  updatedAt: string | null;
 }

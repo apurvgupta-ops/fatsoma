@@ -165,6 +165,53 @@ export async function sendAccountDeletedEmail(name: string, email: string) {
   await send(email, `Your ${APP_NAME} account has been deleted`, html);
 }
 
+export async function sendTicketSoldEmail(data: {
+  email: string;
+  sellerName: string;
+  eventName: string;
+  ticketBatchName: string;
+  askingPrice: number;
+  sellerPayout: number;
+  buyerName: string;
+}) {
+  const html = baseHtml(`
+    <h2 style="margin:0 0 8px;color:#f0e6d2;font-size:20px;">Your Ticket Has Been Sold!</h2>
+    <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 20px;">
+      Hi ${data.sellerName || "there"}, great news — your resale ticket has been purchased.
+    </p>
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:12px;padding:20px;margin-bottom:20px;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr>
+          <td style="padding:8px 0;color:#888;">Event</td>
+          <td style="padding:8px 0;color:#f0e6d2;text-align:right;font-weight:600;">${data.eventName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#888;">Ticket</td>
+          <td style="padding:8px 0;color:#f0e6d2;text-align:right;">${data.ticketBatchName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#888;">Sale Price</td>
+          <td style="padding:8px 0;color:#f0e6d2;text-align:right;">£${data.askingPrice.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#888;border-top:1px solid #2a2a2a;">Your Payout</td>
+          <td style="padding:8px 0;color:#4ade80;text-align:right;font-weight:700;font-size:16px;border-top:1px solid #2a2a2a;">£${data.sellerPayout.toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="color:#999;font-size:13px;line-height:1.6;margin:0 0 8px;">
+      The payout of <strong style="color:#4ade80;">£${data.sellerPayout.toFixed(2)}</strong> has been refunded to your original payment method. It may take 5–10 business days to appear on your statement.
+    </p>
+    <div style="text-align:center;margin-top:24px;">
+      <a href="${process.env.WEB_URL || "http://localhost:3001"}/tickets"
+         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+        View My Tickets
+      </a>
+    </div>
+  `);
+  await send(data.email, `Ticket Sold — ${data.eventName}`, html);
+}
+
 export async function sendPasswordResetEmail(name: string, email: string, resetLink: string) {
   const html = baseHtml(`
     <h2 style="margin:0 0 8px;color:#f0e6d2;font-size:20px;">Password Reset</h2>

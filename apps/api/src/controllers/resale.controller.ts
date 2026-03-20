@@ -16,6 +16,11 @@ export async function cancelListing(req: Request, res: Response) {
   sendSuccess(res, listing, "Listing cancelled");
 }
 
+export async function getMyListings(req: Request, res: Response) {
+  const listings = await resaleService.getMyListings(req.user!.userId);
+  sendSuccess(res, listings, "My resale listings retrieved");
+}
+
 export async function getEventListings(req: Request, res: Response) {
   const listings = await resaleService.getListingsForEvent(req.params.eventId as string);
   sendSuccess(res, listings, "Resale listings retrieved");

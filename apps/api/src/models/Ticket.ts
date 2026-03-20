@@ -10,6 +10,7 @@ export interface ITicket {
   ticketBatchName: string;
   purchasePrice: number;
   originalPrice: number;
+  stripePaymentIntentId?: string;
   status: "active" | "listed" | "transferred" | "used" | "cancelled";
   qrCode: string;
   createdAt: Date;
@@ -25,6 +26,7 @@ const TicketSchema = new Schema<ITicket>(
     ticketBatchName: { type: String, required: true },
     purchasePrice: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, required: true, min: 0 },
+    stripePaymentIntentId: { type: String },
     status: {
       type: String,
       enum: ["active", "listed", "transferred", "used", "cancelled"],

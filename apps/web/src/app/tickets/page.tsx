@@ -6,14 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { createBrowserClient } from "@/lib/api";
-import type { TicketResponse } from "@fatsoma/shared";
-import { Ticket, ArrowRight, X, Loader2, AlertCircle, Check, ZoomIn } from "lucide-react";
+import type { TicketResponse, ResaleListingResponse } from "@fatsoma/shared";
+import { Ticket, ArrowRight, X, Loader2, AlertCircle, Check, ZoomIn, DollarSign } from "lucide-react";
 
 // AlertCircle is used in error div
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-type TabId = "active" | "resale" | "history";
+type TabId = "active" | "resale" | "sold" | "history";
 
 export default function MyTicketsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -29,12 +29,17 @@ export default function MyTicketsPage() {
   const [actionError, setActionError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [cancelConfirm, setCancelConfirm] = useState<TicketResponse | null>(null);
+  const [soldListings, setSoldListings] = useState<ResaleListingResponse[]>([]);
 
   const fetchTickets = useCallback(async () => {
     try {
       const client = createBrowserClient();
-      const res = await client.getMyTickets();
-      if (res.ok && res.data) setTickets(res.data);
+      const [ticketRes, listingRes] = await Promise.all([
+        client.getMyTickets(),
+        client.getMyResaleListings(),
+      ]);
+      if (ticketRes.ok && ticketRes.data) setTickets(ticketRes.data);
+      if (listingRes.ok && listingRes.data) setSoldListings(listingRes.data.filter((l) => l.status === "sold"));
     } catch (err: any) {
       setError(err.message || "Failed to load tickets");
     } finally {
@@ -101,7 +106,13 @@ export default function MyTicketsPage() {
   const historyTickets = tickets.filter((t) => ["transferred", "used", "cancelled"].includes(t.status));
 
   const displayedTickets =
-    activeTab === "active" ? activeTickets : activeTab === "resale" ? resaleTickets : historyTickets;
+    activeTab === "active"
+      ? activeTickets
+      : activeTab === "resale"
+        ? resaleTickets
+        : activeTab === "history"
+          ? historyTickets
+          : [];
 
   if (authLoading || loading) {
     return (
@@ -152,6 +163,16 @@ export default function MyTicketsPage() {
               Resale Listings
             </button>
             <button
+              onClick={() => setActiveTab("sold")}
+              className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                activeTab === "sold"
+                  ? "bg-gold text-void"
+                  : "bg-surface/60 text-cream/90 hover:bg-surface"
+              }`}
+            >
+              Sold ({soldListings.length})
+            </button>
+            <button
               onClick={() => setActiveTab("history")}
               className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === "history"
@@ -177,7 +198,23 @@ export default function MyTicketsPage() {
             </div>
           )}
 
-          {displayedTickets.length === 0 ? (
+          {activeTab === "sold" ? (
+            soldListings.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-surface/40 p-12 text-center">
+                <DollarSign className="mx-auto mb-4 h-12 w-12 text-cream/30" />
+                <h2 className="mb-2 text-lg font-semibold text-cream/90">No sold tickets</h2>
+                <p className="mb-6 text-sm text-cream/60">
+                  When your resale tickets are purchased, they&apos;ll appear here with payout details.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {soldListings.map((listing) => (
+                  <SoldListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            )
+          ) : displayedTickets.length === 0 ? (
             <div className="rounded-2xl border border-border bg-surface/40 p-12 text-center">
               <Ticket className="mx-auto mb-4 h-12 w-12 text-cream/30" />
               <h2 className="mb-2 text-lg font-semibold text-cream/90">
@@ -440,5 +477,89 @@ function TicketCard({
         </div>
       )}
     </>
+  );
+}
+
+function SoldListingCard({ listing }: { listing: ResaleListingResponse }) {
+  const soldDate = listing.updatedAt
+    ? new Date(listing.updatedAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "";
+
+  const refundLabel =
+    listing.sellerRefundStatus === "succeeded"
+      ? "Refunded"
+      : listing.sellerRefundStatus === "pending"
+        ? "Processing"
+        : listing.sellerRefundStatus === "failed"
+          ? "Refund Failed"
+          : "Pending";
+
+  const refundColor =
+    listing.sellerRefundStatus === "succeeded"
+      ? "bg-emerald-500/20 text-emerald-400"
+      : listing.sellerRefundStatus === "pending"
+        ? "bg-amber-500/20 text-amber-400"
+        : listing.sellerRefundStatus === "failed"
+          ? "bg-red-500/20 text-red-400"
+          : "bg-cream/10 text-cream/60";
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-surface/60 p-5">
+      <div className="absolute right-4 top-4">
+        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-400">
+          Sold
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <Link
+            href={`/events/${listing.eventId}`}
+            className="text-base font-semibold text-cream transition hover:text-gold"
+          >
+            Event #{listing.eventId.slice(-6)}
+          </Link>
+          {soldDate && <p className="mt-0.5 text-sm text-cream/60">Sold on {soldDate}</p>}
+        </div>
+
+        <div className="rounded-xl border border-border bg-void/50 p-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-cream/50">Sale Price</p>
+              <p className="font-semibold text-cream">£{listing.askingPrice.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-cream/50">Original Price</p>
+              <p className="font-semibold text-cream">£{listing.originalPurchasePrice.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-cream/50">Your Payout</p>
+              <p className="font-semibold text-emerald-400">£{listing.sellerPayout.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-cream/50">Payout Status</p>
+              <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${refundColor}`}>
+                {refundLabel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {listing.sellerRefundStatus === "succeeded" && (
+          <p className="text-xs text-cream/40">
+            Refund sent to your original payment method. It may take 5–10 business days to appear.
+          </p>
+        )}
+        {listing.sellerRefundStatus === "failed" && (
+          <p className="text-xs text-red-400/80">
+            The automatic refund could not be processed. Please contact support for assistance.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

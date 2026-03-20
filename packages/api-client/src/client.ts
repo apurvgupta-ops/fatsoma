@@ -326,6 +326,10 @@ export class FatsomaClient {
     return this.request(`/api/resale/${id}`, { method: "DELETE" });
   }
 
+  async getMyResaleListings(): Promise<ApiResponse<ResaleListingResponse[]>> {
+    return this.request("/api/resale/my");
+  }
+
   async getResaleListings(eventId: string): Promise<ApiResponse<ResaleListingResponse[]>> {
     return this.request(`/api/resale/event/${eventId}`);
   }

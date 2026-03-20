@@ -6,7 +6,8 @@ import Order from "../models/Order";
 import Ticket from "../models/Ticket";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
-import { sendBookingConfirmationEmail, sendResaleBookingEmail } from "../lib/email";
+import User from "../models/User";
+import { sendBookingConfirmationEmail, sendResaleBookingEmail, sendTicketSoldEmail } from "../lib/email";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
 
@@ -304,6 +305,7 @@ async function generateTickets(order: any) {
       ticketBatchName: order.ticketBatchName,
       purchasePrice: order.basePrice,
       originalPrice: order.basePrice,
+      stripePaymentIntentId: order.stripePaymentIntentId || undefined,
       status: "active",
       qrCode: crypto.randomUUID(),
     });
@@ -329,13 +331,76 @@ async function completeResaleTransfer(order: any) {
   listing.platformFee = order.capturedBookingFee;
   listing.sellerPayout = sellerPayout;
   listing.organiserRevenue = organiserRevenue;
-  await listing.save();
+
+  const sellerPaymentIntentId = ticket.stripePaymentIntentId;
 
   ticket.userId = order.userId;
   ticket.purchasePrice = listing.askingPrice;
   ticket.status = "active";
   ticket.qrCode = crypto.randomUUID();
   await ticket.save();
+
+  await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
+  await listing.save();
+
+  notifySellerOfSale(listing, order).catch((err) =>
+    console.error("[Resale] Failed to notify seller:", err),
+  );
+}
+
+/**
+ * Issues a partial refund to the seller's original payment method.
+ * Falls back gracefully if the original payment intent is unavailable.
+ */
+async function issueSellerRefund(
+  listing: any,
+  paymentIntentId: string | undefined,
+  amount: number,
+) {
+  if (!paymentIntentId || amount <= 0) {
+    listing.sellerRefundStatus = "failed";
+    console.warn("[Resale] No payment intent found for seller refund, listing:", listing._id.toString());
+    return;
+  }
+
+  try {
+    const stripe = getStripe();
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      amount: Math.round(amount * 100),
+      reason: "requested_by_customer",
+      metadata: {
+        type: "resale_seller_payout",
+        listingId: listing._id.toString(),
+        sellerId: listing.sellerId.toString(),
+      },
+    });
+
+    listing.sellerRefundId = refund.id;
+    listing.sellerRefundStatus = refund.status === "succeeded" ? "succeeded" : "pending";
+    console.log(`[Resale] Refund ${refund.id} (${refund.status}) issued for listing ${listing._id}`);
+  } catch (err: any) {
+    listing.sellerRefundStatus = "failed";
+    console.error(`[Resale] Refund failed for listing ${listing._id}:`, err.message);
+  }
+}
+
+async function notifySellerOfSale(listing: any, order: any) {
+  const seller = await User.findById(listing.sellerId).lean() as any;
+  if (!seller) return;
+
+  const event = await Event.findById(listing.eventId).lean() as any;
+  const eventName = event?.eventName || order.eventName || "Unknown Event";
+
+  await sendTicketSoldEmail({
+    email: seller.email,
+    sellerName: seller.name,
+    eventName,
+    ticketBatchName: order.ticketBatchName || "General",
+    askingPrice: listing.askingPrice,
+    sellerPayout: listing.sellerPayout,
+    buyerName: order.customerName || "A buyer",
+  });
 }
 
 async function cancelResaleOnExpiry(listingId: mongoose.Types.ObjectId) {

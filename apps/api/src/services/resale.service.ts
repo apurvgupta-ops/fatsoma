@@ -17,9 +17,14 @@ function toListingDTO(listing: any) {
     platformFee: listing.platformFee,
     sellerPayout: listing.sellerPayout,
     organiserRevenue: listing.organiserRevenue,
+    sellerRefundId: listing.sellerRefundId ?? null,
+    sellerRefundStatus: listing.sellerRefundStatus ?? null,
     createdAt: listing.createdAt instanceof Date
       ? listing.createdAt.toISOString()
       : listing.createdAt,
+    updatedAt: listing.updatedAt instanceof Date
+      ? listing.updatedAt.toISOString()
+      : listing.updatedAt ?? null,
   };
 }
 
@@ -96,6 +101,14 @@ export async function cancelListing(listingId: string, userId: string) {
   await Ticket.findByIdAndUpdate(listing.ticketId, { status: "active" });
 
   return toListingDTO(listing);
+}
+
+export async function getMyListings(userId: string) {
+  const listings = await ResaleListing.find({ sellerId: userId })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return listings.map(toListingDTO);
 }
 
 export async function getListingsForEvent(eventId: string) {
