@@ -176,7 +176,7 @@ function EventsHeader({
       </div>
 
       {/* Date strip — bordered panel */}
-      <div className="rounded-xl border border-border bg-[#0a0a0a] px-4 py-5 sm:px-6 sm:py-6">
+      <div className="rounded-xl border border-border bg-[#1A1A1A] px-4 py-5 sm:px-6 sm:py-6">
         <div className="flex items-center justify-between gap-4 ">
           <button
             type="button"
@@ -208,16 +208,14 @@ function EventsHeader({
                 key={dateStr}
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : d)}
-                className={`flex min-w-36 flex-col items-center rounded-lg border py-2.5 text-sm transition  sm:px-3 ${
-                  isSelected
-                    ? "bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20"
-                    : " bg-[#111] text-cream/90 hover:border-white/15 border-white/8"
-                }`}
+                className={`flex min-w-36 flex-col items-center rounded-lg py-2.5 text-sm transition sm:px-3 ${isSelected
+                  ? "bg-gold/10 text-gold hover:bg-gold/20"
+                  : "text-cream/90 hover:bg-white/5"
+                  }`}
               >
                 <span
-                  className={`text-[10px] font-medium uppercase tracking-wide ${
-                    isSelected ? "text-gold/90" : "text-cream/45"
-                  }`}
+                  className={`text-[10px] font-medium uppercase tracking-wide ${isSelected ? "text-gold/90" : "text-cream/45"
+                    }`}
                 >
                   {d.toLocaleDateString("en-GB", { weekday: "short" })}
                 </span>
@@ -227,9 +225,8 @@ function EventsHeader({
                 <span className="mt-1 flex h-2 items-end justify-center">
                   {hasEvents ? (
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        isSelected ? "bg-gold" : "bg-gold/80"
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-gold" : "bg-gold/80"
+                        }`}
                     />
                   ) : null}
                 </span>
@@ -248,18 +245,17 @@ function EventsHeader({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search events or venues..."
-            className="w-full rounded-xl border border-border bg-[#111] py-3 pr-4 pl-10 text-sm text-cream outline-none transition placeholder:text-cream/35 focus:border-gold/70 focus:ring-1 focus:ring-gold/30"
+            className="w-full rounded-xl border py-3 pr-4 pl-10 text-sm text-cream outline-none transition placeholder:text-cream/35 focus:border-gold/70 focus:ring-1 focus:ring-gold/30"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:max-w-[52%] lg:justify-end xl:max-w-none">
           <button
             type="button"
             onClick={() => onCategoryChange("all")}
-            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition ${
-              selectedCategory === "all"
-                ? "bg-gold text-black"
-                : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
-            }`}
+            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition ${selectedCategory === "all"
+              ? "bg-gold text-black"
+              : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
+              }`}
           >
             All
           </button>
@@ -268,11 +264,10 @@ function EventsHeader({
               key={cat}
               type="button"
               onClick={() => onCategoryChange(cat)}
-              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold capitalize tracking-wide transition ${
-                selectedCategory === cat
-                  ? "bg-gold text-black"
-                  : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
-              }`}
+              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold capitalize tracking-wide transition ${selectedCategory === cat
+                ? "bg-gold text-black"
+                : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
+                }`}
             >
               {cat}
             </button>

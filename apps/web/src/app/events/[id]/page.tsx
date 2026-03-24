@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createPublicClient, createBrowserClient } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +18,6 @@ import {
   CalendarDays,
   Clock,
   Ticket,
-  ShoppingCart,
   Loader2,
   Navigation,
   Building2,
@@ -59,7 +58,7 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
+      <div className="flex min-h-screen items-center justify-center bg-black">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
       </div>
     );
@@ -67,7 +66,7 @@ export default function EventDetailPage() {
 
   if (error || !event) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0f0f0f]">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black">
         <p className="text-lg text-cream/60">{error || "Event not found"}</p>
         <Link href="/events" className="text-sm text-gold hover:underline">
           Back to events
@@ -84,109 +83,96 @@ export default function EventDetailPage() {
       : event.eventImage;
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-black text-cream/90">
       <Header />
-      <div className="border-b border-amber-900/40" />
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/15 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold-light/15 blur-[160px]" />
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
-          {/* Breadcrumbs */}
-          <nav className="mb-6 text-sm text-cream/60">
-            <Link href="/events" className="hover:text-gold">
-              Events
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-cream/80">{event.eventName}</span>
-          </nav>
+      <div className="mx-auto max-w-7xl px-4 pb-24 pt-5 sm:px-6 lg:px-8">
+        <nav className="mb-5 text-xs text-cream/45 sm:text-sm">
+          <Link href="/events" className="transition hover:text-gold">
+            Events
+          </Link>
+          <span className="mx-2 text-cream/30">/</span>
+          <span className="text-cream/65">{event.eventName}</span>
+        </nav>
 
-          {/* Hero Image */}
-          <div className="relative mb-12 aspect-[21/9] overflow-hidden rounded-sm border-[0.5px] border-border/50">
-            <Image
-              src={imageUrl}
-              alt={event.eventName}
-              fill
-              priority
-              className="object-cover"
-              unoptimized
-            />
-            <div className="absolute inset-0 bg-linear-to-t from-[#0f0f0f] via-[#0f0f0f]/40 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="mb-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-void/90 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-cream/90 backdrop-blur-sm">
-                  {event.eventCategory}
-                </span>
-                {event.allowResale && (
-                  <span className="rounded-full bg-void/90 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-cream/90 backdrop-blur-sm">
-                    Resale Enabled
+        <div className="grid gap-10 lg:grid-cols-[1fr_min(380px,100%)] lg:items-start lg:gap-12">
+          <div className="min-w-0">
+            {/* Hero — badges bottom-left on image only */}
+            <div className="relative mb-8 overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a]">
+              <div className="relative aspect-[16/10] w-full sm:aspect-[2/1]">
+                <Image
+                  src={imageUrl}
+                  alt={event.eventName}
+                  fill
+                  priority
+                  className="object-cover"
+                  unoptimized
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/55 via-black/15 to-transparent" />
+                <div className="absolute bottom-4 left-4 flex flex-wrap gap-2 sm:bottom-5 sm:left-5">
+                  <span className="rounded-md bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cream backdrop-blur-sm">
+                    {event.eventCategory}
                   </span>
-                )}
+                  {event.allowResale && (
+                    <span className="rounded-md bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gold backdrop-blur-sm">
+                      Resale Enabled
+                    </span>
+                  )}
+                </div>
               </div>
-              <h1 className="text-4xl font-serif font-light text-cream sm:text-5xl lg:text-7xl">
-                {event.eventName}
-              </h1>
+            </div>
+
+            <h1 className="mb-6 max-w-4xl font-serif text-3xl font-light leading-[1.15] tracking-tight text-cream sm:text-4xl md:text-5xl">
+              {event.eventName}
+            </h1>
+
+            {/* Meta row — icon + value, single line each */}
+            <div className="mb-10 flex flex-wrap gap-x-10 gap-y-3 border-b border-white/10 pb-8">
+              <div className="flex items-center gap-2.5 text-sm text-cream/75">
+                <CalendarDays
+                  className="h-4 w-4 shrink-0 text-cream/40"
+                  strokeWidth={1.5}
+                />
+                <span>
+                  {new Date(event.eventDate).toLocaleDateString("en-GB", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5 text-sm text-cream/75">
+                <Clock
+                  className="h-4 w-4 shrink-0 text-cream/40"
+                  strokeWidth={1.5}
+                />
+                <span>
+                  {event.startTime} – {event.endTime}
+                </span>
+              </div>
+              <div className="flex min-w-0 items-center gap-2.5 text-sm text-cream/75">
+                <MapPin
+                  className="h-4 w-4 shrink-0 text-cream/40"
+                  strokeWidth={1.5}
+                />
+                <span className="truncate">
+                  {event.venueName}, {event.city}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-10">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-cream/50">
+                {event.eventDescription}
+              </p>
+
+              {event.allowResale && <ResaleListingsSection event={event} />}
             </div>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-3">
-            {/* Left — Details */}
-            <div className="space-y-6 lg:col-span-2">
-              {/* Info Row */}
-              <div className="flex flex-wrap gap-x-8 gap-y-4 rounded-sm border-[0.5px] border-border/50 bg-void/60 p-6">
-                <InfoChip
-                  icon={<CalendarDays className="h-4 w-4" />}
-                  label="Date"
-                  value={new Date(event.eventDate).toLocaleDateString("en-GB", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                />
-                <InfoChip
-                  icon={<Clock className="h-4 w-4" />}
-                  label="Time"
-                  value={`${event.startTime} — ${event.endTime}`}
-                />
-                <InfoChip
-                  icon={<MapPin className="h-4 w-4" />}
-                  label="Venue"
-                  value={`${event.venueName}, ${event.city}`}
-                />
-                <InfoChip
-                  icon={<Ticket className="h-4 w-4" />}
-                  label="Tickets"
-                  value={`${event.totalTickets.toLocaleString()} available`}
-                />
-              </div>
-
-              {/* Description */}
-              <div className="rounded-sm border-[0.5px] border-border/50 bg-void/60 p-8">
-                <h2 className="mb-6 font-serif text-2xl font-light text-cream/90 tracking-wide">
-                  About This Event
-                </h2>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-cream/60">
-                  {event.eventDescription}
-                </p>
-              </div>
-
-              {/* Venue */}
-              <VenueCard event={event} />
-
-              {/* Resale Listings */}
-              {event.allowResale && (
-                <ResaleListingsSection
-                  eventId={event.id}
-                  eventName={event.eventName}
-                />
-              )}
-            </div>
-
-            {/* Right — Ticket Purchase */}
-            <div className="space-y-6">
-              <TicketPurchasePanel event={event} />
-            </div>
+          <div className="min-w-0">
+            <TicketPurchasePanel event={event} />
           </div>
         </div>
       </div>
@@ -256,201 +242,242 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         )
       : 0;
 
+  const feeSegments = Math.min(
+    6,
+    Math.max(2, Math.round(2 + (soldPct / 100) * 3)),
+  );
+
   return (
-    <div className="sticky top-12 space-y-6">
-      {/* Ticket Selection */}
-      <div className="rounded-sm border-[0.5px] border-border/50 bg-void/70 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <h3 className="mb-2 font-serif text-xl font-semibold text-cream">
+    <div className="lg:sticky lg:top-24">
+      <div className="rounded-xl border border-white/10 bg-[#0c0c0c] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:p-7">
+        <h3 className="font-serif text-2xl font-light tracking-tight text-cream">
           Get Tickets
         </h3>
-        <p className="mb-6 text-xs text-cream/60">
+        <p className="mt-2 text-xs leading-relaxed text-cream/45">
           Ticket price + Smart Timing Fee. Buy early, pay less.
         </p>
 
-        {/* Smart Timing Fee */}
-        <div className="mb-6 rounded-xl border border-border bg-surface/40 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-gold">
-              {BOOKING_FEE_PERCENT}.0%
+        <div className="mt-6 rounded-lg border border-white/8 bg-black/45 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cream/40">
+              Smart timing fee
+            </p>
+            <span className="shrink-0 rounded border border-gold/35 bg-gold/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold">
+              Coming Soon
             </span>
-            <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-gold">
-              Low
-            </span>
           </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
-            <div
-              className="h-full rounded-full bg-gold transition-all"
-              style={{ width: `${Math.min(100, 20 + soldPct * 0.5)}%` }}
-            />
-          </div>
-          <div className="mt-3 space-y-2 text-xs text-cream/60">
-            <div className="flex justify-between">
-              <span>Standard pricing</span>
-              <span>+1.0%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Selling fast — {100 - soldPct}% left</span>
-              <span>+1.0%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Min. platform fee</span>
-              <span>3.0%</span>
-            </div>
-          </div>
-          <p className="mt-3 text-[10px] text-cream/50">
-            Buy early. Pay less. The Smart Timing Fee adjusts with time and
-            demand — never the ticket price.
+          <p className="mt-2 text-3xl font-extrabold text-gold">
+            {BOOKING_FEE_PERCENT.toFixed(1)}%
           </p>
+          <div className="mt-3 flex gap-1">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-sm ${
+                  i < feeSegments ? "bg-gold" : "bg-white/10"
+                }`}
+              />
+            ))}
+          </div>
+          <ul className="mt-4 space-y-2.5 text-xs text-cream/50">
+            <li className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Percent className="h-3.5 w-3.5 shrink-0 text-cream/35" />
+                Standard pricing
+              </span>
+              <span className="shrink-0 text-cream/40">+1.0%</span>
+            </li>
+            <li className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Ticket className="h-3.5 w-3.5 shrink-0 text-cream/35" />
+                Selling fast: {Math.max(0, 100 - soldPct)}% left
+              </span>
+              <span className="shrink-0 text-cream/40">+1.0%</span>
+            </li>
+            <li className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Tag className="h-3.5 w-3.5 shrink-0 text-cream/35" />
+                Min. platform fee
+              </span>
+              <span className="shrink-0 text-cream/40">3.0%</span>
+            </li>
+          </ul>
         </div>
 
-        {/* Batch Selection */}
-        <div className="mb-4 space-y-2">
+        <div className="mt-6 flex flex-col gap-4 text-center align-baseline">
           {event.ticketBatches.map((batch) => {
             const batchRemaining = batch.remaining ?? batch.quantity;
             const soldOut = batchRemaining <= 0;
+            const batchFee =
+              Math.round(batch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100) /
+              100;
+            const isSelected = selectedBatch.name === batch.name;
             return (
-              <button
+              <div
                 key={batch.name}
-                onClick={() => {
-                  if (!soldOut) {
-                    setSelectedBatch(batch);
-                    if (quantity > batchRemaining)
-                      setQuantity(Math.max(1, batchRemaining));
-                  }
-                }}
-                disabled={soldOut}
-                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                className={`rounded-lg border p-5 transition cursor-pointer ${
                   soldOut
-                    ? "cursor-not-allowed border-border bg-white/2 opacity-50"
-                    : selectedBatch.name === batch.name
-                      ? "cursor-pointer border-gold/50 bg-gold/10"
-                      : "cursor-pointer border-border bg-white/5 hover:border-border"
+                    ? "border-white/6 bg-white/2 opacity-55"
+                    : isSelected
+                      ? "border-gold/45 bg-gold/6"
+                      : "border-white/8 bbg-white/3 hover:border-white/12"
                 }`}
               >
-                <div>
-                  <p className="text-sm font-medium text-cream">{batch.name}</p>
-                  <p className="text-xs text-cream/60">
-                    {soldOut ? "Sold out" : `${batchRemaining} remaining`}
-                  </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!soldOut) {
+                        setSelectedBatch(batch);
+                        if (quantity > batchRemaining)
+                          setQuantity(Math.max(1, batchRemaining));
+                      }
+                    }}
+                    disabled={soldOut}
+                    className={`min-w-0 flex-1 text-left ${
+                      soldOut ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-cream">
+                      {batch.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-cream/45">
+                      {soldOut
+                        ? "Sold out"
+                        : `${batchRemaining.toLocaleString()} left`}
+                    </p>
+                    <p className="mt-1 text-xs text-cream/55">
+                      £{batch.basePrice.toFixed(2)} + £{batchFee.toFixed(2)} fee
+                    </p>
+                  </button>
+                  {/* {!soldOut && isSelected && (
+                    <button
+                      type="button"
+                      onClick={handleBuyNow}
+                      disabled={
+                        buying ||
+                        (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
+                      }
+                      className="shrink-0 rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {buying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : !user ? (
+                        "Buy"
+                      ) : (
+                        "Buy"
+                      )}
+                    </button>
+                  )} */}
+                  <div>
+                    <label className="mb-[5px] block text-[10px] font-semibold uppercase tracking-wider text-cream/40">
+                      Quantity
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        disabled={
+                          (selectedBatch.remaining ?? selectedBatch.quantity) <=
+                          0
+                        }
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cream transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center font-mono text-base font-semibold text-cream">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setQuantity((q) =>
+                            Math.min(
+                              Math.min(
+                                10,
+                                selectedBatch.remaining ??
+                                  selectedBatch.quantity,
+                              ),
+                              q + 1,
+                            ),
+                          )
+                        }
+                        disabled={
+                          (selectedBatch.remaining ?? selectedBatch.quantity) <=
+                          0
+                        }
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cream transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <span className="font-mono text-sm font-semibold text-cream/90">
-                  £{batch.basePrice.toFixed(2)}
-                </span>
-              </button>
+              </div>
             );
           })}
         </div>
 
-        {/* Quantity */}
-        <div className="mb-5">
-          <label className="mb-1.5 block text-sm font-medium text-cream/60">
-            Quantity
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={
-                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-              }
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              −
-            </button>
-            <span className="w-8 text-center font-mono text-lg font-bold text-cream">
-              {quantity}
-            </span>
-            <button
-              onClick={() =>
-                setQuantity((q) =>
-                  Math.min(
-                    Math.min(
-                      10,
-                      selectedBatch.remaining ?? selectedBatch.quantity,
-                    ),
-                    q + 1,
-                  ),
-                )
-              }
-              disabled={
-                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-              }
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-white/5 text-cream/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        {/* Price Breakdown */}
-        <div className="mb-5 space-y-2 rounded-xl border border-border bg-surface/40 p-4 text-sm">
-          <div className="flex justify-between text-cream/60">
+        <div className="mt-5 space-y-2 rounded-lg border border-white/8 bg-black/30 p-4 text-sm">
+          <div className="flex justify-between text-cream/50">
             <span>
               {selectedBatch.name} × {quantity}
             </span>
-            <span className="font-mono">£{baseTotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-cream/60">
-            <span className="flex items-center gap-1">
-              Booking fee
-              <span className="inline-flex items-center gap-0.5 rounded bg-gold/20 px-1 py-0.5 text-[10px] font-semibold text-gold">
-                <Percent className="h-2.5 w-2.5" />
-                {BOOKING_FEE_PERCENT}%
-              </span>
-              × {quantity}
+            <span className="font-mono text-cream/80">
+              £{baseTotal.toFixed(2)}
             </span>
-            <span className="font-mono">£{feeTotal.toFixed(2)}</span>
           </div>
-          <div className="border-t border-border pt-2">
-            <div className="flex justify-between font-semibold text-cream">
+          <div className="flex justify-between text-cream/50">
+            <span>Smart timing fee × {quantity}</span>
+            <span className="font-mono text-cream/80">
+              £{feeTotal.toFixed(2)}
+            </span>
+          </div>
+          <div className="border-t border-white/10 pt-2">
+            <div className="flex justify-between font-medium text-cream">
               <span>Total</span>
-              <span className="font-mono text-lg">
+              <span className="font-mono text-base text-gold">
                 £{grandTotal.toFixed(2)}
               </span>
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleBuyNow}
+          disabled={
+            buying || (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
+          }
+          className="mt-5 w-full rounded-lg bg-gold py-3.5 text-sm font-semibold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {buying ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Ticket className="h-4 w-4" />
+              {user
+                ? `Buy Now · £${grandTotal.toFixed(2)}`
+                : `Continue · £${grandTotal.toFixed(2)}`}
+            </>
+          )}
+        </button>
 
         {buyError && (
-          <div className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+          <div className="mt-4 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
             {buyError}
           </div>
         )}
 
         {!user && (
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-300/90">
-            <Lock className="h-3.5 w-3.5 shrink-0" />
-            Please sign in to purchase tickets
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs text-cream/50">
+            <Lock className="h-3.5 w-3.5 shrink-0 text-gold/70" />
+            Sign in when prompted after tapping Buy on a release.
           </div>
         )}
 
-        <button
-          onClick={handleBuyNow}
-          disabled={
-            buying || (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-          }
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {buying ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Redirecting to
-              Stripe...
-            </>
-          ) : !user ? (
-            <>
-              <Lock className="h-4 w-4" /> Sign in to Buy — £
-              {grandTotal.toFixed(2)}
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" /> Buy Now — £
-              {grandTotal.toFixed(2)}
-            </>
-          )}
-        </button>
-
-        <p className="mt-3 text-center text-[10px] text-cream/60">
-          Secure checkout via Stripe · {BOOKING_FEE_PERCENT}% platform booking
-          fee
+        <p className="mt-4 text-center text-[10px] leading-relaxed text-cream/40">
+          The Smart Timing Fee reflects time and demand — your ticket price
+          stays fair. Secure checkout via Stripe.
         </p>
       </div>
     </div>
@@ -474,53 +501,31 @@ function VenueCard({ event }: { event: EventResponse }) {
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   return (
-    <div className="overflow-hidden rounded-sm border-[0.5px] border-border/50 bg-void/60 mt-6">
-      {/* Map-style header with gradient */}
-      <div className="relative h-36 overflow-hidden bg-surface">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(147,51,234,0.15)_0%,transparent_70%)]" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Animated pin */}
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a]">
+      <div className="relative h-32 overflow-hidden bg-surface/80">
+        <div className="absolute inset-0 bg-linear-to-br from-gold/10 via-transparent to-transparent" />
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="relative">
-            <div className="absolute -inset-4 animate-ping rounded-full bg-gold/20" />
-            <div className="absolute -inset-2 rounded-full bg-gold/10" />
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-gold to-gold-light shadow-lg shadow-gold/30">
-              <MapPin className="h-5 w-5 text-cream" />
-            </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-black/50 backdrop-blur-sm">
+            <MapPin className="h-5 w-5 text-gold" strokeWidth={1.5} />
           </div>
-        </div>
-
-        {/* Decorative grid lines */}
-        <div className="absolute inset-0">
-          <div className="absolute left-1/4 top-0 h-full w-px bg-white/3" />
-          <div className="absolute left-2/4 top-0 h-full w-px bg-white/3" />
-          <div className="absolute left-3/4 top-0 h-full w-px bg-white/3" />
-          <div className="absolute left-0 top-1/3 h-px w-full bg-white/3" />
-          <div className="absolute left-0 top-2/3 h-px w-full bg-white/3" />
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h2 className="flex items-center gap-2 font-serif text-xl font-light tracking-wide text-cream">
-              <Building2 className="h-4.5 w-4.5 text-gold/60" />
+      <div className="p-5 sm:p-6">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 font-serif text-xl font-light text-cream">
+              <Building2 className="h-4 w-4 shrink-0 text-gold/70" />
               {event.venueName}
             </h2>
-            <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-cream/40">
-              Event Venue
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-cream/35">
+              Venue
             </p>
           </div>
           <button
+            type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-white/5 px-3 py-1.5 text-xs text-cream/60 transition hover:bg-white/10 hover:text-cream"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-cream/50 transition hover:border-white/15 hover:text-cream"
           >
             {copied ? (
               <Check className="h-3 w-3 text-emerald-400" />
@@ -531,8 +536,7 @@ function VenueCard({ event }: { event: EventResponse }) {
           </button>
         </div>
 
-        {/* Address details */}
-        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+        <div className="mb-5 grid gap-1 sm:grid-cols-2">
           <VenueDetail
             icon={<Navigation className="h-3.5 w-3.5" />}
             label="Address"
@@ -555,25 +559,24 @@ function VenueCard({ event }: { event: EventResponse }) {
           />
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <a
             href={mapsSearchUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-gold/20 to-gold-light/20 py-2.5 text-sm font-medium text-gold transition hover:from-gold/30 hover:to-gold-light/30 hover:text-cream"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gold/40 bg-gold/10 py-2.5 text-sm font-medium text-gold transition hover:bg-gold/15"
           >
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-4 w-4" strokeWidth={1.5} />
             View on Map
           </a>
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-white/5 py-2.5 text-sm font-medium text-cream/90 transition hover:bg-white/10 hover:text-cream"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] py-2.5 text-sm font-medium text-cream/80 transition hover:border-white/15 hover:text-cream"
           >
-            <ExternalLink className="h-4 w-4" />
-            Get Directions
+            <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
+            Directions
           </a>
         </div>
       </div>
@@ -586,18 +589,18 @@ function VenueDetail({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-none border-b border-border/30 bg-transparent px-2 py-3">
-      <div className="mt-0.5 text-gold/70">{icon}</div>
+    <div className="flex items-start gap-2.5 border-b border-white/[0.06] py-2.5 last:border-0 sm:border-0 sm:py-2">
+      <div className="mt-0.5 text-cream/35">{icon}</div>
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-cream/60">
+        <p className="text-[9px] font-semibold uppercase tracking-wider text-cream/35">
           {label}
         </p>
-        <p className="truncate text-sm text-cream/90">{value}</p>
+        <p className="truncate text-sm text-cream/75">{value}</p>
       </div>
     </div>
   );
@@ -605,13 +608,30 @@ function VenueDetail({
 
 /* ── Resale Listings Section ── */
 
-function ResaleListingsSection({
-  eventId,
-  eventName,
-}: {
-  eventId: string;
-  eventName: string;
-}) {
+function resaleTierLabel(
+  listing: ResaleListingResponse,
+  event: EventResponse,
+): string {
+  const match = event.ticketBatches.find(
+    (b) => Math.abs(b.basePrice - listing.askingPrice) < 0.005,
+  );
+  return match?.name ?? "Resale listing";
+}
+
+function currentReleasePrice(event: EventResponse): {
+  price: number;
+  fee: number;
+} {
+  const available = event.ticketBatches.filter(
+    (b) => (b.remaining ?? b.quantity) > 0,
+  );
+  const batches = available.length ? available : event.ticketBatches;
+  const price = Math.min(...batches.map((b) => b.basePrice));
+  const fee = Math.round(price * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+  return { price, fee };
+}
+
+function ResaleListingsSection({ event }: { event: EventResponse }) {
   const { user } = useAuth();
   const router = useRouter();
   const [listings, setListings] = useState<ResaleListingResponse[]>([]);
@@ -619,20 +639,22 @@ function ResaleListingsSection({
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
 
+  const { price: releasePrice, fee: releaseFee } = currentReleasePrice(event);
+
   useEffect(() => {
     const client = createPublicClient();
     client
-      .getResaleListings(eventId)
+      .getResaleListings(event.id)
       .then((res) => {
         if (res.ok && res.data) setListings(res.data);
       })
       .finally(() => setLoading(false));
-  }, [eventId]);
+  }, [event.id]);
 
   const handleBuyResale = async (listing: ResaleListingResponse) => {
     if (!user) {
       router.push(
-        `/login?redirect=${encodeURIComponent(`/events/${eventId}`)}`,
+        `/login?redirect=${encodeURIComponent(`/events/${event.id}`)}`,
       );
       return;
     }
@@ -660,12 +682,10 @@ function ResaleListingsSection({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border bg-void/60 p-6">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4 animate-spin text-cream/60" />
-          <span className="text-sm text-cream/60">
-            Loading resale listings...
-          </span>
+      <div className="rounded-xl border border-white/10 bg-[#1a1a1a] p-6">
+        <div className="flex items-center gap-2 text-sm text-cream/45">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Loading resale listings…
         </div>
       </div>
     );
@@ -674,55 +694,59 @@ function ResaleListingsSection({
   if (listings.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-amber-500/20 bg-void/60 p-6">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cream">
-        <RefreshCw className="h-5 w-5 text-gold/80" />
-        Resale Tickets
-        <span className="ml-auto rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium bg-gold/80">
-          {listings.length} available
-        </span>
+    <section>
+      <h2 className="mb-5 font-serif text-2xl font-extrabold  ">
+        Resale Listings
       </h2>
 
       {buyError && (
-        <div className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+        <div className="mb-4 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
           {buyError}
         </div>
       )}
 
       <div className="space-y-3">
         {listings.map((listing) => {
-          const fee = listing.askingPrice * (BOOKING_FEE_PERCENT / 100);
-          const total = listing.askingPrice + fee;
+          const fee =
+            Math.round(
+              listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100,
+            ) / 100;
+          const tier = resaleTierLabel(listing, event);
 
           return (
             <div
               key={listing.id}
-              className="flex items-center justify-between rounded-xl border border-border bg-white/5 px-4 py-3"
+              className="flex flex-col gap-4 rounded-xl border border-white/10 bg-[#1a1a1a] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <Tag className="h-3.5 w-3.5 text-cream/60" />
-                  <span className="text-sm font-medium text-cream">
-                    £{listing.askingPrice.toFixed(2)}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-cream">
+                  {tier}
+                  <span className="rounded border border-white/10 px-2 py-0.5 text-[9px] font-semibold tracking-wider text-cream/45 ml-2">
+                    Verified seller
                   </span>
-                  <span className="text-xs text-cream/60">
-                    + £{fee.toFixed(2)} fee
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-cream/60">
-                  Originally £{listing.originalPurchasePrice.toFixed(2)}
+                </p>
+                <p className="mt-2 text-xs text-cream/45">
+                  Current release: £{releasePrice.toFixed(2)} + £
+                  {releaseFee.toFixed(2)} transfer fee
                 </p>
               </div>
-
               <button
+                type="button"
                 onClick={() => handleBuyResale(listing)}
                 disabled={buyingId === listing.id}
-                className="cursor-pointer rounded-xl bg-linear-to-r from-gold via-gold/80 to-gold-light py-3.5 text-sm font-bold text-cream shadow-lg shadow-gold/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 px-4"
+                className="flex w-full shrink-0 flex-col items-center justify-center rounded-lg border border-gold/70 bg-transparent text-center transition hover:bg-gold/10 disabled:opacity-60 sm:w-auto sm:min-w-auto sm:max-w-auto cursor-pointer"
               >
                 {buyingId === listing.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin text-gold" />
                 ) : (
-                  `Buy £${total.toFixed(2)}`
+                  <button className="bg-gold/10 border border-gold/30 hover:bg-gold/20 transition-colors rounded-lg px-5 py-2 text-right whitespace-nowrap cursor-pointer">
+                    <span className="text-gold font-semibold text-sm">
+                      £{listing.askingPrice.toFixed(2)}
+                    </span>
+                    <span className="text-text-dim text-xs ml-1.5">
+                      + £{fee.toFixed(2)} fee
+                    </span>
+                  </button>
                 )}
               </button>
             </div>
@@ -730,34 +754,10 @@ function ResaleListingsSection({
         })}
       </div>
 
-      <p className="mt-3 text-[10px] text-cream/60">
-        Resale tickets are capped at the current ticket price. Seller gets their
-        original purchase price back.
+      <p className="mt-4 text-[10px] leading-relaxed text-cream/40">
+        Resale is capped at the current release price. Sellers are refunded
+        their original purchase amount after sale.
       </p>
-    </div>
-  );
-}
-
-/* ── Info Chip ── */
-
-function InfoChip({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <div className="mt-0.5 text-gold">{icon}</div>
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-cream/60">
-          {label}
-        </p>
-        <p className="text-sm font-medium text-cream/90">{value}</p>
-      </div>
-    </div>
+    </section>
   );
 }
