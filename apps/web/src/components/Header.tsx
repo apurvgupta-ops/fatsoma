@@ -9,7 +9,8 @@ export default function Header() {
   const pathname = usePathname();
 
   const navLink = (href: string, label: string) => {
-    const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+    const isActive =
+      pathname === href || (href !== "/" && pathname.startsWith(href));
     return (
       <Link
         href={href}
@@ -27,7 +28,7 @@ export default function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           <Check className="h-5 w-5 text-gold" />
-          <span className="text-xl font-serif font-semibold italic text-gold">
+          <span className="text-xl font-serif font-extrabold tracking-tight text-cream">
             On The List
           </span>
         </Link>

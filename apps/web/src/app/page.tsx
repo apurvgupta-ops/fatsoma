@@ -35,19 +35,17 @@ export default function HomePage() {
   const featuredEvents = events.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-void text-cream/90">
       <Header />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/15 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold-light/15 blur-[160px]" />
         <div className="relative mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32 lg:px-8">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-cream/50">
             • Secure Student Ticket Platform
           </p>
-          <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-6xl lg:text-7xl">
-            You&apos;re <span className="text-gold">on the list</span>
+          <h1 className="font-serif text-5xl  tracking-tight text-cream sm:text-6xl lg:text-7xl font-extrabold">
+            You&apos;re on<span className="text-gold"> the list</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
             The only student ticket platform with secure, no-scalping resale.

@@ -1,11 +1,8 @@
 import { FatsomaClient } from "@fatsoma/api-client";
-import * as SecureStore from "expo-secure-store";
+import EncryptedStorage from "react-native-encrypted-storage";
 import { Platform } from "react-native";
 
 const getDefaultBaseUrl = () => {
-  if (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
   if (__DEV__) {
     return Platform.OS === "android"
       ? "http://10.0.2.2:3016"
@@ -26,7 +23,7 @@ export const apiClient = new FatsomaClient({
   getRefreshToken: () => currentRefreshToken,
   onTokenRefreshed: (accessToken) => {
     currentToken = accessToken;
-    SecureStore.setItemAsync("accessToken", accessToken);
+    EncryptedStorage.setItem("accessToken", accessToken);
   },
   onAuthFailure: () => {
     authFailureCallback?.();
@@ -39,17 +36,17 @@ export function setOnAuthFailure(cb: () => void) {
 
 export async function loadStoredToken(): Promise<string | null> {
   const [token, refresh] = await Promise.all([
-    SecureStore.getItemAsync("accessToken"),
-    SecureStore.getItemAsync("refreshToken"),
+    EncryptedStorage.getItem("accessToken"),
+    EncryptedStorage.getItem("refreshToken"),
   ]);
-  currentToken = token;
-  currentRefreshToken = refresh;
-  return token;
+  currentToken = token ?? null;
+  currentRefreshToken = refresh ?? null;
+  return token ?? null;
 }
 
 export async function setTokens(access: string, refresh: string): Promise<void> {
-  await SecureStore.setItemAsync("accessToken", access);
-  await SecureStore.setItemAsync("refreshToken", refresh);
+  await EncryptedStorage.setItem("accessToken", access);
+  await EncryptedStorage.setItem("refreshToken", refresh);
   currentToken = access;
   currentRefreshToken = refresh;
 }
@@ -57,6 +54,6 @@ export async function setTokens(access: string, refresh: string): Promise<void> 
 export function clearTokens(): void {
   currentToken = null;
   currentRefreshToken = null;
-  SecureStore.deleteItemAsync("accessToken");
-  SecureStore.deleteItemAsync("refreshToken");
+  EncryptedStorage.removeItem("accessToken");
+  EncryptedStorage.removeItem("refreshToken");
 }

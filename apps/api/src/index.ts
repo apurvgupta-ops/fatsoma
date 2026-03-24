@@ -17,6 +17,7 @@ import { orderRouter } from "./routes/orders";
 import { ticketRouter } from "./routes/tickets";
 import { resaleRouter } from "./routes/resale";
 import { errorHandler } from "./middleware/error";
+import { requestLogger } from "./middleware/logger";
 
 /**
  * Create and configure the Express application.
@@ -42,6 +43,9 @@ export function createApp() {
   // ── Static files ────────────────────────────────────
   const uploadsDir = path.resolve(process.cwd(), "../../uploads");
   app.use("/uploads", express.static(uploadsDir));
+
+  // ── Request logger ─────────────────────────────────
+  app.use(requestLogger);
 
   // ── API routes ──────────────────────────────────────
   app.use("/api/auth", authRouter);

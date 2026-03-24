@@ -9,11 +9,11 @@ import {
   Alert,
   Linking,
   Dimensions,
+  Image,
 } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
+import LinearGradient from "react-native-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TicketBatch, ResaleListingResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
@@ -67,13 +67,16 @@ export function EventDetailScreen({ route, navigation }: Props) {
   });
 
   const basePrice = selectedBatch?.basePrice ?? 0;
-  const feePerTicket = Math.round(basePrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+  const feePerTicket =
+    Math.round(basePrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
   const totalPerTicket = basePrice + feePerTicket;
   const grandTotal = Math.round(totalPerTicket * qty * 100) / 100;
 
   const handleBuyNow = async () => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to purchase tickets.", [{ text: "OK" }]);
+      Alert.alert("Sign In Required", "Please sign in to purchase tickets.", [
+        { text: "OK" },
+      ]);
       return;
     }
     if (!selectedBatch) {
@@ -100,14 +103,22 @@ export function EventDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Decorative blur orbs */}
         <View style={styles.orb1} pointerEvents="none" />
         <View style={styles.orb2} pointerEvents="none" />
 
         {/* Hero Image */}
         <View style={styles.heroContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.hero} contentFit="cover" />
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.hero}
+            resizeMode="cover"
+          />
           <LinearGradient
             colors={["transparent", "rgba(15,15,15,0.4)", "#0f0f0f"]}
             style={StyleSheet.absoluteFill}
@@ -125,7 +136,10 @@ export function EventDetailScreen({ route, navigation }: Props) {
 
           <View style={styles.chips}>
             <InfoChip icon="calendar-outline" text={formattedDate} />
-            <InfoChip icon="time-outline" text={`${event.startTime} – ${event.endTime}`} />
+            <InfoChip
+              icon="time-outline"
+              text={`${event.startTime} – ${event.endTime}`}
+            />
             <InfoChip icon="location-outline" text={event.venueName} />
           </View>
 
@@ -139,7 +153,9 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <View style={styles.feeValueRow}>
               <Text style={styles.feeValue}>{BOOKING_FEE_PERCENT}%</Text>
               <View style={styles.feeChip}>
-                <Text style={styles.feeChipText}>£{feePerTicket.toFixed(2)} / ticket</Text>
+                <Text style={styles.feeChipText}>
+                  £{feePerTicket.toFixed(2)} / ticket
+                </Text>
               </View>
             </View>
           </View>
@@ -153,19 +169,28 @@ export function EventDetailScreen({ route, navigation }: Props) {
               return (
                 <Pressable
                   key={batch.name}
-                  style={[styles.batchCard, isSelected && styles.batchCardSelected, soldOut && { opacity: 0.4 }]}
+                  style={[
+                    styles.batchCard,
+                    isSelected && styles.batchCardSelected,
+                    soldOut && { opacity: 0.4 },
+                  ]}
                   onPress={() => {
                     if (soldOut) return;
                     setSelectedBatch(batch);
-                    if (qty > batchRemaining) setQty(Math.max(1, batchRemaining));
+                    if (qty > batchRemaining)
+                      setQty(Math.max(1, batchRemaining));
                   }}
                   disabled={soldOut}
                 >
                   <View>
                     <Text style={styles.batchName}>{batch.name}</Text>
-                    <Text style={styles.batchQty}>{soldOut ? "Sold out" : `${batchRemaining} available`}</Text>
+                    <Text style={styles.batchQty}>
+                      {soldOut ? "Sold out" : `${batchRemaining} available`}
+                    </Text>
                   </View>
-                  <Text style={styles.batchPrice}>£{batch.basePrice.toFixed(2)}</Text>
+                  <Text style={styles.batchPrice}>
+                    £{batch.basePrice.toFixed(2)}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -174,8 +199,15 @@ export function EventDetailScreen({ route, navigation }: Props) {
               <View style={styles.qtyRow}>
                 <Text style={styles.qtyLabel}>Quantity</Text>
                 <View style={styles.qtyControls}>
-                  <Pressable style={styles.qtyBtn} onPress={() => setQty((q) => Math.max(1, q - 1))}>
-                    <Ionicons name="remove" size={18} color={colors.text.primary} />
+                  <Pressable
+                    style={styles.qtyBtn}
+                    onPress={() => setQty((q) => Math.max(1, q - 1))}
+                  >
+                    <Ionicons
+                      name="remove"
+                      size={18}
+                      color={colors.text.primary}
+                    />
                   </Pressable>
                   <Text style={styles.qtyValue}>{qty}</Text>
                   <Pressable
@@ -183,13 +215,22 @@ export function EventDetailScreen({ route, navigation }: Props) {
                     onPress={() =>
                       setQty((q) =>
                         Math.min(
-                          Math.min(10, selectedBatch?.remaining ?? selectedBatch?.quantity ?? 10),
-                          q + 1
-                        )
+                          Math.min(
+                            10,
+                            selectedBatch?.remaining ??
+                              selectedBatch?.quantity ??
+                              10,
+                          ),
+                          q + 1,
+                        ),
                       )
                     }
                   >
-                    <Ionicons name="add" size={18} color={colors.text.primary} />
+                    <Ionicons
+                      name="add"
+                      size={18}
+                      color={colors.text.primary}
+                    />
                   </Pressable>
                 </View>
               </View>
@@ -200,7 +241,11 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>Venue</Text>
             <View style={styles.venueCard}>
               <View style={styles.venueRow}>
-                <Ionicons name="business-outline" size={18} color={colors.gold.light} />
+                <Ionicons
+                  name="business-outline"
+                  size={18}
+                  color={colors.gold.light}
+                />
                 <Text style={styles.venueName}>{event.venueName}</Text>
               </View>
               <Text style={styles.venueAddress}>{fullAddress}</Text>
@@ -209,17 +254,23 @@ export function EventDetailScreen({ route, navigation }: Props) {
                 onPress={() =>
                   Linking.openURL(
                     event.mapsLink ??
-                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
                   )
                 }
               >
-                <Ionicons name="map-outline" size={16} color={colors.gold.light} />
+                <Ionicons
+                  name="map-outline"
+                  size={16}
+                  color={colors.gold.light}
+                />
                 <Text style={styles.mapBtnText}>View on Map</Text>
               </Pressable>
             </View>
           </View>
 
-          {event.allowResale && <ResaleSection eventId={event.id} user={user} />}
+          {event.allowResale && (
+            <ResaleSection eventId={event.id} user={user} />
+          )}
         </View>
       </ScrollView>
 
@@ -229,10 +280,15 @@ export function EventDetailScreen({ route, navigation }: Props) {
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>£{grandTotal.toFixed(2)}</Text>
             <Text style={styles.totalBreakdown}>
-              {qty} × £{basePrice.toFixed(2)} + £{feePerTicket.toFixed(2)} fee ({BOOKING_FEE_PERCENT}%)
+              {qty} × £{basePrice.toFixed(2)} + £{feePerTicket.toFixed(2)} fee (
+              {BOOKING_FEE_PERCENT}%)
             </Text>
           </View>
-          <Pressable style={[styles.buyBtn, purchasing && { opacity: 0.6 }]} onPress={handleBuyNow} disabled={purchasing}>
+          <Pressable
+            style={[styles.buyBtn, purchasing && { opacity: 0.6 }]}
+            onPress={handleBuyNow}
+            disabled={purchasing}
+          >
             {purchasing ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -245,7 +301,13 @@ export function EventDetailScreen({ route, navigation }: Props) {
   );
 }
 
-function ResaleSection({ eventId, user }: { eventId: string; user: { id: string } | null }) {
+function ResaleSection({
+  eventId,
+  user,
+}: {
+  eventId: string;
+  user: { id: string } | null;
+}) {
   const [listings, setListings] = useState<ResaleListingResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
@@ -261,12 +323,17 @@ function ResaleSection({ eventId, user }: { eventId: string; user: { id: string 
 
   const handleBuyResale = async (listing: ResaleListingResponse) => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to purchase resale tickets.");
+      Alert.alert(
+        "Sign In Required",
+        "Please sign in to purchase resale tickets.",
+      );
       return;
     }
     setBuyingId(listing.id);
     try {
-      const fee = Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+      const fee =
+        Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) /
+        100;
       const res = await apiClient.buyResaleTicket(listing.id, fee);
       if (res.data?.url) await Linking.openURL(res.data.url);
     } catch (err: any) {
@@ -288,7 +355,11 @@ function ResaleSection({ eventId, user }: { eventId: string; user: { id: string 
   return (
     <View style={styles.section}>
       <View style={resaleStyles.header}>
-        <Ionicons name="swap-horizontal" size={18} color={colors.gold.DEFAULT} />
+        <Ionicons
+          name="swap-horizontal"
+          size={18}
+          color={colors.gold.DEFAULT}
+        />
         <Text style={styles.sectionTitle}>Resale Tickets</Text>
         <View style={resaleStyles.countBadge}>
           <Text style={resaleStyles.countText}>{listings.length}</Text>
@@ -296,36 +367,55 @@ function ResaleSection({ eventId, user }: { eventId: string; user: { id: string 
       </View>
 
       {listings.map((listing) => {
-        const fee = Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
+        const fee =
+          Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) /
+          100;
         const total = listing.askingPrice + fee;
         return (
           <View key={listing.id} style={resaleStyles.card}>
             <View style={resaleStyles.cardLeft}>
-              <Text style={resaleStyles.price}>£{listing.askingPrice.toFixed(2)}</Text>
+              <Text style={resaleStyles.price}>
+                £{listing.askingPrice.toFixed(2)}
+              </Text>
               <Text style={resaleStyles.feeText}>+ £{fee.toFixed(2)} fee</Text>
-              <Text style={resaleStyles.originalText}>Originally £{listing.originalPurchasePrice.toFixed(2)}</Text>
+              <Text style={resaleStyles.originalText}>
+                Originally £{listing.originalPurchasePrice.toFixed(2)}
+              </Text>
             </View>
             <Pressable
-              style={[resaleStyles.buyBtn, buyingId === listing.id && { opacity: 0.5 }]}
+              style={[
+                resaleStyles.buyBtn,
+                buyingId === listing.id && { opacity: 0.5 },
+              ]}
               onPress={() => handleBuyResale(listing)}
               disabled={buyingId === listing.id}
             >
               {buyingId === listing.id ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={resaleStyles.buyBtnText}>Buy £{total.toFixed(2)}</Text>
+                <Text style={resaleStyles.buyBtnText}>
+                  Buy £{total.toFixed(2)}
+                </Text>
               )}
             </Pressable>
           </View>
         );
       })}
 
-      <Text style={resaleStyles.disclaimer}>Resale tickets are capped at the current ticket price.</Text>
+      <Text style={resaleStyles.disclaimer}>
+        Resale tickets are capped at the current ticket price.
+      </Text>
     </View>
   );
 }
 
-function InfoChip({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function InfoChip({
+  icon,
+  text,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  text: string;
+}) {
   return (
     <View style={styles.chip}>
       <Ionicons name={icon} size={14} color={colors.gold.light} />
@@ -337,7 +427,12 @@ function InfoChip({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: 
 }
 
 const resaleStyles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: spacing.md },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: spacing.md,
+  },
   countBadge: {
     backgroundColor: colors.gold.dim,
     borderRadius: radius.full,
@@ -370,7 +465,12 @@ const resaleStyles = StyleSheet.create({
     alignItems: "center",
   },
   buyBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  disclaimer: { color: colors.text.dim, fontSize: 11, marginTop: spacing.sm, textAlign: "center" },
+  disclaimer: {
+    color: colors.text.dim,
+    fontSize: 11,
+    marginTop: spacing.sm,
+    textAlign: "center",
+  },
 });
 
 const styles = StyleSheet.create({
@@ -443,7 +543,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginBottom: spacing.md,
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.xl },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
   chip: {
     flexDirection: "row",
     alignItems: "center",
@@ -532,9 +637,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
   },
-  venueRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.xs },
+  venueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   venueName: { color: colors.text.primary, fontSize: 15, fontWeight: "600" },
-  venueAddress: { color: colors.text.muted, fontSize: 13, marginBottom: spacing.md, lineHeight: 20 },
+  venueAddress: {
+    color: colors.text.muted,
+    fontSize: 13,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
   mapBtn: {
     flexDirection: "row",
     alignItems: "center",

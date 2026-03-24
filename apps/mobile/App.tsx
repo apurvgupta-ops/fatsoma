@@ -1,5 +1,5 @@
 import React from "react";
-import { StatusBar } from "expo-status-bar";
+import { StatusBar } from "react-native";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -23,7 +23,7 @@ export default function App() {
   return (
     <AuthProvider>
       <NavigationContainer theme={DarkNavTheme}>
-        <StatusBar style="light" />
+        <StatusBar barStyle="light-content" />
         <RootNavigator />
       </NavigationContainer>
     </AuthProvider>

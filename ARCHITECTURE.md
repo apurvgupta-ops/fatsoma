@@ -77,15 +77,15 @@ On The List is a full-stack event ticketing platform with four client surfaces a
 
 ### Core Capabilities
 
-| Capability | Description |
-|------------|-------------|
-| **Event Management** | Create, edit, publish/unpublish events with ticket batches, venue info, and dynamic pricing |
-| **Ticket Purchase** | Stripe Checkout with automatic ticket generation and QR codes |
-| **Resale Marketplace** | Anti-scalping resale: sellers list at or below face value, buyers get fresh QR codes |
-| **Seller Payout** | Automatic Stripe refund to seller's original payment method when resale completes |
-| **Admin Dashboard** | Full CRUD for events, users, payments with stats and pagination |
-| **Email Notifications** | Transactional emails for registration, booking, resale, password reset, account deletion |
-| **Multi-Platform Auth** | JWT access/refresh tokens with automatic refresh across web, admin, and mobile |
+| Capability              | Description                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| **Event Management**    | Create, edit, publish/unpublish events with ticket batches, venue info, and dynamic pricing |
+| **Ticket Purchase**     | Stripe Checkout with automatic ticket generation and QR codes                               |
+| **Resale Marketplace**  | Anti-scalping resale: sellers list at or below face value, buyers get fresh QR codes        |
+| **Seller Payout**       | Automatic Stripe refund to seller's original payment method when resale completes           |
+| **Admin Dashboard**     | Full CRUD for events, users, payments with stats and pagination                             |
+| **Email Notifications** | Transactional emails for registration, booking, resale, password reset, account deletion    |
+| **Multi-Platform Auth** | JWT access/refresh tokens with automatic refresh across web, admin, and mobile              |
 
 ---
 
@@ -333,36 +333,36 @@ Central type definitions and validation schemas shared across all apps.
 
 #### Types (`types.ts`)
 
-| Type | Purpose | Key Fields |
-|------|---------|------------|
-| `TicketBatch` | Ticket tier definition | `name`, `quantity`, `basePrice`, `minDiscount`, `maxDiscount` |
-| `EventBase` | Core event fields | `eventName`, `eventCategory`, `venueName`, `city`, `eventDate`, `ticketBatches`, `allowResale`, `platformCommission` |
-| `EventResponse` | API event response | EventBase + `id`, `status`, `createdBy`, timestamps |
-| `UserResponse` | API user response | `id`, `name`, `email`, `role`, `isActive`, timestamps |
-| `AuthTokens` | JWT token pair | `accessToken`, `refreshToken` |
-| `LoginResponse` | Auth response | `user: UserResponse`, `tokens: AuthTokens` |
-| `ApiResponse<T>` | Standard API envelope | `ok`, `message`, `data?` |
-| `TicketResponse` | Full ticket with event context | `id`, `orderId`, `eventId`, `userId`, `eventName`, `ticketBatchName`, `purchasePrice`, `originalPrice`, `status`, `qrCode`, `allowResale`, `currentBatchPrice`, `eventDate`, `venueName`, `city` |
-| `ResaleListingResponse` | Resale listing with payout info | `id`, `ticketId`, `eventId`, `sellerId`, `askingPrice`, `originalPurchasePrice`, `status`, `sellerPayout`, `sellerRefundId`, `sellerRefundStatus` |
+| Type                    | Purpose                         | Key Fields                                                                                                                                                                                       |
+| ----------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TicketBatch`           | Ticket tier definition          | `name`, `quantity`, `basePrice`, `minDiscount`, `maxDiscount`                                                                                                                                    |
+| `EventBase`             | Core event fields               | `eventName`, `eventCategory`, `venueName`, `city`, `eventDate`, `ticketBatches`, `allowResale`, `platformCommission`                                                                             |
+| `EventResponse`         | API event response              | EventBase + `id`, `status`, `createdBy`, timestamps                                                                                                                                              |
+| `UserResponse`          | API user response               | `id`, `name`, `email`, `role`, `isActive`, timestamps                                                                                                                                            |
+| `AuthTokens`            | JWT token pair                  | `accessToken`, `refreshToken`                                                                                                                                                                    |
+| `LoginResponse`         | Auth response                   | `user: UserResponse`, `tokens: AuthTokens`                                                                                                                                                       |
+| `ApiResponse<T>`        | Standard API envelope           | `ok`, `message`, `data?`                                                                                                                                                                         |
+| `TicketResponse`        | Full ticket with event context  | `id`, `orderId`, `eventId`, `userId`, `eventName`, `ticketBatchName`, `purchasePrice`, `originalPrice`, `status`, `qrCode`, `allowResale`, `currentBatchPrice`, `eventDate`, `venueName`, `city` |
+| `ResaleListingResponse` | Resale listing with payout info | `id`, `ticketId`, `eventId`, `sellerId`, `askingPrice`, `originalPurchasePrice`, `status`, `sellerPayout`, `sellerRefundId`, `sellerRefundStatus`                                                |
 
 #### Validation Schemas (`schemas.ts` — Zod)
 
-| Schema | Validates | Key Rules |
-|--------|-----------|-----------|
-| `ticketBatchSchema` | Ticket batch input | `name` min 1, `quantity ≥ 0`, `basePrice ≥ 0`, `minDiscount ≤ maxDiscount` (0–100) |
-| `createEventSchema` | Event creation | `eventName` 1–200 chars, `eventDescription` 1–5000, category enum, min 1 batch, `platformCommission` 0–100 |
-| `loginSchema` | Login input | Valid email, password min 6 |
-| `registerSchema` | Registration | Name 2–100, valid email, password min 6 |
-| `createUserSchema` | Admin user creation | Name 2–100, valid email, password min 6, role enum |
+| Schema              | Validates           | Key Rules                                                                                                  |
+| ------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `ticketBatchSchema` | Ticket batch input  | `name` min 1, `quantity ≥ 0`, `basePrice ≥ 0`, `minDiscount ≤ maxDiscount` (0–100)                         |
+| `createEventSchema` | Event creation      | `eventName` 1–200 chars, `eventDescription` 1–5000, category enum, min 1 batch, `platformCommission` 0–100 |
+| `loginSchema`       | Login input         | Valid email, password min 6                                                                                |
+| `registerSchema`    | Registration        | Name 2–100, valid email, password min 6                                                                    |
+| `createUserSchema`  | Admin user creation | Name 2–100, valid email, password min 6, role enum                                                         |
 
 #### Constants (`constants.ts`)
 
-| Constant | Value | Usage |
-|----------|-------|-------|
-| `BOOKING_FEE_PERCENT` | `10` | Applied to every ticket purchase as platform fee |
-| `EVENT_CATEGORIES` | `["Party", "Club Night", "Concert", "Festival", "Pop-Up", "Conference"]` | Event category enum |
-| `USER_ROLES` | `["admin", "user"]` | User role enum |
-| `EVENT_STATUSES` | `["draft", "published"]` | Event lifecycle states |
+| Constant              | Value                                                                    | Usage                                            |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
+| `BOOKING_FEE_PERCENT` | `10`                                                                     | Applied to every ticket purchase as platform fee |
+| `EVENT_CATEGORIES`    | `["Party", "Club Night", "Concert", "Festival", "Pop-Up", "Conference"]` | Event category enum                              |
+| `USER_ROLES`          | `["admin", "user"]`                                                      | User role enum                                   |
+| `EVENT_STATUSES`      | `["draft", "published"]`                                                 | Event lifecycle states                           |
 
 ### 4.2 `@fatsoma/api-client`
 
@@ -412,40 +412,40 @@ Request with expired token
 
 #### Complete Method Reference
 
-| Category | Method | HTTP | Endpoint |
-|----------|--------|------|----------|
-| **Auth** | `register(input)` | POST | `/api/auth/register` |
-| | `login(input)` | POST | `/api/auth/login` |
-| | `refreshToken(token)` | POST | `/api/auth/refresh` |
-| | `getMe()` | GET | `/api/auth/me` |
-| | `forgotPassword(email)` | POST | `/api/auth/forgot-password` |
-| | `resetPassword(token, password)` | POST | `/api/auth/reset-password` |
-| **Events** | `getPublishedEvents()` | GET | `/api/events/published` |
-| | `getEvents()` | GET | `/api/events` |
-| | `getEvent(id)` | GET | `/api/events/:id` |
-| | `createEvent(input)` | POST | `/api/events` |
-| | `updateEvent(id, input)` | PUT | `/api/events/:id` |
-| | `updateEventStatus(id, status)` | PATCH | `/api/events/:id/status` |
-| | `deleteEvent(id)` | DELETE | `/api/events/:id` |
-| **Users** | `getUsers()` | GET | `/api/users` |
-| | `createUser(input)` | POST | `/api/users` |
-| | `updateUserStatus(id, isActive)` | PATCH | `/api/users/:id/status` |
-| | `updateUserRole(id, role)` | PATCH | `/api/users/:id/role` |
-| | `deleteUser(id)` | DELETE | `/api/users/:id` |
-| **Checkout** | `createCheckoutSession(input)` | POST | `/api/checkout/create-session` |
-| | `getCheckoutSession(sessionId)` | GET | `/api/checkout/session/:sessionId` |
-| | `confirmCheckoutSession(sessionId)` | POST | `/api/checkout/session/:sessionId/confirm` |
-| **Tickets** | `getMyTickets()` | GET | `/api/tickets/my` |
-| | `getTicket(id)` | GET | `/api/tickets/:id` |
-| **Resale** | `listTicketForResale(input)` | POST | `/api/resale/list` |
-| | `cancelResaleListing(id)` | DELETE | `/api/resale/:id` |
-| | `getMyResaleListings()` | GET | `/api/resale/my` |
-| | `getResaleListings(eventId)` | GET | `/api/resale/event/:eventId` |
-| | `buyResaleTicket(listingId, fee)` | POST | `/api/resale/:id/buy` |
-| **Orders** | `getMyOrders()` | GET | `/api/orders/my` |
-| | `getOrders(params)` | GET | `/api/orders` |
-| | `getOrderStats()` | GET | `/api/orders/stats` |
-| **Upload** | `uploadImage(file)` | POST | `/api/uploads` |
+| Category     | Method                              | HTTP   | Endpoint                                   |
+| ------------ | ----------------------------------- | ------ | ------------------------------------------ |
+| **Auth**     | `register(input)`                   | POST   | `/api/auth/register`                       |
+|              | `login(input)`                      | POST   | `/api/auth/login`                          |
+|              | `refreshToken(token)`               | POST   | `/api/auth/refresh`                        |
+|              | `getMe()`                           | GET    | `/api/auth/me`                             |
+|              | `forgotPassword(email)`             | POST   | `/api/auth/forgot-password`                |
+|              | `resetPassword(token, password)`    | POST   | `/api/auth/reset-password`                 |
+| **Events**   | `getPublishedEvents()`              | GET    | `/api/events/published`                    |
+|              | `getEvents()`                       | GET    | `/api/events`                              |
+|              | `getEvent(id)`                      | GET    | `/api/events/:id`                          |
+|              | `createEvent(input)`                | POST   | `/api/events`                              |
+|              | `updateEvent(id, input)`            | PUT    | `/api/events/:id`                          |
+|              | `updateEventStatus(id, status)`     | PATCH  | `/api/events/:id/status`                   |
+|              | `deleteEvent(id)`                   | DELETE | `/api/events/:id`                          |
+| **Users**    | `getUsers()`                        | GET    | `/api/users`                               |
+|              | `createUser(input)`                 | POST   | `/api/users`                               |
+|              | `updateUserStatus(id, isActive)`    | PATCH  | `/api/users/:id/status`                    |
+|              | `updateUserRole(id, role)`          | PATCH  | `/api/users/:id/role`                      |
+|              | `deleteUser(id)`                    | DELETE | `/api/users/:id`                           |
+| **Checkout** | `createCheckoutSession(input)`      | POST   | `/api/checkout/create-session`             |
+|              | `getCheckoutSession(sessionId)`     | GET    | `/api/checkout/session/:sessionId`         |
+|              | `confirmCheckoutSession(sessionId)` | POST   | `/api/checkout/session/:sessionId/confirm` |
+| **Tickets**  | `getMyTickets()`                    | GET    | `/api/tickets/my`                          |
+|              | `getTicket(id)`                     | GET    | `/api/tickets/:id`                         |
+| **Resale**   | `listTicketForResale(input)`        | POST   | `/api/resale/list`                         |
+|              | `cancelResaleListing(id)`           | DELETE | `/api/resale/:id`                          |
+|              | `getMyResaleListings()`             | GET    | `/api/resale/my`                           |
+|              | `getResaleListings(eventId)`        | GET    | `/api/resale/event/:eventId`               |
+|              | `buyResaleTicket(listingId, fee)`   | POST   | `/api/resale/:id/buy`                      |
+| **Orders**   | `getMyOrders()`                     | GET    | `/api/orders/my`                           |
+|              | `getOrders(params)`                 | GET    | `/api/orders`                              |
+|              | `getOrderStats()`                   | GET    | `/api/orders/stats`                        |
+| **Upload**   | `uploadImage(file)`                 | POST   | `/api/uploads`                             |
 
 ---
 
@@ -502,10 +502,10 @@ Startup sequence:
 
 #### Authentication (`middleware/auth.ts`)
 
-| Export | Purpose | Response on Failure |
-|--------|---------|---------------------|
-| `authenticate` | Extracts Bearer token from `Authorization` header, verifies JWT, sets `req.user = { userId, role }` | 401 Unauthorized |
-| `requireAdmin` | Checks `req.user.role === "admin"` | 403 Forbidden |
+| Export         | Purpose                                                                                             | Response on Failure |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------------------- |
+| `authenticate` | Extracts Bearer token from `Authorization` header, verifies JWT, sets `req.user = { userId, role }` | 401 Unauthorized    |
+| `requireAdmin` | Checks `req.user.role === "admin"`                                                                  | 403 Forbidden       |
 
 #### Validation (`middleware/validate.ts`)
 
@@ -519,28 +519,28 @@ Validates `req.body` against a Zod schema. Returns 400 with structured field-lev
 
 Global error handler that maps error types to HTTP responses:
 
-| Error Type | Status Code | Behavior |
-|------------|-------------|----------|
-| `AppError` | Custom (400–500) | Returns `{ ok: false, message }` |
-| `ZodError` | 400 | Returns field-level validation errors |
-| `mongoose.ValidationError` | 400 | Extracts field messages |
-| `mongoose.CastError` | 400 | "Invalid ID format" |
-| MongoDB duplicate key (11000) | 409 | "Duplicate value" |
-| Multer file too large | 413 | "File too large" |
-| Unknown | 500 | "Internal server error" (no leak) |
+| Error Type                    | Status Code      | Behavior                              |
+| ----------------------------- | ---------------- | ------------------------------------- |
+| `AppError`                    | Custom (400–500) | Returns `{ ok: false, message }`      |
+| `ZodError`                    | 400              | Returns field-level validation errors |
+| `mongoose.ValidationError`    | 400              | Extracts field messages               |
+| `mongoose.CastError`          | 400              | "Invalid ID format"                   |
+| MongoDB duplicate key (11000) | 409              | "Duplicate value"                     |
+| Multer file too large         | 413              | "File too large"                      |
+| Unknown                       | 500              | "Internal server error" (no leak)     |
 
 ### 5.4 Services — Detailed Business Logic
 
 #### `auth.service.ts`
 
-| Function | Logic |
-|----------|-------|
-| `registerUser(name, email, password)` | Check duplicate email → bcrypt hash (10 rounds) → create User → generate tokens → send welcome email → return user + tokens |
-| `loginUser(email, password)` | Find user by email → check `isActive` → bcrypt compare → generate tokens → return user + tokens |
-| `refreshAccessToken(token)` | Verify refresh JWT → find user → check `isActive` → generate new access token |
-| `getCurrentUser(userId)` | Find user → check `isActive` → return user (exclude password) |
-| `forgotPassword(email)` | Find user → generate `crypto.randomBytes(32)` hex token → set `resetPasswordToken` + `resetPasswordExpires` (1 hour) → send reset email |
-| `resetPassword(token, newPassword)` | Find user by token where `expires > now` → bcrypt hash → clear reset fields → save |
+| Function                              | Logic                                                                                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `registerUser(name, email, password)` | Check duplicate email → bcrypt hash (10 rounds) → create User → generate tokens → send welcome email → return user + tokens             |
+| `loginUser(email, password)`          | Find user by email → check `isActive` → bcrypt compare → generate tokens → return user + tokens                                         |
+| `refreshAccessToken(token)`           | Verify refresh JWT → find user → check `isActive` → generate new access token                                                           |
+| `getCurrentUser(userId)`              | Find user → check `isActive` → return user (exclude password)                                                                           |
+| `forgotPassword(email)`               | Find user → generate `crypto.randomBytes(32)` hex token → set `resetPasswordToken` + `resetPasswordExpires` (1 hour) → send reset email |
+| `resetPassword(token, newPassword)`   | Find user by token where `expires > now` → bcrypt hash → clear reset fields → save                                                      |
 
 #### `checkout.service.ts`
 
@@ -650,51 +650,51 @@ completeResaleTransfer(order)
 
 #### `event.service.ts`
 
-| Function | Logic |
-|----------|-------|
-| `getPublishedEvents()` | `Event.find({ status: "published" }).sort({ eventDate: 1 })` + sold counts per batch |
-| `getAllEvents(userId, role)` | Admin: all events; User: `{ createdBy: userId }` |
-| `getEventById(id)` | `Event.findById(id)` + sold counts |
-| `createEvent(input, userId)` | Set `bookingFee: BOOKING_FEE_PERCENT`, `createdBy: userId` → `Event.create()` |
-| `updateEvent(id, input)` | `Event.findByIdAndUpdate(id, input, { new: true })` |
-| `updateEventStatus(id, status)` | Set `status` to "draft" or "published" |
-| `deleteEvent(id)` | `Event.findByIdAndDelete(id)` |
+| Function                        | Logic                                                                                |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `getPublishedEvents()`          | `Event.find({ status: "published" }).sort({ eventDate: 1 })` + sold counts per batch |
+| `getAllEvents(userId, role)`    | Admin: all events; User: `{ createdBy: userId }`                                     |
+| `getEventById(id)`              | `Event.findById(id)` + sold counts                                                   |
+| `createEvent(input, userId)`    | Set `bookingFee: BOOKING_FEE_PERCENT`, `createdBy: userId` → `Event.create()`        |
+| `updateEvent(id, input)`        | `Event.findByIdAndUpdate(id, input, { new: true })`                                  |
+| `updateEventStatus(id, status)` | Set `status` to "draft" or "published"                                               |
+| `deleteEvent(id)`               | `Event.findByIdAndDelete(id)`                                                        |
 
 **Sold counts helper:** Aggregates `Ticket.aggregate([{ $match: { eventId, status: { $ne: "cancelled" } } }, { $group: { _id: "$ticketBatchName", count: { $sum: 1 } } }])` to compute `remaining` per batch.
 
 #### `order.service.ts`
 
-| Function | Logic |
-|----------|-------|
+| Function              | Logic                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `listOrders(filters)` | Filter by `status`, `type`, `eventId`; search across `eventName`, `customerEmail`, `customerName`, `stripeSessionId`, and partial `_id` match using `$expr + $regexMatch` |
-| `getMyOrders(userId)` | `Order.find({ userId }).sort({ createdAt: -1 })` |
-| `getOrderStats()` | Aggregate: total/paid/pending counts, gross revenue, resale stats from `ResaleListing.find({ status: "sold" })` |
+| `getMyOrders(userId)` | `Order.find({ userId }).sort({ createdAt: -1 })`                                                                                                                          |
+| `getOrderStats()`     | Aggregate: total/paid/pending counts, gross revenue, resale stats from `ResaleListing.find({ status: "sold" })`                                                           |
 
 #### `resale.service.ts`
 
-| Function | Logic |
-|----------|-------|
-| `listForResale(input)` | Validate ownership → check `event.allowResale` → enforce `askingPrice ≤ batch.basePrice` → set ticket status to "listed" → create ResaleListing |
-| `cancelListing(listingId, userId)` | Validate ownership → set listing "cancelled" → set ticket back to "active" |
-| `getMyListings(userId)` | All listings for seller, sorted by `updatedAt` desc |
-| `getListingsForEvent(eventId)` | Active listings sorted by `askingPrice` asc |
+| Function                           | Logic                                                                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listForResale(input)`             | Validate ownership → check `event.allowResale` → enforce `askingPrice ≤ batch.basePrice` → set ticket status to "listed" → create ResaleListing |
+| `cancelListing(listingId, userId)` | Validate ownership → set listing "cancelled" → set ticket back to "active"                                                                      |
+| `getMyListings(userId)`            | All listings for seller, sorted by `updatedAt` desc                                                                                             |
+| `getListingsForEvent(eventId)`     | Active listings sorted by `askingPrice` asc                                                                                                     |
 
 #### `ticket.service.ts`
 
-| Function | Logic |
-|----------|-------|
-| `getMyTickets(userId)` | Fetch tickets → enrich with event data (allowResale, currentBatchPrice, eventDate, venueName, city) |
-| `getTicketById(ticketId, userId)` | Fetch + enforce ownership |
+| Function                          | Logic                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `getMyTickets(userId)`            | Fetch tickets → enrich with event data (allowResale, currentBatchPrice, eventDate, venueName, city) |
+| `getTicketById(ticketId, userId)` | Fetch + enforce ownership                                                                           |
 
 #### `user.service.ts`
 
-| Function | Logic |
-|----------|-------|
-| `listUsers()` | All users sorted by `createdAt` desc |
-| `createUser(name, email, password, role)` | Check duplicate → bcrypt hash → create |
-| `updateUserStatus(id, isActive)` | Toggle active/inactive |
-| `updateUserRole(id, role)` | Change admin/user role |
-| `deleteUser(id, requestingUserId)` | Prevent self-deletion → delete → send account-deleted email |
+| Function                                  | Logic                                                       |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `listUsers()`                             | All users sorted by `createdAt` desc                        |
+| `createUser(name, email, password, role)` | Check duplicate → bcrypt hash → create                      |
+| `updateUserStatus(id, isActive)`          | Toggle active/inactive                                      |
+| `updateUserRole(id, role)`                | Change admin/user role                                      |
+| `deleteUser(id, requestingUserId)`        | Prevent self-deletion → delete → send account-deleted email |
 
 ### 5.5 Utility Classes
 
@@ -731,26 +731,26 @@ sendMessage(res, message, statusCode = 200)
 
 ### 6.1 Tech Stack
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Next.js | 16.1.6 | React framework with App Router |
-| React | 19.2.3 | UI library |
-| Tailwind CSS | 4.x | Utility-first CSS (via `@tailwindcss/postcss`) |
-| Lucide React | 0.574.0 | Icon library |
-| Stripe.js | 8.8.0 | Client-side Stripe integration |
+| Technology   | Version | Purpose                                        |
+| ------------ | ------- | ---------------------------------------------- |
+| Next.js      | 16.1.6  | React framework with App Router                |
+| React        | 19.2.3  | UI library                                     |
+| Tailwind CSS | 4.x     | Utility-first CSS (via `@tailwindcss/postcss`) |
+| Lucide React | 0.574.0 | Icon library                                   |
+| Stripe.js    | 8.8.0   | Client-side Stripe integration                 |
 
 ### 6.2 Theme
 
 Dark luxury aesthetic with gold accents:
 
-| Variable | Value | Usage |
-|----------|-------|-------|
-| `--void` | `#0a0a0a` | Deepest background |
-| `--surface` | `#141414` | Card/panel backgrounds |
-| `--border` | `#1f1f1f` | Subtle borders |
-| `--gold` | `#d4a843` | Primary accent, CTAs |
-| `--gold-light` | `#e8c36a` | Hover states |
-| `--cream` | `#f0e6d2` | Primary text |
+| Variable       | Value     | Usage                  |
+| -------------- | --------- | ---------------------- |
+| `--void`       | `#0a0a0a` | Deepest background     |
+| `--surface`    | `#141414` | Card/panel backgrounds |
+| `--border`     | `#1f1f1f` | Subtle borders         |
+| `--gold`       | `#d4a843` | Primary accent, CTAs   |
+| `--gold-light` | `#e8c36a` | Hover states           |
+| `--cream`      | `#f0e6d2` | Primary text           |
 
 Fonts: **Space Grotesk** (body), **IBM Plex Mono** (monospace), **Cormorant Garamond** (serif headings).
 
@@ -927,15 +927,15 @@ RootNavigator
 
 ### 8.2 Screens
 
-| Screen | Features |
-|--------|----------|
-| **ExploreScreen** | Hero section, search bar, category filter pills, event list (FlatList), footer links to info pages |
-| **EventDetailScreen** | Event hero, batch selector, quantity picker, price breakdown, Buy Now (opens Stripe URL in browser), resale section |
-| **TicketsScreen** | Ticket list with QR codes, list for resale modal, cancel listing |
-| **ProfileScreen** | User info, logout with confirmation |
-| **LoginScreen** | Email/password form with show/hide toggle |
-| **SignupScreen** | Name/email/password/confirm form with validation |
-| **InfoScreen** | Dynamic content based on `pageId`: How It Works, Trust & Safety, Pricing, Help Centre (FAQ accordion), Contact, Terms |
+| Screen                | Features                                                                                                              |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **ExploreScreen**     | Hero section, search bar, category filter pills, event list (FlatList), footer links to info pages                    |
+| **EventDetailScreen** | Event hero, batch selector, quantity picker, price breakdown, Buy Now (opens Stripe URL in browser), resale section   |
+| **TicketsScreen**     | Ticket list with QR codes, list for resale modal, cancel listing                                                      |
+| **ProfileScreen**     | User info, logout with confirmation                                                                                   |
+| **LoginScreen**       | Email/password form with show/hide toggle                                                                             |
+| **SignupScreen**      | Name/email/password/confirm form with validation                                                                      |
+| **InfoScreen**        | Dynamic content based on `pageId`: How It Works, Trust & Safety, Pricing, Help Centre (FAQ accordion), Contact, Terms |
 
 ### 8.3 Token Storage
 
@@ -952,7 +952,7 @@ SecureStore.deleteItemAsync("accessToken")
 
 ```typescript
 colors = {
-  bg: { primary: "#080808", secondary: "#0f0f0f", card: "#141414", surface: "#1a1a1a" },
+  bg: { primary: "#0A0A0A", secondary: "#0f0f0f", card: "#141414", surface: "#1a1a1a" },
   gold: { DEFAULT: "#d4a843", light: "#e8c36a", dim: "#8b7635", border: "#d4a84330" },
   cream: "#f0e6d2",
   text: { primary: "#f0e6d2", secondary: "#b8a88a", muted: "#8b8172", dim: "#5c5549" },
@@ -989,11 +989,11 @@ radius = { sm: 8, md: 12, lg: 16, xl: 20, full: 9999 }
 
 ### 9.2 Token Storage by Platform
 
-| Platform | Access Token | Refresh Token |
-|----------|-------------|---------------|
-| Web | `localStorage.accessToken` | `localStorage.refreshToken` |
-| Admin | `localStorage.fatsoma_access_token` | `localStorage.fatsoma_refresh_token` |
-| Mobile | `SecureStore.accessToken` | `SecureStore.refreshToken` |
+| Platform | Access Token                        | Refresh Token                        |
+| -------- | ----------------------------------- | ------------------------------------ |
+| Web      | `localStorage.accessToken`          | `localStorage.refreshToken`          |
+| Admin    | `localStorage.fatsoma_access_token` | `localStorage.fatsoma_refresh_token` |
+| Mobile   | `SecureStore.accessToken`           | `SecureStore.refreshToken`           |
 
 ### 9.3 Auth Flow
 
@@ -1119,14 +1119,14 @@ Example:
 
 ### 11.1 Anti-Scalping Rules
 
-| Rule | Enforcement |
-|------|-------------|
-| Resale must be enabled per event | `event.allowResale === true` |
-| Price cannot exceed face value | `askingPrice ≤ batch.basePrice` |
-| Price must be positive | `askingPrice > 0` |
-| Only ticket owner can list | `ticket.userId === sellerId` |
-| Only active tickets can be listed | `ticket.status === "active"` |
-| Cannot buy own listing | `listing.sellerId !== buyerId` |
+| Rule                              | Enforcement                     |
+| --------------------------------- | ------------------------------- |
+| Resale must be enabled per event  | `event.allowResale === true`    |
+| Price cannot exceed face value    | `askingPrice ≤ batch.basePrice` |
+| Price must be positive            | `askingPrice > 0`               |
+| Only ticket owner can list        | `ticket.userId === sellerId`    |
+| Only active tickets can be listed | `ticket.status === "active"`    |
+| Cannot buy own listing            | `listing.sellerId !== buyerId`  |
 
 ### 11.2 Resale Lifecycle
 
@@ -1222,14 +1222,14 @@ Service Layer
 
 ### 12.2 Email Types
 
-| Email | Trigger | Recipient | Content |
-|-------|---------|-----------|---------|
-| **Welcome** | User registration | New user | Welcome message + "Browse Events" CTA |
-| **Booking Confirmation** | Primary ticket purchase | Buyer | Event name, ticket type, quantity, total, order ID |
-| **Resale Booking** | Resale ticket purchase | Buyer | Event name, ticket type, total, order ID |
-| **Ticket Sold** | Resale purchase completes | Seller | Event name, sale price, payout amount, refund notice |
-| **Account Deleted** | Admin deletes user | Deleted user | Notification + contact support |
-| **Password Reset** | Forgot password request | User | Reset link (1-hour expiry) |
+| Email                    | Trigger                   | Recipient    | Content                                              |
+| ------------------------ | ------------------------- | ------------ | ---------------------------------------------------- |
+| **Welcome**              | User registration         | New user     | Welcome message + "Browse Events" CTA                |
+| **Booking Confirmation** | Primary ticket purchase   | Buyer        | Event name, ticket type, quantity, total, order ID   |
+| **Resale Booking**       | Resale ticket purchase    | Buyer        | Event name, ticket type, total, order ID             |
+| **Ticket Sold**          | Resale purchase completes | Seller       | Event name, sale price, payout amount, refund notice |
+| **Account Deleted**      | Admin deletes user        | Deleted user | Notification + contact support                       |
+| **Password Reset**       | Forgot password request   | User         | Reset link (1-hour expiry)                           |
 
 ### 12.3 Design
 
@@ -1286,98 +1286,98 @@ All emails use a consistent dark-themed HTML template:
 
 #### User
 
-| Field | Type | Constraints | Index |
-|-------|------|-------------|-------|
-| `name` | String | Required, 2–100 chars, trimmed | — |
-| `email` | String | Required, unique, lowercase, email regex | unique |
-| `password` | String | Required, min 6 (stored as bcrypt hash) | — |
-| `role` | String | Enum: `admin`, `user`. Default: `user` | Compound: `{ role, isActive }` |
-| `isActive` | Boolean | Default: `true` | Compound: `{ role, isActive }` |
-| `resetPasswordToken` | String | Optional | — |
-| `resetPasswordExpires` | Date | Optional | — |
+| Field                  | Type    | Constraints                              | Index                          |
+| ---------------------- | ------- | ---------------------------------------- | ------------------------------ |
+| `name`                 | String  | Required, 2–100 chars, trimmed           | —                              |
+| `email`                | String  | Required, unique, lowercase, email regex | unique                         |
+| `password`             | String  | Required, min 6 (stored as bcrypt hash)  | —                              |
+| `role`                 | String  | Enum: `admin`, `user`. Default: `user`   | Compound: `{ role, isActive }` |
+| `isActive`             | Boolean | Default: `true`                          | Compound: `{ role, isActive }` |
+| `resetPasswordToken`   | String  | Optional                                 | —                              |
+| `resetPasswordExpires` | Date    | Optional                                 | —                              |
 
 #### Event
 
-| Field | Type | Constraints | Index |
-|-------|------|-------------|-------|
-| `eventName` | String | Required, max 200 | Text index |
-| `eventDescription` | String | Required, max 5000 | — |
-| `eventCategory` | String | Enum: Party, Club Night, Concert, Festival, Pop-Up, Conference | Compound: `{ category, status }` |
-| `eventImage` | String | Required | — |
-| `eventBanner` | String | Optional | — |
-| `venueName` | String | Required | Text index |
-| `addressLine` | String | Required | — |
-| `city` | String | Required | Compound: `{ city, status }` |
-| `postcode` | String | Required | — |
-| `country` | String | Required | — |
-| `mapsLink` | String | Optional | — |
-| `eventDate` | Date | Required, must be future | Compound: `{ eventDate, status }` |
-| `startTime` | String | Required | — |
-| `endTime` | String | Required | — |
-| `totalTickets` | Number | Required, min 0 | — |
-| `ticketBatches` | Array | Min 1 batch. Each: `{ name, quantity, basePrice, minDiscount, maxDiscount }` | — |
-| `dynamicPricing` | Boolean | Default: `true` | — |
-| `bookingFee` | Number | Default: 10, range 0–100 | — |
-| `allowResale` | Boolean | Default: `false` | — |
-| `platformCommission` | Number | Required, range 0–100 | — |
-| `status` | String | Enum: `draft`, `published`. Default: `draft` | Multiple compounds |
-| `createdBy` | ObjectId (ref User) | Optional | Single |
+| Field                | Type                | Constraints                                                                  | Index                             |
+| -------------------- | ------------------- | ---------------------------------------------------------------------------- | --------------------------------- |
+| `eventName`          | String              | Required, max 200                                                            | Text index                        |
+| `eventDescription`   | String              | Required, max 5000                                                           | —                                 |
+| `eventCategory`      | String              | Enum: Party, Club Night, Concert, Festival, Pop-Up, Conference               | Compound: `{ category, status }`  |
+| `eventImage`         | String              | Required                                                                     | —                                 |
+| `eventBanner`        | String              | Optional                                                                     | —                                 |
+| `venueName`          | String              | Required                                                                     | Text index                        |
+| `addressLine`        | String              | Required                                                                     | —                                 |
+| `city`               | String              | Required                                                                     | Compound: `{ city, status }`      |
+| `postcode`           | String              | Required                                                                     | —                                 |
+| `country`            | String              | Required                                                                     | —                                 |
+| `mapsLink`           | String              | Optional                                                                     | —                                 |
+| `eventDate`          | Date                | Required, must be future                                                     | Compound: `{ eventDate, status }` |
+| `startTime`          | String              | Required                                                                     | —                                 |
+| `endTime`            | String              | Required                                                                     | —                                 |
+| `totalTickets`       | Number              | Required, min 0                                                              | —                                 |
+| `ticketBatches`      | Array               | Min 1 batch. Each: `{ name, quantity, basePrice, minDiscount, maxDiscount }` | —                                 |
+| `dynamicPricing`     | Boolean             | Default: `true`                                                              | —                                 |
+| `bookingFee`         | Number              | Default: 10, range 0–100                                                     | —                                 |
+| `allowResale`        | Boolean             | Default: `false`                                                             | —                                 |
+| `platformCommission` | Number              | Required, range 0–100                                                        | —                                 |
+| `status`             | String              | Enum: `draft`, `published`. Default: `draft`                                 | Multiple compounds                |
+| `createdBy`          | ObjectId (ref User) | Optional                                                                     | Single                            |
 
 **Pre-save hooks:** Validates `eventDate` is in the future; validates `minDiscount ≤ maxDiscount` and `basePrice > 0` per batch.
 
 #### Ticket
 
-| Field | Type | Constraints | Index |
-|-------|------|-------------|-------|
-| `orderId` | ObjectId (ref Order) | Required | Single |
-| `eventId` | ObjectId (ref Event) | Required | Compound: `{ eventId, status }` |
-| `userId` | ObjectId (ref User) | Required | Compound: `{ userId, status }` |
-| `eventName` | String | Required | — |
-| `ticketBatchName` | String | Required | — |
-| `purchasePrice` | Number | Required, min 0 | — |
-| `originalPrice` | Number | Required, min 0 | — |
-| `stripePaymentIntentId` | String | Optional (for resale refunds) | — |
-| `status` | String | Enum: `active`, `listed`, `transferred`, `used`, `cancelled` | Multiple compounds |
-| `qrCode` | String | Required, unique, default: `crypto.randomUUID()` | Unique |
+| Field                   | Type                 | Constraints                                                  | Index                           |
+| ----------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------- |
+| `orderId`               | ObjectId (ref Order) | Required                                                     | Single                          |
+| `eventId`               | ObjectId (ref Event) | Required                                                     | Compound: `{ eventId, status }` |
+| `userId`                | ObjectId (ref User)  | Required                                                     | Compound: `{ userId, status }`  |
+| `eventName`             | String               | Required                                                     | —                               |
+| `ticketBatchName`       | String               | Required                                                     | —                               |
+| `purchasePrice`         | Number               | Required, min 0                                              | —                               |
+| `originalPrice`         | Number               | Required, min 0                                              | —                               |
+| `stripePaymentIntentId` | String               | Optional (for resale refunds)                                | —                               |
+| `status`                | String               | Enum: `active`, `listed`, `transferred`, `used`, `cancelled` | Multiple compounds              |
+| `qrCode`                | String               | Required, unique, default: `crypto.randomUUID()`             | Unique                          |
 
 #### Order
 
-| Field | Type | Constraints | Index |
-|-------|------|-------------|-------|
-| `eventId` | ObjectId (ref Event) | Required | Single |
-| `userId` | ObjectId (ref User) | Optional | Single |
-| `eventName` | String | Required | — |
-| `ticketBatchName` | String | Required | — |
-| `quantity` | Number | Required, min 1 | — |
-| `basePrice` | Number | Required, min 0 | — |
-| `capturedBookingFee` | Number | Required, min 0 | — |
-| `totalAmount` | Number | Required, min 0 | — |
-| `currency` | String | Default: `gbp` | — |
-| `stripeSessionId` | String | Required, unique | Unique |
-| `stripePaymentIntentId` | String | Optional | — |
-| `type` | String | Enum: `primary`, `resale`. Default: `primary` | Single |
-| `resaleListingId` | ObjectId (ref ResaleListing) | Optional | — |
-| `status` | String | Enum: `pending`, `paid`, `failed`, `expired`. Default: `pending` | Single |
-| `customerEmail` | String | Optional | — |
-| `customerName` | String | Optional | — |
+| Field                   | Type                         | Constraints                                                      | Index  |
+| ----------------------- | ---------------------------- | ---------------------------------------------------------------- | ------ |
+| `eventId`               | ObjectId (ref Event)         | Required                                                         | Single |
+| `userId`                | ObjectId (ref User)          | Optional                                                         | Single |
+| `eventName`             | String                       | Required                                                         | —      |
+| `ticketBatchName`       | String                       | Required                                                         | —      |
+| `quantity`              | Number                       | Required, min 1                                                  | —      |
+| `basePrice`             | Number                       | Required, min 0                                                  | —      |
+| `capturedBookingFee`    | Number                       | Required, min 0                                                  | —      |
+| `totalAmount`           | Number                       | Required, min 0                                                  | —      |
+| `currency`              | String                       | Default: `gbp`                                                   | —      |
+| `stripeSessionId`       | String                       | Required, unique                                                 | Unique |
+| `stripePaymentIntentId` | String                       | Optional                                                         | —      |
+| `type`                  | String                       | Enum: `primary`, `resale`. Default: `primary`                    | Single |
+| `resaleListingId`       | ObjectId (ref ResaleListing) | Optional                                                         | —      |
+| `status`                | String                       | Enum: `pending`, `paid`, `failed`, `expired`. Default: `pending` | Single |
+| `customerEmail`         | String                       | Optional                                                         | —      |
+| `customerName`          | String                       | Optional                                                         | —      |
 
 #### ResaleListing
 
-| Field | Type | Constraints | Index |
-|-------|------|-------------|-------|
-| `ticketId` | ObjectId (ref Ticket) | Required | Single |
-| `eventId` | ObjectId (ref Event) | Required | Compound: `{ eventId, status }` |
-| `sellerId` | ObjectId (ref User) | Required | Single |
-| `askingPrice` | Number | Required, min 0 | — |
-| `originalPurchasePrice` | Number | Required, min 0 | — |
-| `status` | String | Enum: `active`, `sold`, `cancelled`, `expired`. Default: `active` | Single + compound |
-| `buyerId` | ObjectId (ref User) | Optional | — |
-| `resaleOrderId` | ObjectId (ref Order) | Optional | — |
-| `platformFee` | Number | Default: 0 | — |
-| `sellerPayout` | Number | Default: 0 | — |
-| `organiserRevenue` | Number | Default: 0 | — |
-| `sellerRefundId` | String | Optional (Stripe refund ID) | — |
-| `sellerRefundStatus` | String | Enum: `pending`, `succeeded`, `failed`. Optional | — |
+| Field                   | Type                  | Constraints                                                       | Index                           |
+| ----------------------- | --------------------- | ----------------------------------------------------------------- | ------------------------------- |
+| `ticketId`              | ObjectId (ref Ticket) | Required                                                          | Single                          |
+| `eventId`               | ObjectId (ref Event)  | Required                                                          | Compound: `{ eventId, status }` |
+| `sellerId`              | ObjectId (ref User)   | Required                                                          | Single                          |
+| `askingPrice`           | Number                | Required, min 0                                                   | —                               |
+| `originalPurchasePrice` | Number                | Required, min 0                                                   | —                               |
+| `status`                | String                | Enum: `active`, `sold`, `cancelled`, `expired`. Default: `active` | Single + compound               |
+| `buyerId`               | ObjectId (ref User)   | Optional                                                          | —                               |
+| `resaleOrderId`         | ObjectId (ref Order)  | Optional                                                          | —                               |
+| `platformFee`           | Number                | Default: 0                                                        | —                               |
+| `sellerPayout`          | Number                | Default: 0                                                        | —                               |
+| `organiserRevenue`      | Number                | Default: 0                                                        | —                               |
+| `sellerRefundId`        | String                | Optional (Stripe refund ID)                                       | —                               |
+| `sellerRefundStatus`    | String                | Enum: `pending`, `succeeded`, `failed`. Optional                  | —                               |
 
 ---
 
@@ -1406,84 +1406,84 @@ All responses follow the `ApiResponse<T>` envelope:
 
 #### Authentication (`/api/auth`)
 
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| POST | `/register` | No | `{ name, email, password }` | `{ user, tokens }` |
-| POST | `/login` | No | `{ email, password }` | `{ user, tokens }` |
-| POST | `/refresh` | No | `{ refreshToken }` | `{ accessToken }` |
-| GET | `/me` | Yes | — | `UserResponse` |
-| POST | `/forgot-password` | No | `{ email }` | Message |
-| POST | `/reset-password` | No | `{ token, password }` | Message |
+| Method | Path               | Auth | Body                        | Response           |
+| ------ | ------------------ | ---- | --------------------------- | ------------------ |
+| POST   | `/register`        | No   | `{ name, email, password }` | `{ user, tokens }` |
+| POST   | `/login`           | No   | `{ email, password }`       | `{ user, tokens }` |
+| POST   | `/refresh`         | No   | `{ refreshToken }`          | `{ accessToken }`  |
+| GET    | `/me`              | Yes  | —                           | `UserResponse`     |
+| POST   | `/forgot-password` | No   | `{ email }`                 | Message            |
+| POST   | `/reset-password`  | No   | `{ token, password }`       | Message            |
 
 #### Events (`/api/events`)
 
-| Method | Path | Auth | Body/Params | Response |
-|--------|------|------|-------------|----------|
-| GET | `/published` | No | — | `EventResponse[]` |
-| GET | `/` | Yes | — | `EventResponse[]` (filtered by role) |
-| GET | `/:id` | Yes | — | `EventResponse` |
-| POST | `/` | Yes | `CreateEventInput` | `EventResponse` |
-| PUT | `/:id` | Yes | `Partial<CreateEventInput>` | `EventResponse` |
-| PATCH | `/:id/status` | Yes | `{ status }` | `EventResponse` |
-| DELETE | `/:id` | Yes | — | Message |
+| Method | Path          | Auth | Body/Params                 | Response                             |
+| ------ | ------------- | ---- | --------------------------- | ------------------------------------ |
+| GET    | `/published`  | No   | —                           | `EventResponse[]`                    |
+| GET    | `/`           | Yes  | —                           | `EventResponse[]` (filtered by role) |
+| GET    | `/:id`        | Yes  | —                           | `EventResponse`                      |
+| POST   | `/`           | Yes  | `CreateEventInput`          | `EventResponse`                      |
+| PUT    | `/:id`        | Yes  | `Partial<CreateEventInput>` | `EventResponse`                      |
+| PATCH  | `/:id/status` | Yes  | `{ status }`                | `EventResponse`                      |
+| DELETE | `/:id`        | Yes  | —                           | Message                              |
 
 #### Users (`/api/users`) — Admin Only
 
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| GET | `/` | Admin | — | `UserResponse[]` |
-| POST | `/` | Admin | `{ name, email, password, role }` | `UserResponse` |
-| PATCH | `/:id/status` | Admin | `{ isActive }` | `UserResponse` |
-| PATCH | `/:id/role` | Admin | `{ role }` | `UserResponse` |
-| DELETE | `/:id` | Admin | — | Message |
+| Method | Path          | Auth  | Body                              | Response         |
+| ------ | ------------- | ----- | --------------------------------- | ---------------- |
+| GET    | `/`           | Admin | —                                 | `UserResponse[]` |
+| POST   | `/`           | Admin | `{ name, email, password, role }` | `UserResponse`   |
+| PATCH  | `/:id/status` | Admin | `{ isActive }`                    | `UserResponse`   |
+| PATCH  | `/:id/role`   | Admin | `{ role }`                        | `UserResponse`   |
+| DELETE | `/:id`        | Admin | —                                 | Message          |
 
 #### Tickets (`/api/tickets`)
 
-| Method | Path | Auth | Response |
-|--------|------|------|----------|
-| GET | `/my` | Yes | `TicketResponse[]` |
-| GET | `/:id` | Yes | `TicketResponse` |
+| Method | Path   | Auth | Response           |
+| ------ | ------ | ---- | ------------------ |
+| GET    | `/my`  | Yes  | `TicketResponse[]` |
+| GET    | `/:id` | Yes  | `TicketResponse`   |
 
 #### Orders (`/api/orders`)
 
-| Method | Path | Auth | Query Params | Response |
-|--------|------|------|-------------|----------|
-| GET | `/my` | Yes | — | `OrderResponse[]` |
-| GET | `/` | Admin | `?status=&type=&eventId=&search=` | `OrderResponse[]` |
-| GET | `/stats` | Admin | — | `OrderStats` |
+| Method | Path     | Auth  | Query Params                      | Response          |
+| ------ | -------- | ----- | --------------------------------- | ----------------- |
+| GET    | `/my`    | Yes   | —                                 | `OrderResponse[]` |
+| GET    | `/`      | Admin | `?status=&type=&eventId=&search=` | `OrderResponse[]` |
+| GET    | `/stats` | Admin | —                                 | `OrderStats`      |
 
 #### Checkout (`/api/checkout`)
 
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| POST | `/create-session` | Yes | `{ eventId, batchName, quantity, capturedFee }` | `{ sessionId, url }` |
-| GET | `/session/:sessionId` | No | — | `OrderResponse` |
-| POST | `/session/:sessionId/confirm` | No | — | `OrderResponse` |
-| POST | `/webhook` | No* | Raw body + `stripe-signature` header | — |
+| Method | Path                          | Auth | Body                                            | Response             |
+| ------ | ----------------------------- | ---- | ----------------------------------------------- | -------------------- |
+| POST   | `/create-session`             | Yes  | `{ eventId, batchName, quantity, capturedFee }` | `{ sessionId, url }` |
+| GET    | `/session/:sessionId`         | No   | —                                               | `OrderResponse`      |
+| POST   | `/session/:sessionId/confirm` | No   | —                                               | `OrderResponse`      |
+| POST   | `/webhook`                    | No*  | Raw body + `stripe-signature` header            | —                    |
 
 *Webhook uses Stripe signature verification instead of JWT auth.
 
 #### Resale (`/api/resale`)
 
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| POST | `/list` | Yes | `{ ticketId, askingPrice }` | `ResaleListingResponse` |
-| GET | `/my` | Yes | — | `ResaleListingResponse[]` |
-| DELETE | `/:id` | Yes | — | `ResaleListingResponse` |
-| GET | `/event/:eventId` | No | — | `ResaleListingResponse[]` |
-| POST | `/:id/buy` | Yes | `{ capturedFee }` | `{ sessionId, url }` |
+| Method | Path              | Auth | Body                        | Response                  |
+| ------ | ----------------- | ---- | --------------------------- | ------------------------- |
+| POST   | `/list`           | Yes  | `{ ticketId, askingPrice }` | `ResaleListingResponse`   |
+| GET    | `/my`             | Yes  | —                           | `ResaleListingResponse[]` |
+| DELETE | `/:id`            | Yes  | —                           | `ResaleListingResponse`   |
+| GET    | `/event/:eventId` | No   | —                           | `ResaleListingResponse[]` |
+| POST   | `/:id/buy`        | Yes  | `{ capturedFee }`           | `{ sessionId, url }`      |
 
 #### Uploads (`/api/uploads`)
 
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| POST | `/` | Yes | `multipart/form-data` (field: `file`) | `{ url }` |
+| Method | Path | Auth | Body                                  | Response  |
+| ------ | ---- | ---- | ------------------------------------- | --------- |
+| POST   | `/`  | Yes  | `multipart/form-data` (field: `file`) | `{ url }` |
 
 #### Health (`/api/health`)
 
-| Method | Path | Auth | Response |
-|--------|------|------|----------|
-| GET | `/health` | No | `{ ok: true, message: "API is running" }` |
+| Method | Path      | Auth | Response                                  |
+| ------ | --------- | ---- | ----------------------------------------- |
+| GET    | `/health` | No   | `{ ok: true, message: "API is running" }` |
 
 ---
 
@@ -1507,15 +1507,15 @@ All responses follow the `ApiResponse<T>` envelope:
 
 ### 15.2 Build Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run build` | Build all packages and apps (respects dependency order) |
-| `npm run dev` | Start all apps in development mode |
-| `npm run dev:api` | Start only the API server (with nodemon) |
-| `npm run dev:web` | Start only the web app |
-| `npm run dev:admin` | Start only the admin panel |
-| `npm run dev:mobile` | Start only the mobile app (Expo) |
-| `npm run seed` | Seed the database with admin user |
+| Command              | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `npm run build`      | Build all packages and apps (respects dependency order) |
+| `npm run dev`        | Start all apps in development mode                      |
+| `npm run dev:api`    | Start only the API server (with nodemon)                |
+| `npm run dev:web`    | Start only the web app                                  |
+| `npm run dev:admin`  | Start only the admin panel                              |
+| `npm run dev:mobile` | Start only the mobile app (Expo)                        |
+| `npm run seed`       | Seed the database with admin user                       |
 
 ### 15.3 TypeScript Configuration
 
@@ -1548,21 +1548,21 @@ These are skipped on Windows but installed on Linux servers.
 
 ### Required Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `MONGODB_URI` | MongoDB connection string | `mongodb://user:pass@host:port/db` |
-| `PORT` | API server port | `3016` |
-| `AUTH_SECRET` | JWT signing secret | Random 256-bit base64 string |
-| `WEB_URL` | Web app base URL (for email links, Stripe redirects) | `http://localhost:3001` |
-| `CORS_ORIGIN` | Comma-separated allowed origins | `http://localhost:3001,http://localhost:3003` |
-| `NEXT_PUBLIC_API_URL` | API URL for frontend apps | `http://localhost:3016` |
-| `STRIPE_SECRET_KEY` | Stripe secret key | `sk_test_...` |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | `pk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
-| `SMTP_SERVER` | SMTP mail server host | `mail.example.com` |
-| `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` | SMTP username/email | `noreply@example.com` |
-| `SMTP_PASSWORD` | SMTP password | — |
+| Variable                 | Description                                          | Example                                       |
+| ------------------------ | ---------------------------------------------------- | --------------------------------------------- |
+| `MONGODB_URI`            | MongoDB connection string                            | `mongodb://user:pass@host:port/db`            |
+| `PORT`                   | API server port                                      | `3016`                                        |
+| `AUTH_SECRET`            | JWT signing secret                                   | Random 256-bit base64 string                  |
+| `WEB_URL`                | Web app base URL (for email links, Stripe redirects) | `http://localhost:3001`                       |
+| `CORS_ORIGIN`            | Comma-separated allowed origins                      | `http://localhost:3001,http://localhost:3003` |
+| `NEXT_PUBLIC_API_URL`    | API URL for frontend apps                            | `http://localhost:3016`                       |
+| `STRIPE_SECRET_KEY`      | Stripe secret key                                    | `sk_test_...`                                 |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key                               | `pk_test_...`                                 |
+| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                        | `whsec_...`                                   |
+| `SMTP_SERVER`            | SMTP mail server host                                | `mail.example.com`                            |
+| `SMTP_PORT`              | SMTP port                                            | `587`                                         |
+| `SMTP_USER`              | SMTP username/email                                  | `noreply@example.com`                         |
+| `SMTP_PASSWORD`          | SMTP password                                        | —                                             |
 
 ### Environment Loading
 
@@ -1576,41 +1576,41 @@ The API loads environment variables in this order (later values override earlier
 
 ### 17.1 Authentication Security
 
-| Measure | Implementation |
-|---------|---------------|
-| Password hashing | bcrypt with 10 salt rounds |
-| JWT tokens | Short-lived access (2h) + long-lived refresh (7d) |
-| Token refresh | Automatic with concurrent request deduplication |
-| Account deactivation | Checked on every `getMe()` and `refreshToken()` call |
-| Password reset tokens | `crypto.randomBytes(32)` with 1-hour expiry |
+| Measure               | Implementation                                       |
+| --------------------- | ---------------------------------------------------- |
+| Password hashing      | bcrypt with 10 salt rounds                           |
+| JWT tokens            | Short-lived access (2h) + long-lived refresh (7d)    |
+| Token refresh         | Automatic with concurrent request deduplication      |
+| Account deactivation  | Checked on every `getMe()` and `refreshToken()` call |
+| Password reset tokens | `crypto.randomBytes(32)` with 1-hour expiry          |
 
 ### 17.2 API Security
 
-| Measure | Implementation |
-|---------|---------------|
-| CORS | Explicit origin whitelist from `CORS_ORIGIN` |
-| Input validation | Zod schemas on all mutation endpoints |
+| Measure           | Implementation                                              |
+| ----------------- | ----------------------------------------------------------- |
+| CORS              | Explicit origin whitelist from `CORS_ORIGIN`                |
+| Input validation  | Zod schemas on all mutation endpoints                       |
 | MongoDB injection | Mongoose parameterized queries; regex special chars escaped |
-| File upload | Multer with size limits |
-| Stripe webhooks | Signature verification with `STRIPE_WEBHOOK_SECRET` |
-| Error responses | No stack traces or internal details in production errors |
+| File upload       | Multer with size limits                                     |
+| Stripe webhooks   | Signature verification with `STRIPE_WEBHOOK_SECRET`         |
+| Error responses   | No stack traces or internal details in production errors    |
 
 ### 17.3 Payment Security
 
-| Measure | Implementation |
-|---------|---------------|
-| No card data on server | Stripe Checkout (hosted payment page) |
-| Idempotent processing | Orders checked by `stripeSessionId` before creation |
-| Dual confirmation | Client polling + webhook for reliability |
-| Refund tracking | `sellerRefundId` and `sellerRefundStatus` stored |
+| Measure                | Implementation                                      |
+| ---------------------- | --------------------------------------------------- |
+| No card data on server | Stripe Checkout (hosted payment page)               |
+| Idempotent processing  | Orders checked by `stripeSessionId` before creation |
+| Dual confirmation      | Client polling + webhook for reliability            |
+| Refund tracking        | `sellerRefundId` and `sellerRefundStatus` stored    |
 
 ### 17.4 Ticket Security
 
-| Measure | Implementation |
-|---------|---------------|
-| QR code uniqueness | `crypto.randomUUID()` per ticket |
-| QR regeneration on transfer | New QR code generated when ticket changes owner via resale |
-| Ownership enforcement | All ticket operations verify `ticket.userId === requestingUserId` |
+| Measure                     | Implementation                                                    |
+| --------------------------- | ----------------------------------------------------------------- |
+| QR code uniqueness          | `crypto.randomUUID()` per ticket                                  |
+| QR regeneration on transfer | New QR code generated when ticket changes owner via resale        |
+| Ownership enforcement       | All ticket operations verify `ticket.userId === requestingUserId` |
 
 ---
 

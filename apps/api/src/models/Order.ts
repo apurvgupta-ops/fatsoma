@@ -10,12 +10,13 @@ export interface IOrder {
   basePrice: number;
   capturedBookingFee: number;
   totalAmount: number;
+  refundedAmount?: number;
   currency: string;
   stripeSessionId: string;
   stripePaymentIntentId?: string;
   type: "primary" | "resale";
   resaleListingId?: mongoose.Types.ObjectId;
-  status: "pending" | "paid" | "failed" | "expired";
+  status: "pending" | "paid" | "failed" | "expired" | "refunded" | "partially_refunded";
   customerEmail?: string;
   customerName?: string;
   createdAt: Date;
@@ -32,6 +33,7 @@ const OrderSchema = new Schema<IOrder>(
     basePrice: { type: Number, required: true, min: 0 },
     capturedBookingFee: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
+    refundedAmount: { type: Number, default: 0 },
     currency: { type: String, default: "gbp" },
     stripeSessionId: { type: String, required: true, unique: true },
     stripePaymentIntentId: { type: String },
@@ -39,7 +41,7 @@ const OrderSchema = new Schema<IOrder>(
     resaleListingId: { type: Schema.Types.ObjectId, ref: "ResaleListing" },
     status: {
       type: String,
-      enum: ["pending", "paid", "failed", "expired"],
+      enum: ["pending", "paid", "failed", "expired", "refunded", "partially_refunded"],
       default: "pending",
       index: true,
     },

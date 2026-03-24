@@ -13,6 +13,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   const header = req.headers.authorization;
 
   if (!header?.startsWith("Bearer ")) {
+    res.locals.errorMessage = "Authentication required";
     res.status(401).json({ ok: false, message: "Authentication required" });
     return;
   }
@@ -22,12 +23,14 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     req.user = verifyAccessToken(token);
     next();
   } catch {
+    res.locals.errorMessage = "Invalid or expired token";
     res.status(401).json({ ok: false, message: "Invalid or expired token" });
   }
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   if (req.user?.role !== "admin") {
+    res.locals.errorMessage = "Admin access required";
     res.status(403).json({ ok: false, message: "Admin access required" });
     return;
   }

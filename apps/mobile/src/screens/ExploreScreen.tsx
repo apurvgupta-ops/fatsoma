@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,16 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import LinearGradient from "react-native-linear-gradient";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList, TabParamList, InfoPageId } from "../navigation/types";
+import type {
+  RootStackParamList,
+  TabParamList,
+  InfoPageId,
+} from "../navigation/types";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import { useEvents } from "../hooks/useEvents";
 import { EventCard } from "../components/EventCard";
@@ -35,8 +39,29 @@ export function ExploreScreen({ navigation }: Props) {
   const { events, loading, error, refetch } = useEvents();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [calendarAnchor, setCalendarAnchor] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const [headerHeight, setHeaderHeight] = useState(HEADER_ESTIMATE);
+
+  const getWeekDates = useCallback((anchor: Date) => {
+    const start = new Date(anchor);
+    start.setDate(start.getDate() - start.getDay() + 1);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, []);
+
+  const weekDates = useMemo(
+    () => getWeekDates(calendarAnchor),
+    [calendarAnchor, getWeekDates],
+  );
+  const monthYear = calendarAnchor.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
 
   const categories = useMemo(() => {
     const cats = [...new Set(events.map((e) => e.eventCategory))];
@@ -49,15 +74,20 @@ export function ExploreScreen({ navigation }: Props) {
         return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        return (
-          e.eventName.toLowerCase().includes(q) ||
-          e.venueName.toLowerCase().includes(q) ||
-          (e.eventDescription?.toLowerCase().includes(q) ?? false)
-        );
+        if (
+          !e.eventName.toLowerCase().includes(q) &&
+          !e.venueName.toLowerCase().includes(q) &&
+          !(e.eventDescription?.toLowerCase().includes(q) ?? false)
+        )
+          return false;
+      }
+      if (selectedDate) {
+        const d = new Date(e.eventDate);
+        if (d.toDateString() !== selectedDate.toDateString()) return false;
       }
       return true;
     });
-  }, [events, searchQuery, selectedCategory]);
+  }, [events, searchQuery, selectedCategory, selectedDate]);
 
   const renderEmpty = () => {
     if (loading) {
@@ -153,6 +183,83 @@ export function ExploreScreen({ navigation }: Props) {
         />
       </View>
 
+      {/* Week date picker */}
+      <View style={styles.weekPicker}>
+        <View style={styles.weekHeader}>
+          <Pressable
+            onPress={() => {
+              const prev = new Date(calendarAnchor);
+              prev.setDate(prev.getDate() - 7);
+              setCalendarAnchor(prev);
+            }}
+            style={styles.weekArrow}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={18}
+              color={colors.text.secondary}
+            />
+          </Pressable>
+          <Text style={styles.weekMonth}>{monthYear}</Text>
+          <Pressable
+            onPress={() => {
+              const next = new Date(calendarAnchor);
+              next.setDate(next.getDate() + 7);
+              setCalendarAnchor(next);
+            }}
+            style={styles.weekArrow}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.text.secondary}
+            />
+          </Pressable>
+        </View>
+        <View style={styles.weekDays}>
+          {weekDates.map((d) => {
+            const isToday = d.toDateString() === new Date().toDateString();
+            const isSelected =
+              selectedDate?.toDateString() === d.toDateString();
+            const dayName = d
+              .toLocaleDateString("en-GB", { weekday: "short" })
+              .slice(0, 3);
+            return (
+              <Pressable
+                key={d.toISOString()}
+                style={[
+                  styles.dayCell,
+                  isSelected && styles.dayCellSelected,
+                  isToday && !isSelected && styles.dayCellToday,
+                ]}
+                onPress={() =>
+                  setSelectedDate(
+                    selectedDate?.toDateString() === d.toDateString()
+                      ? null
+                      : d,
+                  )
+                }
+              >
+                <Text
+                  style={[styles.dayName, isSelected && styles.dayNameSelected]}
+                >
+                  {dayName}
+                </Text>
+                <Text
+                  style={[
+                    styles.dayNum,
+                    isSelected && styles.dayNumSelected,
+                    isToday && !isSelected && styles.dayNumToday,
+                  ]}
+                >
+                  {d.getDate()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Category filter */}
       <View style={styles.categoryRow}>
         <ScrollView
@@ -204,12 +311,23 @@ export function ExploreScreen({ navigation }: Props) {
     </View>
   );
 
-  const footerLinks: { section: string; items: { label: string; pageId: InfoPageId; title: string }[] }[] = [
+  const footerLinks: {
+    section: string;
+    items: { label: string; pageId: InfoPageId; title: string }[];
+  }[] = [
     {
       section: "PLATFORM",
       items: [
-        { label: "How It Works", pageId: "how-it-works", title: "How It Works" },
-        { label: "Trust & Safety", pageId: "trust-safety", title: "Trust & Safety" },
+        {
+          label: "How It Works",
+          pageId: "how-it-works",
+          title: "How It Works",
+        },
+        {
+          label: "Trust & Safety",
+          pageId: "trust-safety",
+          title: "Trust & Safety",
+        },
         { label: "Pricing", pageId: "pricing", title: "Pricing" },
       ],
     },
@@ -232,7 +350,12 @@ export function ExploreScreen({ navigation }: Props) {
             {col.items.map((link) => (
               <Pressable
                 key={link.pageId}
-                onPress={() => navigation.navigate("InfoPage", { pageId: link.pageId, title: link.title })}
+                onPress={() =>
+                  navigation.navigate("InfoPage", {
+                    pageId: link.pageId,
+                    title: link.title,
+                  })
+                }
                 style={styles.footerLink}
               >
                 <Text style={styles.footerLinkText}>{link.label}</Text>
@@ -470,6 +593,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: spacing.md,
     paddingRight: spacing.md,
+  },
+  weekPicker: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: colors.bg.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    padding: spacing.md,
+  },
+  weekHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  weekArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  weekMonth: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.text.primary,
+  },
+  weekDays: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  dayCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+  },
+  dayCellSelected: {
+    backgroundColor: colors.gold.DEFAULT,
+  },
+  dayCellToday: {
+    backgroundColor: colors.bg.elevated,
+  },
+  dayName: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.text.dim,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  dayNameSelected: {
+    color: colors.bg.primary,
+  },
+  dayNum: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.text.secondary,
+  },
+  dayNumSelected: {
+    color: colors.bg.primary,
+  },
+  dayNumToday: {
+    color: colors.gold.DEFAULT,
   },
   categoryRow: {
     flexDirection: "row",

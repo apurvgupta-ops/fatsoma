@@ -2,16 +2,23 @@ import React from "react";
 import { View, ActivityIndicator } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import { useAuth } from "../context/AuthContext";
 import { LoginScreen } from "../screens/LoginScreen";
 import { SignupScreen } from "../screens/SignupScreen";
+import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
+import { ResetPasswordScreen } from "../screens/ResetPasswordScreen";
 import { ExploreScreen } from "../screens/ExploreScreen";
 import { EventDetailScreen } from "../screens/EventDetailScreen";
 import { InfoScreen } from "../screens/InfoScreen";
+import { CheckoutSuccessScreen } from "../screens/CheckoutSuccessScreen";
 import { TicketsScreen } from "../screens/TicketsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import type { AuthStackParamList, RootStackParamList, TabParamList } from "./types";
+import type {
+  AuthStackParamList,
+  RootStackParamList,
+  TabParamList,
+} from "./types";
 import { colors } from "../theme";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -29,6 +36,11 @@ function AuthNavigator() {
     >
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
+      <AuthStack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+      />
+      <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </AuthStack.Navigator>
   );
 }
@@ -94,6 +106,7 @@ function MainNavigator() {
       <Stack.Screen name="Main" component={HomeTabs} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
       <Stack.Screen name="InfoPage" component={InfoScreen} />
+      <Stack.Screen name="CheckoutSuccess" component={CheckoutSuccessScreen} />
     </Stack.Navigator>
   );
 }
@@ -103,7 +116,14 @@ export function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg.primary }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.bg.primary,
+        }}
+      >
         <ActivityIndicator size="large" color={colors.gold.DEFAULT} />
       </View>
     );

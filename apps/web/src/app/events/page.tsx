@@ -36,45 +36,52 @@ export default function EventsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const weekDates = useMemo(() => getWeekDates(calendarAnchor), [calendarAnchor]);
-  const monthYear = calendarAnchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const weekDates = useMemo(
+    () => getWeekDates(calendarAnchor),
+    [calendarAnchor],
+  );
+  const monthYear = calendarAnchor.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
 
-  const categories = useMemo(() => ["all", ...new Set(events.map((e) => e.eventCategory))], [events]);
+  const categories = useMemo(
+    () => ["all", ...new Set(events.map((e) => e.eventCategory))],
+    [events],
+  );
 
   const filtered = events.filter((e) => {
-    if (selectedCategory !== "all" && e.eventCategory !== selectedCategory) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        e.eventName.toLowerCase().includes(q) ||
-        e.venueName.toLowerCase().includes(q) ||
-        e.eventDescription.toLowerCase().includes(q)
-      );
-    }
+    if (selectedCategory !== "all" && e.eventCategory !== selectedCategory)
+      return false;
     if (selectedDate) {
       const d = new Date(e.eventDate);
       if (d.toDateString() !== selectedDate.toDateString()) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (
+        !e.eventName.toLowerCase().includes(q) &&
+        !e.venueName.toLowerCase().includes(q) &&
+        !e.eventDescription.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
     }
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-black text-cream/90">
       <Header />
 
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/15 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold-light/15 blur-[160px]" />
-        <div className="pointer-events-none absolute bottom-0 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-[140px]" />
-
-        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-12 sm:px-6 lg:px-8">
+      <div className="relative">
+        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
           <EventsHeader
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             categories={categories.filter((c) => c !== "all")}
-            filteredCount={filtered.length}
             calendarAnchor={calendarAnchor}
             setCalendarAnchor={setCalendarAnchor}
             selectedDate={selectedDate}
@@ -91,20 +98,28 @@ export default function EventsPage() {
           ) : filtered.length === 0 ? (
             <div className="flex min-h-60 items-center justify-center rounded-xl border border-border/50 bg-void/60 py-20">
               <div className="text-center">
-                <p className="text-lg font-semibold text-cream">No events found</p>
-                <p className="mt-1 text-sm text-cream/60">Try a different search or category.</p>
+                <p className="text-lg font-semibold text-cream">
+                  No events found
+                </p>
+                <p className="mt-1 text-sm text-cream/60">
+                  Try a different search or category.
+                </p>
               </div>
             </div>
           ) : (
-            <div className="grid gap-6 py-12 sm:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((event) => (
-                <ExploreEventCard key={event.id} event={event} />
-              ))}
-            </div>
+            <>
+              <p className="mt-5 mb-5 text-sm text-cream/50">
+                {filtered.length} events found
+              </p>
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((event) => (
+                  <ExploreEventCard key={event.id} event={event} />
+                ))}
+              </div>
+            </>
           )}
-
-          <Footer />
         </div>
+        <Footer />
       </div>
     </div>
   );
@@ -116,7 +131,6 @@ function EventsHeader({
   selectedCategory,
   onCategoryChange,
   categories,
-  filteredCount,
   calendarAnchor,
   setCalendarAnchor,
   selectedDate,
@@ -130,7 +144,6 @@ function EventsHeader({
   selectedCategory: string;
   onCategoryChange: (c: string) => void;
   categories: string[];
-  filteredCount: number;
   calendarAnchor: Date;
   setCalendarAnchor: (d: Date) => void;
   selectedDate: Date | null;
@@ -151,37 +164,41 @@ function EventsHeader({
   };
 
   return (
-    <header className="space-y-8 pt-8">
-      {/* Title */}
+    <header className="space-y-8 pt-4">
       <div>
-        <h1 className="text-4xl font-bold text-cream sm:text-5xl">Events</h1>
-        <p className="mt-2 text-sm text-cream/60">
-          Find your next night out. No scalping — resale always at the current release price.
+        <h1 className="font-serif text-4xl tracking-tight text-cream sm:text-5xl md:text-6xl font-extrabold">
+          Events
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-cream/55 sm:text-[15px]">
+          Find your next night out. No scalping — resale always at the current
+          release price.
         </p>
       </div>
 
-      {/* Date selector */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center gap-4">
+      {/* Date strip — bordered panel */}
+      <div className="rounded-xl border border-border bg-[#0a0a0a] px-4 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-center justify-between gap-4 ">
           <button
             type="button"
             onClick={prevWeek}
-            className="rounded-lg p-1.5 text-cream/60 transition hover:bg-white/5 hover:text-cream"
+            aria-label="Previous week"
+            className="shrink-0 rounded-lg p-2 text-cream/50 transition hover:bg-white/6 hover:text-cream"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="min-w-[140px] text-center font-medium text-cream">
+          <span className="flex-1 text-center text-sm font-medium text-cream sm:text-base">
             {monthYear}
           </span>
           <button
             type="button"
             onClick={nextWeek}
-            className="rounded-lg p-1.5 text-cream/60 transition hover:bg-white/5 hover:text-cream"
+            aria-label="Next week"
+            className="shrink-0 rounded-lg p-2 text-cream/50 transition hover:bg-white/6 hover:text-cream"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="mt-5 flex justify-between gap-1.5 overflow-x-auto pb-1 sm:gap-2">
           {weekDates.map((d) => {
             const dateStr = d.toDateString();
             const isSelected = selectedDate?.toDateString() === dateStr;
@@ -191,48 +208,57 @@ function EventsHeader({
                 key={dateStr}
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : d)}
-                className={`flex min-w-[72px] flex-col items-center rounded-xl border px-3 py-2.5 text-sm transition ${
+                className={`flex min-w-36 flex-col items-center rounded-lg border py-2.5 text-sm transition  sm:px-3 ${
                   isSelected
-                    ? "border-gold bg-surface/80 text-gold"
-                    : "border-border bg-surface/40 text-cream/90 hover:border-gold/50"
+                    ? "bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20"
+                    : " bg-[#111] text-cream/90 hover:border-white/15 border-white/8"
                 }`}
               >
-                <span className="text-[10px] uppercase text-cream/60">
+                <span
+                  className={`text-[10px] font-medium uppercase tracking-wide ${
+                    isSelected ? "text-gold/90" : "text-cream/45"
+                  }`}
+                >
                   {d.toLocaleDateString("en-GB", { weekday: "short" })}
                 </span>
-                <span className="mt-1 font-semibold">{d.getDate()}</span>
-                {hasEvents && (
-                  <span
-                    className={`mt-1.5 h-1 w-1 rounded-full ${
-                      isSelected ? "bg-gold" : "bg-gold/70"
-                    }`}
-                  />
-                )}
+                <span className="mt-0.5 text-[15px] font-semibold tabular-nums">
+                  {d.getDate()}
+                </span>
+                <span className="mt-1 flex h-2 items-end justify-center">
+                  {hasEvents ? (
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isSelected ? "bg-gold" : "bg-gold/80"
+                      }`}
+                    />
+                  ) : null}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Search + Category pills */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/50" />
+      {/* Search + category pills — single row on large screens */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/40" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search events or venues..."
-            className="w-full rounded-xl border border-border bg-surface/60 py-3 pr-4 pl-10 text-sm text-cream/90 outline-none transition placeholder:text-cream/40 focus:border-gold focus:ring-0"
+            className="w-full rounded-xl border border-border bg-[#111] py-3 pr-4 pl-10 text-sm text-cream outline-none transition placeholder:text-cream/35 focus:border-gold/70 focus:ring-1 focus:ring-gold/30"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:max-w-[52%] lg:justify-end xl:max-w-none">
           <button
+            type="button"
             onClick={() => onCategoryChange("all")}
-            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition ${
+            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition ${
               selectedCategory === "all"
-                ? "bg-gold text-void"
-                : "bg-surface/60 text-cream/90 hover:bg-surface"
+                ? "bg-gold text-black"
+                : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
             }`}
           >
             All
@@ -240,11 +266,12 @@ function EventsHeader({
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => onCategoryChange(cat)}
-              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition ${
+              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold capitalize tracking-wide transition ${
                 selectedCategory === cat
-                  ? "bg-gold text-void"
-                  : "bg-surface/60 text-cream/90 hover:bg-surface"
+                  ? "bg-gold text-black"
+                  : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
               }`}
             >
               {cat}
@@ -252,8 +279,6 @@ function EventsHeader({
           ))}
         </div>
       </div>
-
-      <p className="text-sm text-cream/60">{filteredCount} events found</p>
     </header>
   );
 }

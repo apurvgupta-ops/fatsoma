@@ -14,8 +14,8 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
+import LinearGradient from "react-native-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
@@ -57,8 +57,14 @@ export function LoginScreen({ navigation }: Props) {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Decorative blur orbs */}
-        <View style={[styles.orb, styles.orbGold, styles.orbTop]} pointerEvents="none" />
-        <View style={[styles.orb, styles.orbGoldLight, styles.orbBottom]} pointerEvents="none" />
+        <View
+          style={[styles.orb, styles.orbGold, styles.orbTop]}
+          pointerEvents="none"
+        />
+        <View
+          style={[styles.orb, styles.orbGoldLight, styles.orbBottom]}
+          pointerEvents="none"
+        />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -67,17 +73,28 @@ export function LoginScreen({ navigation }: Props) {
         >
           <View style={styles.logoRow}>
             <View style={styles.logoBox}>
-              <Ionicons name="checkmark" size={22} color={colors.gold.DEFAULT} />
+              <Ionicons
+                name="checkmark"
+                size={22}
+                color={colors.gold.DEFAULT}
+              />
             </View>
             <Text style={styles.brandTitle}>On The List</Text>
           </View>
 
           <Text style={styles.heading}>Welcome back</Text>
-          <Text style={styles.subheading}>Sign in to your account to continue</Text>
+          <Text style={styles.subheading}>
+            Sign in to your account to continue
+          </Text>
 
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputRow}>
-            <Ionicons name="mail-outline" size={18} color={colors.text.dim} style={styles.inputIcon} />
+            <Ionicons
+              name="mail-outline"
+              size={18}
+              color={colors.text.dim}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
@@ -92,7 +109,12 @@ export function LoginScreen({ navigation }: Props) {
 
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputRow}>
-            <Ionicons name="lock-closed-outline" size={18} color={colors.text.dim} style={styles.inputIcon} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color={colors.text.dim}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="••••••••"
@@ -101,7 +123,10 @@ export function LoginScreen({ navigation }: Props) {
               value={password}
               onChangeText={setPassword}
             />
-            <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeBtn}
+            >
               <Ionicons
                 name={showPassword ? "eye-off-outline" : "eye-outline"}
                 size={18}
@@ -109,6 +134,13 @@ export function LoginScreen({ navigation }: Props) {
               />
             </Pressable>
           </View>
+
+          <Pressable
+            style={styles.forgotRow}
+            onPress={() => navigation.navigate("ForgotPassword")}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </Pressable>
 
           <Pressable
             style={[styles.btnWrapper, loading && { opacity: 0.6 }]}
@@ -222,7 +254,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   eyeBtn: { paddingRight: spacing.md, paddingVertical: 14 },
-  btnWrapper: { marginTop: spacing.xxl },
+  forgotRow: { alignSelf: "flex-end", marginTop: spacing.sm },
+  forgotText: { fontSize: 12, fontWeight: "600", color: colors.gold.light },
+  btnWrapper: { marginTop: spacing.lg },
   btn: {
     borderRadius: radius.lg,
     paddingVertical: 15,

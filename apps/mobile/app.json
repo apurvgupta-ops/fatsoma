@@ -1,32 +1,4 @@
 {
-  "expo": {
-    "name": "On The List",
-    "slug": "fatsoma",
-    "version": "1.0.0",
-    "scheme": "fatsoma",
-    "userInterfaceStyle": "dark",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#080808"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.onthelist.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#080808"
-      },
-      "package": "com.onthelist.app"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "fatsoma-mobile"
-      }
-    }
-  }
+  "name": "OnTheList",
+  "displayName": "On The List"
 }

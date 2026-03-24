@@ -1,11 +1,11 @@
 /**
  * Colour palette matching web app (On The List gold/black luxury theme).
- * VOID #080808, SURFACE #141414, BORDER #2a2a2a, GOLD #c9a96e, GOLD LIGHT #e8d5a3, CREAM #f5f2ec
+ * VOID #0A0A0A, SURFACE #141414, BORDER #2a2a2a, GOLD #c9a96e, GOLD LIGHT #e8d5a3, CREAM #f5f2ec
  */
 export const colors = {
   bg: {
-    primary: "#080808",
-    secondary: "#0f0f0f",
+    primary: "#0A0A0A",
+    secondary: "#0A0A0A",
     card: "#141414",
     surface: "#141414",
     elevated: "#1a1a1a",

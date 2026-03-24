@@ -14,8 +14,8 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import LinearGradient from "react-native-linear-gradient";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
@@ -48,7 +48,11 @@ export function SignupScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await register({ name: name.trim(), email: email.trim().toLowerCase(), password });
+      await register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
     } catch (err: any) {
       Alert.alert("Signup Failed", err.message ?? "Something went wrong");
     } finally {
@@ -74,13 +78,19 @@ export function SignupScreen({ navigation }: Props) {
         >
           <View style={styles.logoRow}>
             <View style={styles.logoBox}>
-              <Ionicons name="checkmark" size={22} color={colors.gold.DEFAULT} />
+              <Ionicons
+                name="checkmark"
+                size={22}
+                color={colors.gold.DEFAULT}
+              />
             </View>
             <Text style={styles.brandTitle}>On The List</Text>
           </View>
 
           <Text style={styles.heading}>Create an account</Text>
-          <Text style={styles.subheading}>Join to discover and book events</Text>
+          <Text style={styles.subheading}>
+            Join to discover and book events
+          </Text>
 
           <Text style={styles.label}>Full Name</Text>
           <TextInput
@@ -112,8 +122,15 @@ export function SignupScreen({ navigation }: Props) {
               value={password}
               onChangeText={setPassword}
             />
-            <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={colors.text.dim} />
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeBtn}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color={colors.text.dim}
+              />
             </Pressable>
           </View>
 
@@ -127,7 +144,11 @@ export function SignupScreen({ navigation }: Props) {
             onChangeText={setConfirmPassword}
           />
 
-          <Pressable style={styles.gradientBtn} onPress={handleSignup} disabled={loading}>
+          <Pressable
+            style={styles.gradientBtn}
+            onPress={handleSignup}
+            disabled={loading}
+          >
             <LinearGradient
               colors={[colors.gold.DEFAULT, colors.gold.light]}
               start={{ x: 0, y: 0 }}

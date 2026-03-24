@@ -5,9 +5,9 @@ import {
   StyleSheet,
   Pressable,
   Dimensions,
+  Image,
 } from "react-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import type { EventResponse } from "@fatsoma/shared";
 import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
 import { colors, spacing, radius } from "../theme";
@@ -29,8 +29,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
       : `${API_BASE_URL}${event.eventImage}`;
 
   const d = new Date(event.eventDate);
-  const formattedDate =
-    `${String(d.getDate()).padStart(2, "0")} ${d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()} ${d.getFullYear()}`;
+  const formattedDate = `${String(d.getDate()).padStart(2, "0")} ${d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()} ${d.getFullYear()}`;
 
   const lowestPrice = event.ticketBatches?.length
     ? Math.min(...event.ticketBatches.map((b) => b.basePrice))
@@ -41,8 +40,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
       <Image
         source={{ uri: imageUrl }}
         style={styles.image}
-        contentFit="cover"
-        transition={200}
+        resizeMode="cover"
       />
       <View style={styles.overlay} />
       <View style={styles.categoryBadge}>
@@ -57,11 +55,19 @@ export function EventCard({ event, onPress }: EventCardProps) {
         </Text>
         <View style={styles.meta}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={12} color={colors.gold.light} />
+            <Ionicons
+              name="calendar-outline"
+              size={12}
+              color={colors.gold.light}
+            />
             <Text style={styles.metaText}>{formattedDate}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="location-outline" size={12} color={colors.gold.light} />
+            <Ionicons
+              name="location-outline"
+              size={12}
+              color={colors.gold.light}
+            />
             <Text style={styles.metaText} numberOfLines={1}>
               {event.venueName}
             </Text>
