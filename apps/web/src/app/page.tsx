@@ -41,13 +41,14 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32 lg:px-8">
-          <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-cream/50">
-            • Secure Student Ticket Platform
-          </p>
-          <h1 className="font-serif text-5xl  tracking-tight text-cream sm:text-6xl lg:text-7xl font-extrabold">
-            You&apos;re on<span className="text-gold"> the list</span>
+          <div className="mb-10 inline-flex items-center justify-center gap-2 rounded-full border border-border/60 bg-surface/20 px-5 py-2 text-[11px] font-semibold uppercase tracking-widest text-cream/60 shadow-sm backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-gold"></span>
+            Secure Student Ticket Platform
+          </div>
+          <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-7xl lg:text-8xl">
+            You&apos;re on <span className="text-gold">the list</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
+          <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-cream/60 sm:text-xl">
             The only student ticket platform with secure, no-scalping resale.
             You always pay the current release price — never a penny more. Just
             the events you want, transferred safely.

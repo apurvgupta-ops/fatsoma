@@ -14,9 +14,9 @@
   --color-gold: #c9a96e;
   --color-gold-light: #e8d5a3;
   --color-cream: #f5f2ec;
-  --font-sans: var(--font-geist-sans);
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-cormorant);
 }
 
 body {
