@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TicketBatch, ResaleListingResponse } from "@fatsoma/shared";
-import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@fatsoma/shared";
 import type { RootStackParamList } from "../navigation/types";
 import { useEvent } from "../hooks/useEvents";
 import { apiClient, API_BASE_URL } from "../lib/api";
@@ -332,7 +332,7 @@ function ResaleSection({
     setBuyingId(listing.id);
     try {
       const fee =
-        Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) /
+        Math.round(listing.askingPrice * (RESALE_FEE_PERCENT / 100) * 100) /
         100;
       const res = await apiClient.buyResaleTicket(listing.id, fee);
       if (res.data?.url) await Linking.openURL(res.data.url);
@@ -368,7 +368,7 @@ function ResaleSection({
 
       {listings.map((listing) => {
         const fee =
-          Math.round(listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100) /
+          Math.round(listing.askingPrice * (RESALE_FEE_PERCENT / 100) * 100) /
           100;
         const total = listing.askingPrice + fee;
         return (

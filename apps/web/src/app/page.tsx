@@ -165,15 +165,13 @@ export default function HomePage() {
               Got a ticket you can&apos;t use?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-cream/80">
-              List your ticket and let another student take your spot. They pay
-              the current release price — you get your original money back.
-              Secure, fair, instant.
+              Pass your spot to another student. They pay the current<br/> release price — you get your original money back. Secure,<br/> fair, instant.  
             </p>
             <Link
               href="/tickets"
               className="mt-8 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
             >
-              List a Ticket
+              Pass it on the list
             </Link>
           </div>
         </div>

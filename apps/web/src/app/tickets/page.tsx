@@ -137,7 +137,7 @@ export default function MyTicketsPage() {
           {/* Title */}
           <div className="mb-10 text-center">
             <h1 className="font-serif text-4xl font-bold text-cream sm:text-5xl">My Tickets</h1>
-            <p className="mt-2 text-sm text-cream/60">Manage your tickets and resale listings</p>
+            <p className="mt-2 text-sm text-cream/60">Manage your tickets and listings</p>
           </div>
 
           {/* Tabs */}
@@ -160,7 +160,7 @@ export default function MyTicketsPage() {
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
               }`}
             >
-              Resale Listings
+             On <span className="text-gold">the list</span>
             </button>
             <button
               onClick={() => setActiveTab("sold")}
@@ -170,9 +170,9 @@ export default function MyTicketsPage() {
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
               }`}
             >
-              Sold ({soldListings.length})
+              History ({soldListings.length})
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveTab("history")}
               className={`cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === "history"
@@ -181,7 +181,7 @@ export default function MyTicketsPage() {
               }`}
             >
               History ({historyTickets.length})
-            </button>
+            </button> */}
           </div>
 
           {successMessage && (
@@ -425,7 +425,7 @@ function TicketCard({
                   onClick={onListForResale}
                   className="cursor-pointer rounded-lg bg-cream/10 px-4 py-2 text-sm font-medium text-cream/90 transition hover:bg-cream/15"
                 >
-                  List for Resale
+                 Pass it <span className="text-gold">on the list</span>
                 </button>
               )}
               {ticket.status === "listed" && (

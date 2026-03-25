@@ -9,7 +9,7 @@ import type {
   TicketBatch,
   ResaleListingResponse,
 } from "@fatsoma/shared";
-import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@fatsoma/shared";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -40,6 +40,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const client = createPublicClient();
@@ -163,9 +164,19 @@ export default function EventDetailPage() {
             </div>
 
             <div className="space-y-10">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-cream/50">
-                {event.eventDescription}
-              </p>
+              <div className="flex flex-col items-start gap-2">
+                <p className={`whitespace-pre-wrap text-sm leading-relaxed text-cream/50 ${!isExpanded ? 'line-clamp-4' : ''}`}>
+                  {event.eventDescription}
+                </p>
+                {event.eventDescription && event.eventDescription.length > 200 && (
+                  <button 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-gold text-xs font-semibold uppercase tracking-wider hover:underline cursor-pointer"
+                  >
+                    {isExpanded ? "Read less" : "Read more"}
+                  </button>
+                )}
+              </div>
 
               {event.allowResale && <ResaleListingsSection event={event} />}
             </div>
@@ -253,10 +264,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         <h3 className="font-serif text-2xl font-light tracking-tight text-cream">
           Get Tickets
         </h3>
-        <p className="mt-2 text-xs leading-relaxed text-cream/45">
-          Ticket price + Smart Timing Fee. Buy early, pay less.
-        </p>
-
+          {/* <p className="mt-2 text-xs leading-relaxed text-cream/45">
+            Ticket price + Smart Timing Fee. Buy early, pay less.
+          </p> */}
+          {/* SMART FEE SECTION
         <div className="mt-6 rounded-lg border border-white/8 bg-black/45 p-4">
           <div className="flex items-start justify-between gap-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cream/40">
@@ -302,7 +313,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
               <span className="shrink-0 text-cream/40">3.0%</span>
             </li>
           </ul>
-        </div>
+        </div> */}
 
         <div className="mt-6 flex flex-col gap-4 text-center align-baseline">
           {event.ticketBatches.map((batch) => {
@@ -428,7 +439,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
             </span>
           </div>
           <div className="flex justify-between text-cream/50">
-            <span>Smart timing fee × {quantity}</span>
+            <span>Booking fee × {quantity}</span>
             <span className="font-mono text-cream/80">
               £{feeTotal.toFixed(2)}
             </span>
@@ -475,10 +486,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           </div>
         )}
 
-        <p className="mt-4 text-center text-[10px] leading-relaxed text-cream/40">
+        {/* <p className="mt-4 text-center text-[10px] leading-relaxed text-cream/40">
           The Smart Timing Fee reflects time and demand — your ticket price
           stays fair. Secure checkout via Stripe.
-        </p>
+        </p> */}
       </div>
     </div>
   );
@@ -663,7 +674,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
     setBuyError(null);
     try {
       const client = createBrowserClient();
-      const fee = listing.askingPrice * (BOOKING_FEE_PERCENT / 100);
+      const fee = listing.askingPrice * (RESALE_FEE_PERCENT / 100);
       const res = await client.buyResaleTicket(
         listing.id,
         Math.round(fee * 100) / 100,
@@ -685,7 +696,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
       <div className="rounded-xl border border-white/10 bg-[#1a1a1a] p-6">
         <div className="flex items-center gap-2 text-sm text-cream/45">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          Loading resale listings…
+          Loading The List
         </div>
       </div>
     );
@@ -695,9 +706,17 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
 
   return (
     <section>
-      <h2 className="mb-5 font-serif text-2xl font-extrabold  ">
-        Resale Listings
-      </h2>
+      <div className="group relative mb-5 inline-flex items-center">
+        <h2 className="flex cursor-help items-center gap-3 font-serif text-2xl font-extrabold text-gold">
+          The List
+          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white text-[10px] text-white transition group-hover:bg-white/10 group-hover:text-white">
+            !
+          </span>
+        </h2>
+        <div className="pointer-events-none absolute bottom-full left-0 mb-2 w-[280px] rounded-xl border border-white/10 bg-surface p-3.5 text-xs leading-relaxed text-cream/80 opacity-0 shadow-2xl transition-all group-hover:pointer-events-auto group-hover:-translate-y-1 group-hover:opacity-100 z-50">
+          Same ticket. Same price. A student can't attend — their spot is now yours, instantly and securely.
+        </div>
+      </div>
 
       {buyError && (
         <div className="mb-4 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
@@ -709,7 +728,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
         {listings.map((listing) => {
           const fee =
             Math.round(
-              listing.askingPrice * (BOOKING_FEE_PERCENT / 100) * 100,
+              listing.askingPrice * (RESALE_FEE_PERCENT / 100) * 100,
             ) / 100;
           const tier = resaleTierLabel(listing, event);
 

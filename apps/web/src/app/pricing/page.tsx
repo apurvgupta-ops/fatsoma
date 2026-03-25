@@ -1,7 +1,7 @@
 "use client";
 
 import { Ticket, Percent, RefreshCw, Calculator } from "lucide-react";
-import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@fatsoma/shared";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -20,7 +20,7 @@ const sections = [
   {
     icon: RefreshCw,
     title: "Resale Fees",
-    description: `The same ${BOOKING_FEE_PERCENT}% booking fee applies to resale purchases. When you sell a ticket, you receive your original purchase price back in full. The buyer pays the current release price (or your listed price if lower) plus the booking fee.`,
+    description: `A ${RESALE_FEE_PERCENT}% resale fee applies to resale purchases. When you sell a ticket, you receive your original base purchase price back in full. The buyer pays the listing price plus the ${RESALE_FEE_PERCENT}% resale fee.`,
   },
   {
     icon: Calculator,

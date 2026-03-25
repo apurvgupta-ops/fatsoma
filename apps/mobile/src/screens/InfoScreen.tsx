@@ -15,7 +15,7 @@ import { Ionicons } from "@react-native-vector-icons/Ionicons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
-import { BOOKING_FEE_PERCENT } from "@fatsoma/shared";
+import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@fatsoma/shared";
 import { colors, spacing, radius } from "../theme";
 
 type InfoScreenRouteProp = RouteProp<RootStackParamList, "InfoPage">;
@@ -214,7 +214,7 @@ function Pricing() {
     },
     {
       title: "Resale Fees",
-      desc: "The same booking fee applies to resale. Sellers receive the original ticket price back.",
+      desc: `A ${RESALE_FEE_PERCENT}% resale fee applies to resale purchases. Sellers receive the original ticket price back.`,
     },
   ];
 
