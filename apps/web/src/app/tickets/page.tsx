@@ -160,7 +160,7 @@ export default function MyTicketsPage() {
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
               }`}
             >
-             On <span className="text-gold">the list</span>
+             On the list ({resaleTickets.length})
             </button>
             <button
               onClick={() => setActiveTab("sold")}
