@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { ZodError } from "zod";
 import { AppError } from "../utils/AppError";
+import { logServerError } from "../lib/systemLogger";
 
 /**
  * Global error handler.
@@ -46,6 +47,12 @@ export function errorHandler(
     message = "File size exceeds 5 MB limit";
   } else {
     console.error("[UnhandledError]", err);
+    logServerError({
+      message: err.message,
+      stack: err.stack,
+      path: _req.originalUrl,
+      method: _req.method,
+    });
   }
 
   res.locals.errorMessage = message;

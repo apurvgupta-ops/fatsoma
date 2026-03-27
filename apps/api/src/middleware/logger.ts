@@ -1,30 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import fs from "fs";
-import path from "path";
+import { logApiAccess } from "../lib/systemLogger";
 
 const SKIP_PATHS = ["/api/health", "/uploads"];
-
-const LOGS_DIR = path.resolve(process.cwd(), "../../logs");
-
-function ensureLogsDir() {
-  if (!fs.existsSync(LOGS_DIR)) {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
-  }
-}
-
-function getLogFilePath(): string {
-  const date = new Date().toISOString().slice(0, 10);
-  return path.join(LOGS_DIR, `error-${date}.log`);
-}
-
-function writeToFile(entry: string) {
-  try {
-    ensureLogsDir();
-    fs.appendFileSync(getLogFilePath(), entry + "\n", "utf-8");
-  } catch {
-    // Silently ignore file write failures to avoid crashing the server
-  }
-}
 
 function colorStatus(status: number): string {
   if (status >= 500) return `\x1b[31m${status}\x1b[0m`;
@@ -34,14 +11,15 @@ function colorStatus(status: number): string {
 }
 
 /**
- * Logs one line per API request with method, path, status, duration,
- * authenticated user, and error message (on failure).
- * Skips health checks and static file requests.
- *
- * Error logs (4xx/5xx) are also written to logs/error-YYYY-MM-DD.log
- * for later inspection.
+ * Logs every API request to `logs/api-access-YYYY-MM-DD.log` (JSON lines)
+ * with method, path, status, duration, userId, IP, and error message when
+ * present. Also prints a colored line to the console.
  */
-export function requestLogger(req: Request, res: Response, next: NextFunction): void {
+export function requestLogger(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (SKIP_PATHS.some((p) => req.path.startsWith(p))) {
     next();
     return;
@@ -51,12 +29,16 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    const method = req.method.padEnd(6);
     const status = res.statusCode;
     const userId = req.user?.userId ?? "";
     const errMsg = res.locals.errorMessage as string | undefined;
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.ip ||
+      req.socket.remoteAddress ||
+      "";
 
-    let consoleLine = `[API] ${method} ${req.originalUrl} ${colorStatus(status)} ${duration}ms`;
+    let consoleLine = `[API] ${req.method.padEnd(6)} ${req.originalUrl} ${colorStatus(status)} ${duration}ms`;
     if (userId) consoleLine += ` user=${userId}`;
     if (errMsg && status >= 400) consoleLine += ` — "${errMsg}"`;
 
@@ -68,14 +50,15 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       console.log(consoleLine);
     }
 
-    if (status >= 400) {
-      const timestamp = new Date().toISOString();
-      const ip = req.ip || req.socket.remoteAddress || "-";
-      let fileLine = `[${timestamp}] ${status} ${req.method} ${req.originalUrl} ${duration}ms ip=${ip}`;
-      if (userId) fileLine += ` user=${userId}`;
-      if (errMsg) fileLine += ` error="${errMsg}"`;
-      writeToFile(fileLine);
-    }
+    logApiAccess({
+      method: req.method,
+      path: req.originalUrl,
+      status,
+      durationMs: duration,
+      ...(userId ? { userId } : {}),
+      ...(ip ? { ip } : {}),
+      ...(errMsg && status >= 400 ? { errorMessage: errMsg } : {}),
+    });
   });
 
   next();

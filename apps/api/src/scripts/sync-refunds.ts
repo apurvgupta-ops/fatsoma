@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import Stripe from "stripe";
 import Order from "../models/Order";
 import { connectDB } from "../lib/db";
+import { logRefund } from "../lib/systemLogger";
 
 async function run() {
   await connectDB();
@@ -51,10 +52,24 @@ async function run() {
       if (changed) {
         await order.save();
         console.log(`[OK] Synced order ${(order as any)._id}: refunded £${amountRefunded}, status ${order.status}`);
+        logRefund({
+          event: "refund_sync_from_stripe",
+          outcome: "success",
+          orderId: String((order as any)._id),
+          paymentIntentId: order.stripePaymentIntentId,
+          amountGbp: amountRefunded,
+          reason: `Order status synced to ${order.status}`,
+        });
         synced++;
       }
     } catch (err: any) {
       console.error(`[ERROR] checking order ${(order as any)._id}:`, err.message);
+      logRefund({
+        event: "refund_sync_from_stripe_failed",
+        outcome: "failure",
+        orderId: String((order as any)._id),
+        errorMessage: err.message,
+      });
     }
   }
   
