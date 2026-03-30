@@ -46,7 +46,7 @@ export default function HomePage() {
             Secure Student Ticket Platform
           </div>
           <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-7xl lg:text-8xl">
-            You&apos;re on <span className="text-gold">the list</span>
+            You&apos;re <span className="text-gold">on the list</span>
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-cream/60 sm:text-xl">
             The only student ticket platform with secure, no-scalping resale.
@@ -165,7 +165,9 @@ export default function HomePage() {
               Got a ticket you can&apos;t use?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-cream/80">
-              Pass your spot to another student. They pay the current<br/> release price — you get your original money back. Secure,<br/> fair, instant.  
+              Pass your spot to another student. They pay the current
+              <br /> release price — you get your original money back. Secure,
+              <br /> fair, instant.
             </p>
             <Link
               href="/tickets"

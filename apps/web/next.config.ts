@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    webpackBuildWorker: false,
+    parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+  },
   transpilePackages: ["@fatsoma/api-client", "@fatsoma/shared"],
   images: {
     remotePatterns: [

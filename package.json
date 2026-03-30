@@ -14,6 +14,7 @@
     "dev:web": "turbo run dev --filter=@fatsoma/web",
     "dev:mobile": "turbo run dev --filter=@fatsoma/mobile",
     "build": "turbo run build",
+    "build:server": "npm run build -w @fatsoma/shared && npm run build -w @fatsoma/api-client && npm run build -w @fatsoma/api && npm run build -w @fatsoma/web && npm run build -w @fatsoma/admin",
     "start": "turbo run start",
     "start:api": "turbo run start --filter=@fatsoma/api",
     "start:admin": "turbo run start --filter=@fatsoma/admin",
