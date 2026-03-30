@@ -1,12 +1,21 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI =
-  "mongodb://onthelistapp:Hfz7UqehFbf7kt4fGk9wYg@192.168.1.47:29017/onthelistapp";
-
 let isConnected = false;
+
+function getMongoUri(): string {
+  const uri = process.env.MONGODB_URI?.trim();
+  if (!uri) {
+    throw new Error(
+      "MONGODB_URI is not set. Add it to the repo root .env (or .env.local).",
+    );
+  }
+  return uri;
+}
 
 export async function connectDB(): Promise<typeof mongoose> {
   if (isConnected) return mongoose;
+
+  const MONGODB_URI = getMongoUri();
 
   const conn = await mongoose.connect(MONGODB_URI, {
     maxPoolSize: 10,
