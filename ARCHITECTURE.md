@@ -1387,7 +1387,7 @@ All emails use a consistent dark-themed HTML template:
 
 ```
 Development: http://localhost:3016
-Production:  https://onthelistapp.24livehost.com
+Production:  https://api.onthelistapp.co.uk
 ```
 
 ### Response Format

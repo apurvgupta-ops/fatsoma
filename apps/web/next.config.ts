@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
-      { protocol: "http", hostname: "localhost", port: "4000", pathname: "/uploads/**" },
+      { protocol: "https", hostname: "api.onthelistapp.co.uk", pathname: "/uploads/**" },
+      { protocol: "http", hostname: "localhost", port: "3016", pathname: "/uploads/**" },
     ],
   },
 };

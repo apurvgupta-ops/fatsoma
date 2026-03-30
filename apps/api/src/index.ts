@@ -76,13 +76,14 @@ export function createApp() {
  * Boot sequence: connect to MongoDB then start listening.
  */
 async function start() {
-  const PORT = process.env.PORT || 3016;
+  const PORT = Number(process.env.PORT) || 3016;
+  const HOST = process.env.HOST || "0.0.0.0";
 
   await connectDB();
 
   const app = createApp();
-  app.listen(PORT, () => {
-    console.log(`🚀 API server running on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 API server running on http://${HOST}:${PORT}`);
   });
 }
 
