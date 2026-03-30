@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Shared hosting: avoid EAGAIN when spawning child `node` processes (low nproc / ulimits)
   experimental: {
+    cpus: 1,
+    workerThreads: false,
     webpackBuildWorker: false,
     parallelServerCompiles: false,
     parallelServerBuildTraces: false,
+    staticGenerationMaxConcurrency: 1,
+    staticGenerationMinPagesPerWorker: 100,
   },
   transpilePackages: ["@fatsoma/api-client", "@fatsoma/shared"],
   images: {

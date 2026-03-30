@@ -3,9 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Shared hosting / low ulimits: fewer worker processes during `next build`
   experimental: {
+    cpus: 1,
+    workerThreads: false,
     webpackBuildWorker: false,
     parallelServerCompiles: false,
     parallelServerBuildTraces: false,
+    staticGenerationMaxConcurrency: 1,
+    staticGenerationMinPagesPerWorker: 100,
   },
   transpilePackages: ["@fatsoma/api-client", "@fatsoma/shared"],
   images: {
