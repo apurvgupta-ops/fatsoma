@@ -1,6 +1,6 @@
 # Fatsoma Clone
 
-A full-stack event ticketing platform built as a **Turborepo monorepo** with four applications and two shared packages. Features include event management, live stock-market-style booking fees, Stripe checkout, and cross-platform support (web + mobile).
+A full-stack event ticketing platform built as a **Turborepo monorepo** with three applications and two shared packages. Features include event management, live stock-market-style booking fees, Stripe checkout, and cross-platform support (web + admin).
 
 ---
 
@@ -13,7 +13,6 @@ A full-stack event ticketing platform built as a **Turborepo monorepo** with fou
   - [API (`apps/api`)](#api-appsapi)
   - [Admin (`apps/admin`)](#admin-appsadmin)
   - [Web (`apps/web`)](#web-appsweb)
-  - [Mobile (`apps/mobile`)](#mobile-appsmobile)
 - [API Architecture](#api-architecture)
 - [Shared Packages](#shared-packages)
   - [`@fatsoma/shared`](#fatsomashard)
@@ -32,7 +31,7 @@ A full-stack event ticketing platform built as a **Turborepo monorepo** with fou
 │                      Turborepo                          │
 │                                                         │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────┐  │
-│  │   API   │  │  Admin  │  │   Web   │  │  Mobile  │  │
+│  │   API   │  │  Admin  │  │   Web   │  │
 │  │ Express │  │ Next.js │  │ Next.js │  │  Expo    │  │
 │  │ :4000   │  │ :3000   │  │ :3001   │  │  :8081   │  │
 │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬─────┘  │
@@ -61,11 +60,11 @@ All four applications consume the same shared packages, ensuring type safety and
 
 ### 1. Single Repository, Multiple Apps
 
-Instead of managing 4+ separate git repositories (API, Admin, Web, Mobile, shared libraries), everything lives in one place. This means:
+Instead of managing 3+ separate git repositories (API, Admin, Web, shared libraries), everything lives in one place. This means:
 
 - **One `git clone`** to get the entire platform.
 - **One `npm install`** to install all dependencies (npm workspaces hoists shared deps to the root).
-- **Atomic commits** — a change to a shared type and the API/Web/Mobile that consumes it can all land in a single PR.
+- **Atomic commits** — a change to a shared type and the API/Web that consumes it can all land in a single PR.
 
 ### 2. Incremental Builds & Caching
 
@@ -195,13 +194,13 @@ fatsoma-clone/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   └── mobile/                     # Expo React Native App
+
 │       ├── src/
 │       │   ├── components/
 │       │   │   ├── EventCard.tsx    # Event card with image overlay
 │       │   │   └── SparkLine.tsx    # SVG sparkline chart
 │       │   ├── context/
-│       │   │   └── AuthContext.tsx  # Mobile auth (SecureStore tokens)
+
 │       │   ├── hooks/
 │       │   │   ├── useEvents.ts    # Fetch published events
 │       │   │   └── useLiveFee.ts   # Simulated live booking fee
@@ -261,46 +260,46 @@ fatsoma-clone/
 
 ### API (`apps/api`)
 
-| | |
-|---|---|
-| **Framework** | Express.js 5 |
-| **Architecture** | Route → Controller → Service → Model |
-| **Database** | MongoDB via Mongoose |
-| **Auth** | JWT (access + refresh tokens) |
-| **Payments** | Stripe Checkout + Webhooks |
-| **Uploads** | Multer (file → `uploads/` directory) |
+|                    |                                          |
+| ------------------ | ---------------------------------------- |
+| **Framework**      | Express.js 5                             |
+| **Architecture**   | Route → Controller → Service → Model     |
+| **Database**       | MongoDB via Mongoose                     |
+| **Auth**           | JWT (access + refresh tokens)            |
+| **Payments**       | Stripe Checkout + Webhooks               |
+| **Uploads**        | Multer (file → `uploads/` directory)     |
 | **Error Handling** | Custom `AppError` class + global handler |
-| **Port** | `4000` |
+| **Port**           | `4000`                                   |
 
 **Key endpoints:**
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/auth/register` | Public | User registration |
-| `POST` | `/api/auth/login` | Public | Login (returns JWT tokens) |
-| `POST` | `/api/auth/refresh` | Public | Refresh access token |
-| `GET` | `/api/auth/me` | Bearer | Get current user |
-| `GET` | `/api/events/published` | Public | List published events |
-| `GET` | `/api/events` | Bearer | List all events (admin: all, user: own) |
-| `GET` | `/api/events/:id` | Bearer | Get single event |
-| `POST` | `/api/events` | Bearer | Create event |
-| `PUT` | `/api/events/:id` | Bearer | Update event |
-| `PATCH` | `/api/events/:id/status` | Bearer | Update event status |
-| `DELETE` | `/api/events/:id` | Bearer | Delete event |
-| `POST` | `/api/checkout/create-session` | Public | Create Stripe checkout session |
-| `GET` | `/api/checkout/session/:id` | Public | Get order by session ID |
-| `POST` | `/api/checkout/webhook` | Stripe | Stripe webhook handler |
-| `POST` | `/api/uploads` | Bearer | Upload image |
-| `GET` | `/api/health` | Public | Health check (uptime + timestamp) |
+| Method   | Path                           | Auth   | Description                             |
+| -------- | ------------------------------ | ------ | --------------------------------------- |
+| `POST`   | `/api/auth/register`           | Public | User registration                       |
+| `POST`   | `/api/auth/login`              | Public | Login (returns JWT tokens)              |
+| `POST`   | `/api/auth/refresh`            | Public | Refresh access token                    |
+| `GET`    | `/api/auth/me`                 | Bearer | Get current user                        |
+| `GET`    | `/api/events/published`        | Public | List published events                   |
+| `GET`    | `/api/events`                  | Bearer | List all events (admin: all, user: own) |
+| `GET`    | `/api/events/:id`              | Bearer | Get single event                        |
+| `POST`   | `/api/events`                  | Bearer | Create event                            |
+| `PUT`    | `/api/events/:id`              | Bearer | Update event                            |
+| `PATCH`  | `/api/events/:id/status`       | Bearer | Update event status                     |
+| `DELETE` | `/api/events/:id`              | Bearer | Delete event                            |
+| `POST`   | `/api/checkout/create-session` | Public | Create Stripe checkout session          |
+| `GET`    | `/api/checkout/session/:id`    | Public | Get order by session ID                 |
+| `POST`   | `/api/checkout/webhook`        | Stripe | Stripe webhook handler                  |
+| `POST`   | `/api/uploads`                 | Bearer | Upload image                            |
+| `GET`    | `/api/health`                  | Public | Health check (uptime + timestamp)       |
 
 ### Admin (`apps/admin`)
 
-| | |
-|---|---|
-| **Framework** | Next.js 16 (App Router) |
-| **Styling** | Tailwind CSS v4 |
-| **Auth** | JWT stored in `localStorage` |
-| **Port** | `3000` |
+|               |                              |
+| ------------- | ---------------------------- |
+| **Framework** | Next.js 16 (App Router)      |
+| **Styling**   | Tailwind CSS v4              |
+| **Auth**      | JWT stored in `localStorage` |
+| **Port**      | `3000`                       |
 
 The admin dashboard provides:
 - Event CRUD (create, edit, publish/draft, delete)
@@ -310,13 +309,13 @@ The admin dashboard provides:
 
 ### Web (`apps/web`)
 
-| | |
-|---|---|
-| **Framework** | Next.js 16 (App Router) |
-| **Styling** | Tailwind CSS v4 |
-| **Payments** | Stripe.js |
-| **Auth** | JWT stored in `localStorage` |
-| **Port** | `3001` |
+|               |                              |
+| ------------- | ---------------------------- |
+| **Framework** | Next.js 16 (App Router)      |
+| **Styling**   | Tailwind CSS v4              |
+| **Payments**  | Stripe.js                    |
+| **Auth**      | JWT stored in `localStorage` |
+| **Port**      | `3001`                       |
 
 The public-facing web app provides:
 - Event discovery with search and category filtering
@@ -325,22 +324,6 @@ The public-facing web app provides:
 - Stripe-powered checkout flow
 - User registration and login
 - Responsive, dark-themed UI
-
-### Mobile (`apps/mobile`)
-
-| | |
-|---|---|
-| **Framework** | Expo SDK 54 / React Native 0.81 |
-| **Navigation** | React Navigation (Stack + Bottom Tabs) |
-| **Auth** | JWT stored in `expo-secure-store` |
-| **Port** | `8081` (Metro bundler) |
-
-The mobile app provides:
-- Event browsing with pull-to-refresh
-- Event detail with live booking fee sparkline and Buy Now
-- Bottom tab navigation (Explore, Tickets, Profile)
-- Login/Signup flow with conditional navigation
-- Dark theme matching the web app
 
 ---
 
@@ -354,14 +337,14 @@ Request → Route → Middleware → Controller → Service → Model → Databa
 
 ### Layer Responsibilities
 
-| Layer | Responsibility | Knows about HTTP? |
-|-------|---------------|-------------------|
-| **Routes** | Wire middleware to controller methods. ~10 lines per file. | Yes (Express Router) |
-| **Controllers** | Parse `req` params/body, call service, format `res`. | Yes (req/res) |
-| **Services** | Pure business logic, DB queries, validation. Throws `AppError` on failure. | No |
-| **Models** | Mongoose schemas, indexes, virtuals, pre-save hooks. | No |
-| **Middleware** | Auth, validation, error handling — cross-cutting concerns. | Yes |
-| **Utils** | `AppError`, `asyncHandler`, `paramId`, `response` helpers. | Minimal |
+| Layer           | Responsibility                                                             | Knows about HTTP?    |
+| --------------- | -------------------------------------------------------------------------- | -------------------- |
+| **Routes**      | Wire middleware to controller methods. ~10 lines per file.                 | Yes (Express Router) |
+| **Controllers** | Parse `req` params/body, call service, format `res`.                       | Yes (req/res)        |
+| **Services**    | Pure business logic, DB queries, validation. Throws `AppError` on failure. | No                   |
+| **Models**      | Mongoose schemas, indexes, virtuals, pre-save hooks.                       | No                   |
+| **Middleware**  | Auth, validation, error handling — cross-cutting concerns.                 | Yes                  |
+| **Utils**       | `AppError`, `asyncHandler`, `paramId`, `response` helpers.                 | Minimal              |
 
 ### Why This Structure?
 
@@ -375,15 +358,15 @@ Request → Route → Middleware → Controller → Service → Model → Databa
 
 The global error handler (`middleware/error.ts`) maps error types to HTTP responses:
 
-| Error Type | HTTP Status | Example |
-|------------|-------------|---------|
-| `AppError` | `.statusCode` | `AppError.notFound("Event not found")` → 404 |
-| `ZodError` | 400 | Schema validation failure with field-level details |
-| Mongoose `ValidationError` | 400 | Model-level validation (e.g. required field) |
-| Mongoose `CastError` | 400 | Invalid ObjectId format |
-| MongoDB duplicate key (11000) | 409 | Unique constraint violation |
-| Multer file size | 413 | File exceeds 5 MB limit |
-| Unknown | 500 | Unexpected errors (logged to console) |
+| Error Type                    | HTTP Status   | Example                                            |
+| ----------------------------- | ------------- | -------------------------------------------------- |
+| `AppError`                    | `.statusCode` | `AppError.notFound("Event not found")` → 404       |
+| `ZodError`                    | 400           | Schema validation failure with field-level details |
+| Mongoose `ValidationError`    | 400           | Model-level validation (e.g. required field)       |
+| Mongoose `CastError`          | 400           | Invalid ObjectId format                            |
+| MongoDB duplicate key (11000) | 409           | Unique constraint violation                        |
+| Multer file size              | 413           | File exceeds 5 MB limit                            |
+| Unknown                       | 500           | Unexpected errors (logged to console)              |
 
 ---
 
@@ -411,7 +394,7 @@ const events = await client.getPublishedEvents();
 const session = await client.createCheckoutSession({ ... });
 ```
 
-Used by Admin, Web, and Mobile — each app just configures the `baseUrl` and `getToken` differently.
+Used by Admin and Web — each app just configures the `baseUrl` and `getToken` differently.
 
 ---
 
@@ -474,32 +457,22 @@ Or start individually:
 npm run dev:api       # API at http://localhost:3016
 npm run dev:admin     # Admin at http://localhost:3000
 npm run dev:web       # Web at http://localhost:3001
-npm run dev:mobile    # Mobile at http://localhost:8081
-```
 
-For mobile specifically:
-
-```bash
-npm run android       # Launch on Android emulator
-npm run ios           # Launch on iOS simulator (macOS only)
 ```
 
 ---
 
 ## Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start API, Admin, and Web in parallel |
-| `npm run dev:api` | Start only the API server |
-| `npm run dev:admin` | Start only the Admin dashboard |
-| `npm run dev:web` | Start only the Web app |
-| `npm run dev:mobile` | Start Expo dev server |
-| `npm run android` | Launch mobile on Android emulator |
-| `npm run ios` | Launch mobile on iOS simulator |
-| `npm run build` | Build all apps for production |
-| `npm run lint` | Lint all apps |
-| `npm run seed` | Seed the database with sample data |
+| Script              | Description                           |
+| ------------------- | ------------------------------------- |
+| `npm run dev`       | Start API, Admin, and Web in parallel |
+| `npm run dev:api`   | Start only the API server             |
+| `npm run dev:admin` | Start only the Admin dashboard        |
+| `npm run dev:web`   | Start only the Web app                |
+| `npm run build`     | Build all apps for production         |
+| `npm run lint`      | Lint all apps                         |
+| `npm run seed`      | Seed the database with sample data    |
 
 ---
 
@@ -507,16 +480,16 @@ npm run ios           # Launch on iOS simulator (macOS only)
 
 ### API (`apps/api/.env`)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PORT` | API server port | Yes |
-| `MONGODB_URI` | MongoDB connection string | Yes |
-| `JWT_SECRET` | Secret for signing access tokens | Yes |
-| `JWT_REFRESH_SECRET` | Secret for signing refresh tokens | Yes |
-| `CORS_ORIGIN` | Comma-separated allowed origins | Yes |
-| `WEB_URL` | Web app URL (for Stripe redirects) | Yes |
-| `STRIPE_SECRET_KEY` | Stripe secret key | No |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | No |
+| Variable                | Description                        | Required |
+| ----------------------- | ---------------------------------- | -------- |
+| `PORT`                  | API server port                    | Yes      |
+| `MONGODB_URI`           | MongoDB connection string          | Yes      |
+| `JWT_SECRET`            | Secret for signing access tokens   | Yes      |
+| `JWT_REFRESH_SECRET`    | Secret for signing refresh tokens  | Yes      |
+| `CORS_ORIGIN`           | Comma-separated allowed origins    | Yes      |
+| `WEB_URL`               | Web app URL (for Stripe redirects) | Yes      |
+| `STRIPE_SECRET_KEY`     | Stripe secret key                  | No       |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret      | No       |
 
 ### Web & Admin
 
@@ -526,18 +499,17 @@ Both Next.js apps read `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:3016
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Monorepo** | Turborepo + npm workspaces |
-| **API** | Express.js 5, Mongoose, JWT, Multer, Stripe |
-| **Admin** | Next.js 16, React 19, Tailwind CSS v4, Lucide Icons |
-| **Web** | Next.js 16, React 19, Tailwind CSS v4, Stripe.js |
-| **Mobile** | Expo SDK 54, React Native 0.81, React Navigation |
-| **Shared** | TypeScript 5, Zod |
-| **Database** | MongoDB |
-| **Payments** | Stripe Checkout + Webhooks |
-| **Auth** | JWT (access + refresh tokens) |
-| **Validation** | Zod (shared between API and clients) |
+| Layer          | Technology                                          |
+| -------------- | --------------------------------------------------- |
+| **Monorepo**   | Turborepo + npm workspaces                          |
+| **API**        | Express.js 5, Mongoose, JWT, Multer, Stripe         |
+| **Admin**      | Next.js 16, React 19, Tailwind CSS v4, Lucide Icons |
+| **Web**        | Next.js 16, React 19, Tailwind CSS v4, Stripe.js    |
+| **Shared**     | TypeScript 5, Zod                                   |
+| **Database**   | MongoDB                                             |
+| **Payments**   | Stripe Checkout + Webhooks                          |
+| **Auth**       | JWT (access + refresh tokens)                       |
+| **Validation** | Zod (shared between API and clients)                |
 
 ---
 

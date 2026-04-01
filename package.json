@@ -12,7 +12,6 @@
     "dev:api": "turbo run dev --filter=@fatsoma/api",
     "dev:admin": "turbo run dev --filter=@fatsoma/admin",
     "dev:web": "turbo run dev --filter=@fatsoma/web",
-    "dev:mobile": "turbo run dev --filter=@fatsoma/mobile",
     "build": "turbo run build",
     "build:server": "node scripts/build-server.js",
     "deploy": "bash scripts/deploy.sh",
@@ -20,7 +19,6 @@
     "start:api": "turbo run start --filter=@fatsoma/api",
     "start:admin": "turbo run start --filter=@fatsoma/admin",
     "start:web": "turbo run start --filter=@fatsoma/web",
-    "start:mobile": "turbo run start --filter=@fatsoma/mobile",
     "lint": "turbo run lint",
     "seed": "turbo run seed --filter=@fatsoma/api"
   },

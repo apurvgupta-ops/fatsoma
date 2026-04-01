@@ -15,33 +15,32 @@
 5. [API Server (Express)](#5-api-server-express)
 6. [Web Application (Next.js)](#6-web-application-nextjs)
 7. [Admin Panel (Next.js)](#7-admin-panel-nextjs)
-8. [Mobile Application (Expo / React Native)](#8-mobile-application-expo--react-native)
-9. [Authentication & Authorization](#9-authentication--authorization)
-10. [Payment Flow (Stripe)](#10-payment-flow-stripe)
-11. [Resale Marketplace & Seller Payout](#11-resale-marketplace--seller-payout)
-12. [Email Notification System](#12-email-notification-system)
-13. [Database Schema (MongoDB)](#13-database-schema-mongodb)
-14. [API Reference](#14-api-reference)
-15. [Build & Deployment Pipeline](#15-build--deployment-pipeline)
-16. [Environment Configuration](#16-environment-configuration)
-17. [Security Considerations](#17-security-considerations)
-18. [Error Handling Strategy](#18-error-handling-strategy)
+8. [Authentication & Authorization](#8-authentication--authorization)
+9. [Payment Flow (Stripe)](#9-payment-flow-stripe)
+10. [Resale Marketplace & Seller Payout](#10-resale-marketplace--seller-payout)
+11. [Email Notification System](#11-email-notification-system)
+12. [Database Schema (MongoDB)](#12-database-schema-mongodb)
+13. [API Reference](#13-api-reference)
+14. [Build & Deployment Pipeline](#14-build--deployment-pipeline)
+15. [Environment Configuration](#15-environment-configuration)
+16. [Security Considerations](#16-security-considerations)
+17. [Error Handling Strategy](#17-error-handling-strategy)
 
 ---
 
 ## 1. High-Level Overview
 
-On The List is a full-stack event ticketing platform with four client surfaces and a shared backend:
+On The List is a full-stack event ticketing platform with three client surfaces and a shared backend:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          CLIENTS                                    │
 │                                                                     │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────┐    │
-│  │ Web App  │   │Admin App │   │Mobile App│   │ Stripe Hosted│    │
-│  │ (Next.js)│   │ (Next.js)│   │  (Expo)  │   │  Checkout    │    │
-│  │ :3001    │   │ :3003    │   │          │   │              │    │
-│  └────┬─────┘   └────┬─────┘   └────┬─────┘   └──────┬───────┘    │
+│  ┌──────────┐   ┌──────────┐   ┌──────────────┐                    │
+│  │ Web App  │   │Admin App │   │ Stripe Hosted│                    │
+│  │ (Next.js)│   │ (Next.js)│   │  Checkout    │                    │
+│  │ :3001    │   │ :3003    │   │              │                    │
+│  └────┬─────┘   └────┬─────┘   └──────┬───────┘                    │
 │       │              │              │                 │             │
 │       └──────────────┴──────┬───────┴─────────────────┘             │
 │                             │                                       │
@@ -85,7 +84,7 @@ On The List is a full-stack event ticketing platform with four client surfaces a
 | **Seller Payout**       | Automatic Stripe refund to seller's original payment method when resale completes           |
 | **Admin Dashboard**     | Full CRUD for events, users, payments with stats and pagination                             |
 | **Email Notifications** | Transactional emails for registration, booking, resale, password reset, account deletion    |
-| **Multi-Platform Auth** | JWT access/refresh tokens with automatic refresh across web, admin, and mobile              |
+| **Multi-Platform Auth** | JWT access/refresh tokens with automatic refresh across web and admin                       |
 
 ---
 
@@ -223,31 +222,7 @@ fatsoma-clone/
 │   │   ├── postcss.config.mjs
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   │
-│   └── mobile/                 # Expo React Native application
-│       ├── App.tsx                         # Root component
-│       ├── index.ts                        # registerRootComponent
-│       ├── app.json                        # Expo configuration
-│       ├── babel.config.js
-│       ├── metro.config.js                 # Monorepo-aware Metro bundler
-│       ├── src/
-│       │   ├── navigation/
-│       │   │   ├── RootNavigator.tsx      # Auth/Main stack switching
-│       │   │   └── types.ts              # Navigation param types
-│       │   ├── screens/
-│       │   │   ├── ExploreScreen.tsx
-│       │   │   ├── EventDetailScreen.tsx
-│       │   │   ├── TicketsScreen.tsx
-│       │   │   ├── ProfileScreen.tsx
-│       │   │   ├── InfoScreen.tsx
-│       │   │   ├── LoginScreen.tsx
-│       │   │   └── SignupScreen.tsx
-│       │   ├── components/
-│       │   │   └── EventCard.tsx
-│       │   ├── context/
-│       │   │   └── AuthContext.tsx
-│       │   ├── hooks/
-│       │   │   └── useEvents.ts
+│
 │       │   ├── lib/
 │       │   │   └── api.ts
 │       │   └── theme/
@@ -290,14 +265,14 @@ fatsoma-clone/
                     ┌─────────▼──────────┐
                     │ @fatsoma/api-client │  (FatsomaClient HTTP class)
                     │ depends on: shared  │
-                    └──┬──────┬──────┬───┘
-                       │      │      │
-          ┌────────────▼┐  ┌──▼────┐ ┌▼────────────┐
-          │ @fatsoma/web│  │admin  │ │  mobile     │
-          │ Next.js 16  │  │Next.js│ │  Expo 54    │
-          │ React 19    │  │React19│ │  React Native│
-          │ Tailwind 4  │  │TW 4   │ │             │
-          └─────────────┘  └───────┘ └─────────────┘
+                    └──┬──────┬──────────┘
+                       │      │
+          ┌────────────▼┐  ┌──▼────┐
+          │ @fatsoma/web│  │admin  │
+          │ Next.js 16  │  │Next.js│
+          │ React 19    │  │React19│
+          │ Tailwind 4  │  │TW 4   │
+          └─────────────┘  └───────┘
 
           ┌─────────────┐
           │ @fatsoma/api │  (Express 5 server)
@@ -905,69 +880,9 @@ Sidebar navigation with authenticated layout wrapper:
 
 ---
 
-## 8. Mobile Application (Expo / React Native)
+## 8. Authentication & Authorization
 
-### 8.1 Navigation Architecture
-
-```
-RootNavigator
-    │
-    ├── (Not authenticated) → AuthNavigator (Stack)
-    │       ├── LoginScreen
-    │       └── SignupScreen
-    │
-    └── (Authenticated) → MainNavigator (Stack)
-            ├── HomeTabs (Bottom Tab Navigator)
-            │       ├── ExploreTab → ExploreScreen
-            │       ├── TicketsTab → TicketsScreen
-            │       └── ProfileTab → ProfileScreen
-            ├── EventDetail → EventDetailScreen
-            └── InfoPage → InfoScreen
-```
-
-### 8.2 Screens
-
-| Screen                | Features                                                                                                              |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **ExploreScreen**     | Hero section, search bar, category filter pills, event list (FlatList), footer links to info pages                    |
-| **EventDetailScreen** | Event hero, batch selector, quantity picker, price breakdown, Buy Now (opens Stripe URL in browser), resale section   |
-| **TicketsScreen**     | Ticket list with QR codes, list for resale modal, cancel listing                                                      |
-| **ProfileScreen**     | User info, logout with confirmation                                                                                   |
-| **LoginScreen**       | Email/password form with show/hide toggle                                                                             |
-| **SignupScreen**      | Name/email/password/confirm form with validation                                                                      |
-| **InfoScreen**        | Dynamic content based on `pageId`: How It Works, Trust & Safety, Pricing, Help Centre (FAQ accordion), Contact, Terms |
-
-### 8.3 Token Storage
-
-Mobile uses `expo-secure-store` for token persistence:
-
-```typescript
-SecureStore.setItemAsync("accessToken", token)
-SecureStore.setItemAsync("refreshToken", token)
-SecureStore.getItemAsync("accessToken")
-SecureStore.deleteItemAsync("accessToken")
-```
-
-### 8.4 Theme System
-
-```typescript
-colors = {
-  bg: { primary: "#0A0A0A", secondary: "#0f0f0f", card: "#141414", surface: "#1a1a1a" },
-  gold: { DEFAULT: "#d4a843", light: "#e8c36a", dim: "#8b7635", border: "#d4a84330" },
-  cream: "#f0e6d2",
-  text: { primary: "#f0e6d2", secondary: "#b8a88a", muted: "#8b8172", dim: "#5c5549" },
-  status: { success: "#4ade80", error: "#ef4444", warning: "#f59e0b" }
-}
-
-spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 }
-radius = { sm: 8, md: 12, lg: 16, xl: 20, full: 9999 }
-```
-
----
-
-## 9. Authentication & Authorization
-
-### 9.1 Token Architecture
+### 8.1 Token Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -987,15 +902,15 @@ radius = { sm: 8, md: 12, lg: 16, xl: 20, full: 9999 }
 └─────────────────────────────────────────────────┘
 ```
 
-### 9.2 Token Storage by Platform
+### 8.2 Token Storage by Platform
 
 | Platform | Access Token                        | Refresh Token                        |
 | -------- | ----------------------------------- | ------------------------------------ |
 | Web      | `localStorage.accessToken`          | `localStorage.refreshToken`          |
 | Admin    | `localStorage.fatsoma_access_token` | `localStorage.fatsoma_refresh_token` |
-| Mobile   | `SecureStore.accessToken`           | `SecureStore.refreshToken`           |
 
-### 9.3 Auth Flow
+
+### 8.3 Auth Flow
 
 ```
 Registration:
@@ -1025,19 +940,19 @@ Password Reset:
   Server → Validate token + expiry → Hash new password → Clear reset fields
 ```
 
-### 9.4 Deactivated User Handling
+### 8.4 Deactivated User Handling
 
 When an admin deactivates a user:
 1. `auth.service.getCurrentUser()` throws `AppError.forbidden("Account is deactivated")`
 2. `auth.service.refreshAccessToken()` throws `AppError.forbidden("Account is deactivated")`
 3. The API client's `onAuthFailure` callback triggers → user is logged out
-4. This works across all platforms (web, admin, mobile)
+4. This works across all platforms (web, admin)
 
 ---
 
-## 10. Payment Flow (Stripe)
+## 9. Payment Flow (Stripe)
 
-### 10.1 Primary Ticket Purchase
+### 9.1 Primary Ticket Purchase
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
@@ -1089,7 +1004,7 @@ When an admin deactivates a user:
                        │ logic as above │───────────────▶│
 ```
 
-### 10.2 Price Calculation
+### 9.2 Price Calculation
 
 ```
 Base Price (per ticket)    = batch.basePrice
@@ -1104,7 +1019,7 @@ Example:
   Total: (£50 + £5) × 2 = £110.00
 ```
 
-### 10.3 Stripe Configuration
+### 9.3 Stripe Configuration
 
 - **Mode:** `payment` (one-time charges)
 - **Currency:** GBP
@@ -1115,9 +1030,9 @@ Example:
 
 ---
 
-## 11. Resale Marketplace & Seller Payout
+## 10. Resale Marketplace & Seller Payout
 
-### 11.1 Anti-Scalping Rules
+### 10.1 Anti-Scalping Rules
 
 | Rule                              | Enforcement                     |
 | --------------------------------- | ------------------------------- |
@@ -1128,7 +1043,7 @@ Example:
 | Only active tickets can be listed | `ticket.status === "active"`    |
 | Cannot buy own listing            | `listing.sellerId !== buyerId`  |
 
-### 11.2 Resale Lifecycle
+### 10.2 Resale Lifecycle
 
 ```
 Ticket Status:    active ──▶ listed ──▶ active (new owner)
@@ -1142,7 +1057,7 @@ Listing Status:   active ──▶ sold
                               └── expired
 ```
 
-### 11.3 Revenue Split on Resale
+### 10.3 Revenue Split on Resale
 
 ```
 Buyer pays:     askingPrice + bookingFee (10%)
@@ -1167,7 +1082,7 @@ Example:
   Platform fee: £4.50
 ```
 
-### 11.4 Seller Payout Mechanism
+### 10.4 Seller Payout Mechanism
 
 When a resale ticket is purchased:
 
@@ -1189,7 +1104,7 @@ When a resale ticket is purchased:
 
 4. **Seller can track** payout status in the "Sold" tab on My Tickets page
 
-### 11.5 QR Code Security
+### 10.5 QR Code Security
 
 When a ticket is transferred via resale:
 - The old QR code is **invalidated** (overwritten)
@@ -1198,7 +1113,7 @@ When a ticket is transferred via resale:
 
 ---
 
-## 12. Email Notification System
+## 11. Email Notification System
 
 ### 12.1 Architecture
 
@@ -1242,7 +1157,7 @@ All emails use a consistent dark-themed HTML template:
 
 ---
 
-## 13. Database Schema (MongoDB)
+## 12. Database Schema (MongoDB)
 
 ### 13.1 Entity Relationship Diagram
 
@@ -1381,7 +1296,7 @@ All emails use a consistent dark-themed HTML template:
 
 ---
 
-## 14. API Reference
+## 13. API Reference
 
 ### Base URL
 
@@ -1487,7 +1402,7 @@ All responses follow the `ApiResponse<T>` envelope:
 
 ---
 
-## 15. Build & Deployment Pipeline
+## 14. Build & Deployment Pipeline
 
 ### 15.1 Turborepo Configuration
 
@@ -1507,14 +1422,14 @@ All responses follow the `ApiResponse<T>` envelope:
 
 ### 15.2 Build Commands
 
-| Command              | Description                                             |
-| -------------------- | ------------------------------------------------------- |
-| `npm run build`      | Build all packages and apps (respects dependency order) |
-| `npm run dev`        | Start all apps in development mode                      |
-| `npm run dev:api`    | Start only the API server (with nodemon)                |
-| `npm run dev:web`    | Start only the web app                                  |
-| `npm run dev:admin`  | Start only the admin panel                              |
-| `npm run dev:mobile` | Start only the mobile app (Expo)                        |
+| Command             | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `npm run build`     | Build all packages and apps (respects dependency order) |
+| `npm run dev`       | Start all apps in development mode                      |
+| `npm run dev:api`   | Start only the API server (with nodemon)                |
+| `npm run dev:web`   | Start only the web app                                  |
+| `npm run dev:admin` | Start only the admin panel                              |
+
 | `npm run seed`       | Seed the database with admin user                       |
 
 ### 15.3 TypeScript Configuration
@@ -1544,7 +1459,7 @@ These are skipped on Windows but installed on Linux servers.
 
 ---
 
-## 16. Environment Configuration
+## 15. Environment Configuration
 
 ### Required Environment Variables
 
@@ -1572,7 +1487,7 @@ The API loads environment variables in this order (later values override earlier
 
 ---
 
-## 17. Security Considerations
+## 16. Security Considerations
 
 ### 17.1 Authentication Security
 
@@ -1614,7 +1529,7 @@ The API loads environment variables in this order (later values override earlier
 
 ---
 
-## 18. Error Handling Strategy
+## 17. Error Handling Strategy
 
 ### 18.1 API Error Flow
 
