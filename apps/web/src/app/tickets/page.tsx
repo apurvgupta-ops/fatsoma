@@ -442,16 +442,16 @@ export default function MyTicketsPage() {
               </div>
               <div className="flex justify-between text-sm gap-3">
                 <span className="text-muted">
-                  Listing fee <span className="text-xs text-muted/80">(paid by buyer, 4-5%)</span>
+                  Listing fee <span className="text-xs text-muted/80">(paid by buyer, 7%)</span>
                 </span>
                 <span className="font-medium text-cream">
-                  £{(Math.round(resaleModal.currentBatchPrice * 0.03 * 100) / 100).toFixed(2)}
+                  £{(Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100).toFixed(2)}
                 </span>
               </div>
               <div className="border-t border-border pt-2.5 flex justify-between text-sm">
                 <span className="font-medium text-muted">Buyer pays</span>
                 <span className="font-semibold text-cream">
-                  £{(resaleModal.currentBatchPrice + Math.round(resaleModal.currentBatchPrice * 0.03 * 100) / 100).toFixed(2)}
+                  £{(resaleModal.currentBatchPrice + Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100).toFixed(2)}
                 </span>
               </div>
 

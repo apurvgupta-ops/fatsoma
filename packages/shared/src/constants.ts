@@ -1,5 +1,5 @@
 export const BOOKING_FEE_PERCENT = 7;
-export const RESALE_FEE_PERCENT = 4;
+export const RESALE_FEE_PERCENT = 7;
 
 export const EVENT_CATEGORIES = [
   "Party",
