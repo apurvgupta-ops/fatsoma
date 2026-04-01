@@ -5,45 +5,75 @@ import { Check } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-void">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-sm">
-            <Link href="/" className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-gold" />
-              <span className="text-xl font-serif font-semibold italic text-gold">
+    <footer className="mt-20 border-t border-border">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-start justify-between gap-8 md:flex-row">
+          <div>
+            <Link href="/" className="group flex items-center gap-2">
+              <Check className="h-4 w-4 text-gold transition-colors" />
+              <span className="font-serif text-lg font-semibold tracking-tight text-cream transition-colors group-hover:text-gold">
                 On The List
               </span>
             </Link>
-            <p className="mt-4 text-sm text-cream/70 leading-relaxed">
-              Secure student ticket transfers. No scalping, no scams. You always pay the current release price.
-            </p>
-            <p className="mt-6 text-xs text-cream/50">
-              © {new Date().getFullYear()} On The List. All rights reserved.
+            <p className="text-muted mt-3 max-w-xs text-sm leading-relaxed">
+              Secure student ticket transfers. No scalping, no scams. You always
+              pay the current release price.
             </p>
           </div>
-          <div className="flex gap-16">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-cream/60 mb-4">
+
+          <div className="flex gap-12 text-sm">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-cream/40">
                 Platform
-              </h3>
-              <ul className="space-y-3">
-                <li><Link href="/how-it-works" className="text-sm text-cream/80 hover:text-gold transition">How It Works</Link></li>
-                <li><Link href="/trust-safety" className="text-sm text-cream/80 hover:text-gold transition">Trust & Safety</Link></li>
-                <li><Link href="/pricing" className="text-sm text-cream/80 hover:text-gold transition">Pricing</Link></li>
-              </ul>
+              </span>
+              <Link
+                href="/how-it-works"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                How It Works
+              </Link>
+              <Link
+                href="/trust-safety"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                Trust & Safety
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                Pricing
+              </Link>
             </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-cream/60 mb-4">
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-cream/40">
                 Support
-              </h3>
-              <ul className="space-y-3">
-                <li><Link href="/help-centre" className="text-sm text-cream/80 hover:text-gold transition">Help Centre</Link></li>
-                <li><Link href="/contact" className="text-sm text-cream/80 hover:text-gold transition">Contact</Link></li>
-                <li><Link href="/terms" className="text-sm text-cream/80 hover:text-gold transition">Terms</Link></li>
-              </ul>
+              </span>
+              <Link
+                href="/help-centre"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                Help Centre
+              </Link>
+              <Link
+                href="/contact"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                Contact
+              </Link>
+              <Link
+                href="/terms"
+                className="text-muted transition-colors hover:text-cream"
+              >
+                Terms
+              </Link>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10 border-t border-border pt-6 text-xs text-cream/40">
+          © {new Date().getFullYear()} On The List. All rights reserved.
         </div>
       </div>
     </footer>

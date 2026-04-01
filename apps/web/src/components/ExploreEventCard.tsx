@@ -23,7 +23,7 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-[#0c0c0c] transition-all duration-300 hover:border-gold/35 hover:shadow-[0_0_0_1px_rgba(201,169,110,0.12)]"
+      className="group block overflow-hidden rounded-xl border border-border bg-surface transition-all duration-300 hover:border-gold/30"
     >
       <div className="relative aspect-16/10 w-full overflow-hidden bg-surface">
         <Image
@@ -34,53 +34,51 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           unoptimized
         />
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-black/20" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-surface/90 via-transparent to-transparent" />
 
-        <div className="absolute left-3 top-3 z-10 sm:left-4 sm:top-4">
-          <span className="inline-block rounded-md bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cream backdrop-blur-sm">
+        <div className="absolute left-3 top-3 z-10 flex gap-2">
+          <span className="rounded-md bg-black/70 px-2.5 py-1 text-xs font-medium text-cream backdrop-blur-sm">
             {event.eventCategory}
           </span>
-        </div>
-
-        <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1.5 sm:right-4 sm:top-4">
           {event.allowResale && (
-            <span className="rounded-md bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gold backdrop-blur-sm">
-              Resale Available
+            <span className="rounded-md bg-gold/20 px-2.5 py-1 text-xs font-medium backdrop-blur-sm">
+              <span className="text-cream">Spots available </span>
+              <span className="text-gold">on the list</span>
             </span>
           )}
           {soldOut && (
-            <span className="rounded-md bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#e8a598] backdrop-blur-sm">
+            <span className="rounded-md bg-black/70 px-2.5 py-1 text-xs font-medium text-[#e8a598] backdrop-blur-sm">
               Sold Out
             </span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-4">
-        <h3 className="font-serif text-lg leading-snug text-cream transition-colors duration-300 group-hover:text-gold sm:text-xl line-clamp-2 font-semibold">
+      <div className="p-4">
+        <h3 className="font-serif text-lg font-semibold text-cream transition-colors group-hover:text-gold line-clamp-2">
           {event.eventName}
         </h3>
 
-        <p className="mt-2 truncate text-sm text-cream/50">
+        <p className="mt-1 text-sm text-muted truncate">
           {event.venueName}
           {event.city ? `, ${event.city}` : ""}
         </p>
 
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <p className="text-sm text-cream/50">
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-sm text-cream/40">
             {new Date(event.eventDate).toLocaleDateString("en-GB", {
               weekday: "short",
               day: "numeric",
               month: "short",
               year: "numeric",
             })}
-          </p>
+          </span>
           {soldOut ? (
-            <span className="shrink-0 text-sm font-medium text-cream/50">
+            <span className="text-sm font-semibold text-cream/40">
               Check resale
             </span>
           ) : (
-            <span className="shrink-0 text-sm text-gold font-semibold ">
+            <span className="text-sm font-semibold text-gold">
               From £{minPrice.toFixed(2)}
             </span>
           )}

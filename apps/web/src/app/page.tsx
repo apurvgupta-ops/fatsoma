@@ -5,13 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createPublicClient } from "@/lib/api";
 import type { EventResponse } from "@fatsoma/shared";
-import {
-  ChevronDown,
-  Ticket,
-  QrCode,
-  ShieldCheck,
-  ShoppingCart,
-} from "lucide-react";
+import { ChevronDown, Ticket, QrCode, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ExploreEventCard from "@/components/ExploreEventCard";
@@ -40,32 +34,35 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="relative mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32 lg:px-8">
-          <div className="mb-10 inline-flex items-center justify-center gap-2 rounded-full border border-border/60 bg-surface/20 px-5 py-2 text-[11px] font-semibold uppercase tracking-widest text-cream/60 shadow-sm backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold"></span>
-            Secure Student Ticket Platform
+        <div className="relative z-10 mx-auto max-w-3xl px-4 py-24 text-center sm:py-32">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-gold/20 bg-surface px-4 py-1.5">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold"></span>
+            <span className="text-muted text-xs font-medium tracking-wide uppercase">
+              Secure Student Ticket Platform
+            </span>
           </div>
-          <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-7xl lg:text-8xl">
+
+          <h1 className="mb-6 font-serif text-5xl font-bold leading-tight text-cream sm:text-6xl lg:text-7xl">
             You&apos;re <span className="text-gold">on the list</span>
           </h1>
-          <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-cream/60 sm:text-xl">
-            The only student ticket platform with secure, no-scalping resale.
-            You always pay the current release price — never a penny more. Just
-            the events you want, transferred safely.
+
+          <p className="text-muted mx-auto mb-10 max-w-xl text-lg leading-relaxed sm:text-xl">
+            The only student ticket platform with secure, no-scalping spot
+            transfers. You always pay the current release price — never a penny
+            more. Just the events you want, transferred safely.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/events"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
+              className="rounded-lg bg-gold px-8 py-3.5 text-base font-semibold text-void transition-colors hover:bg-gold-light"
             >
-              <ShoppingCart className="h-4 w-4" />
               Browse Events
             </Link>
             <Link
               href="/tickets"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-gold px-8 py-3.5 text-sm font-bold text-gold transition hover:bg-gold/10"
+              className="rounded-lg border border-border px-8 py-3.5 text-base font-medium text-cream transition-all hover:border-gold/30 hover:bg-surface"
             >
-              <Ticket className="h-4 w-4" />
               My Tickets
             </Link>
           </div>
@@ -158,20 +155,20 @@ export default function HomePage() {
       </section>
 
       {/* List a Ticket */}
-      <section className="relative border-t border-border/50">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-border bg-surface/60 p-12 text-center sm:p-16">
-            <h2 className="font-serif text-3xl font-bold text-gold sm:text-4xl">
+      <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-surface p-10 text-center">
+          <div className="absolute inset-0 bg-linear-to-r from-gold/5 via-transparent to-gold/5" />
+          <div className="relative z-10">
+            <h2 className="mb-3 font-serif text-2xl font-bold text-cream sm:text-3xl">
               Got a ticket you can&apos;t use?
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-cream/80">
-              Pass your spot to another student. They pay the current
-              <br /> release price — you get your original money back. Secure,
-              <br /> fair, instant.
+            <p className="text-muted mx-auto mb-6 max-w-md leading-relaxed">
+              Pass your spot to another student. They pay the current release
+              price — you get your original money back. Secure, fair, instant.
             </p>
             <Link
               href="/tickets"
-              className="mt-8 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gold px-8 py-3.5 text-sm font-bold text-void transition hover:bg-gold-light"
+              className="inline-flex rounded-lg bg-gold px-8 py-3 font-semibold text-void transition-colors hover:bg-gold-light"
             >
               Pass it on the list
             </Link>

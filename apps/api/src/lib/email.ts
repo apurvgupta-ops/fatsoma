@@ -29,10 +29,10 @@ function baseHtml(body: string) {
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <span style="font-size:24px;font-weight:700;color:#d4a843;font-style:italic;letter-spacing:0.05em;">${APP_NAME}</span>
+      <span style="font-size:24px;font-weight:700;color:#CEA655;font-style:italic;letter-spacing:0.05em;">${APP_NAME}</span>
     </div>
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:32px;">
       ${body}
@@ -74,7 +74,7 @@ export async function sendWelcomeEmail(name: string, email: string) {
     </p>
     <div style="text-align:center;margin-top:24px;">
       <a href="${process.env.WEB_URL || "http://localhost:3001"}/events"
-         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+         style="display:inline-block;background:#CEA655;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
         Browse Events
       </a>
     </div>
@@ -112,14 +112,14 @@ export async function sendBookingConfirmationEmail(data: {
         </tr>
         <tr>
           <td style="padding:8px 0;color:#888;border-top:1px solid #2a2a2a;">Total Paid</td>
-          <td style="padding:8px 0;color:#d4a843;text-align:right;font-weight:700;font-size:16px;border-top:1px solid #2a2a2a;">£${data.totalAmount.toFixed(2)}</td>
+          <td style="padding:8px 0;color:#CEA655;text-align:right;font-weight:700;font-size:16px;border-top:1px solid #2a2a2a;">£${data.totalAmount.toFixed(2)}</td>
         </tr>
       </table>
     </div>
     <p style="color:#666;font-size:12px;margin:0;">Order ID: ${data.orderId}</p>
     <div style="text-align:center;margin-top:24px;">
       <a href="${process.env.WEB_URL || "http://localhost:3001"}/tickets"
-         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+         style="display:inline-block;background:#CEA655;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
         View My Tickets
       </a>
     </div>
@@ -152,14 +152,14 @@ export async function sendResaleBookingEmail(data: {
         </tr>
         <tr>
           <td style="padding:8px 0;color:#888;border-top:1px solid #2a2a2a;">Total Paid</td>
-          <td style="padding:8px 0;color:#d4a843;text-align:right;font-weight:700;font-size:16px;border-top:1px solid #2a2a2a;">£${data.totalAmount.toFixed(2)}</td>
+          <td style="padding:8px 0;color:#CEA655;text-align:right;font-weight:700;font-size:16px;border-top:1px solid #2a2a2a;">£${data.totalAmount.toFixed(2)}</td>
         </tr>
       </table>
     </div>
     <p style="color:#666;font-size:12px;margin:0;">Order ID: ${data.orderId}</p>
     <div style="text-align:center;margin-top:24px;">
       <a href="${process.env.WEB_URL || "http://localhost:3001"}/tickets"
-         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+         style="display:inline-block;background:#CEA655;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
         View My Tickets
       </a>
     </div>
@@ -219,7 +219,7 @@ export async function sendTicketSoldEmail(data: {
     </p>
     <div style="text-align:center;margin-top:24px;">
       <a href="${process.env.WEB_URL || "http://localhost:3001"}/tickets"
-         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+         style="display:inline-block;background:#CEA655;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
         View My Tickets
       </a>
     </div>
@@ -235,7 +235,7 @@ export async function sendPasswordResetEmail(name: string, email: string, resetL
     </p>
     <div style="text-align:center;margin:24px 0;">
       <a href="${resetLink}"
-         style="display:inline-block;background:#d4a843;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
+         style="display:inline-block;background:#CEA655;color:#0f0f0f;padding:12px 32px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;">
         Reset Password
       </a>
     </div>

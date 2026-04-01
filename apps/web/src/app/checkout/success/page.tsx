@@ -11,7 +11,7 @@ export default function CheckoutSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
+        <div className="flex min-h-screen items-center justify-center bg-void">
           <Loader2 className="h-8 w-8 animate-spin text-gold" />
         </div>
       }
@@ -49,7 +49,7 @@ function CheckoutSuccessContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]">
+      <div className="flex min-h-screen items-center justify-center bg-void">
         <Loader2 className="h-8 w-8 animate-spin text-gold" />
       </div>
     );
@@ -57,7 +57,7 @@ function CheckoutSuccessContent() {
 
   if (error || !order) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0f0f0f]">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-void">
         <p className="text-lg text-cream/60">{error || "Something went wrong"}</p>
         <Link href="/" className="text-sm text-gold hover:underline">
           Back to events
@@ -67,7 +67,7 @@ function CheckoutSuccessContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-void text-cream/90">
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-emerald-500/15 blur-[160px]" />
         <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold/15 blur-[160px]" />

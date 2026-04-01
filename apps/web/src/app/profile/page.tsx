@@ -55,7 +55,7 @@ export default function ProfilePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f]">
+      <div className="min-h-screen bg-void">
         <Header />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-gold" />
@@ -75,13 +75,10 @@ export default function ProfilePage() {
   const totalSpent = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-void text-cream/90">
       <Header />
 
       <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/10 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold-light/10 blur-[160px]" />
-
         <div className="relative mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           {/* Profile Header */}
           <div className="mb-10 flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
@@ -100,7 +97,11 @@ export default function ProfilePage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/60 px-3 py-1 text-xs text-cream/70">
                   <Calendar className="h-3 w-3 text-gold" />
-                  Joined {new Date(user.createdAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+                  Joined{" "}
+                  {new Date(user.createdAt).toLocaleDateString("en-GB", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </span>
               </div>
             </div>
@@ -109,15 +110,25 @@ export default function ProfilePage() {
           {/* Stats Cards */}
           <div className="mb-10 grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-border bg-surface/40 p-5">
-              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">Total Orders</p>
-              <p className="mt-1 text-2xl font-bold text-cream">{paidOrders.length}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
+                Total Orders
+              </p>
+              <p className="mt-1 text-2xl font-bold text-cream">
+                {paidOrders.length}
+              </p>
             </div>
             <div className="rounded-xl border border-border bg-surface/40 p-5">
-              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">Total Spent</p>
-              <p className="mt-1 text-2xl font-bold text-gold">£{totalSpent.toFixed(2)}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
+                Total Spent
+              </p>
+              <p className="mt-1 text-2xl font-bold text-gold">
+                £{totalSpent.toFixed(2)}
+              </p>
             </div>
             <div className="rounded-xl border border-border bg-surface/40 p-5">
-              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">Account Status</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
+                Account Status
+              </p>
               <p className="mt-1 flex items-center gap-2 text-lg font-semibold text-emerald-400">
                 <CheckCircle2 className="h-5 w-5" />
                 Active
@@ -127,35 +138,51 @@ export default function ProfilePage() {
 
           {/* Profile Details */}
           <div className="mb-10 rounded-xl border border-border bg-surface/40 p-6">
-            <h2 className="mb-4 text-lg font-semibold text-cream">Profile Details</h2>
+            <h2 className="mb-4 text-lg font-semibold text-cream">
+              Profile Details
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-void/40 p-4">
                 <User className="h-5 w-5 text-gold/70" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-cream/50">Full Name</p>
+                  <p className="text-[10px] uppercase tracking-wider text-cream/50">
+                    Full Name
+                  </p>
                   <p className="text-sm font-medium text-cream">{user.name}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-void/40 p-4">
                 <Mail className="h-5 w-5 text-gold/70" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-cream/50">Email</p>
+                  <p className="text-[10px] uppercase tracking-wider text-cream/50">
+                    Email
+                  </p>
                   <p className="text-sm font-medium text-cream">{user.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-void/40 p-4">
                 <Shield className="h-5 w-5 text-gold/70" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-cream/50">Role</p>
-                  <p className="text-sm font-medium capitalize text-cream">{user.role}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-cream/50">
+                    Role
+                  </p>
+                  <p className="text-sm font-medium capitalize text-cream">
+                    {user.role}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-void/40 p-4">
                 <Calendar className="h-5 w-5 text-gold/70" />
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-cream/50">Joined</p>
+                  <p className="text-[10px] uppercase tracking-wider text-cream/50">
+                    Joined
+                  </p>
                   <p className="text-sm font-medium text-cream">
-                    {new Date(user.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    {new Date(user.createdAt).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
               </div>
@@ -174,7 +201,10 @@ export default function ProfilePage() {
           {/* Sign Out */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => { logout(); router.push("/"); }}
+              onClick={() => {
+                logout();
+                router.push("/");
+              }}
               className="cursor-pointer text-sm font-medium text-red-400/80 transition hover:text-red-400 hover:underline"
             >
               Sign Out
@@ -205,7 +235,10 @@ function PurchaseHistory({
   const startIdx = (currentPage - 1) * pageSize;
   const paginatedOrders = orders.slice(startIdx, startIdx + pageSize);
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+  const pageNumbers = Array.from(
+    { length: totalPages },
+    (_, i) => i + 1,
+  ).filter(
     (p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1,
   );
 
@@ -248,9 +281,12 @@ function PurchaseHistory({
                   <Ticket className="h-5 w-5 text-gold" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-cream">{order.eventName}</p>
+                  <p className="truncate text-sm font-medium text-cream">
+                    {order.eventName}
+                  </p>
                   <p className="mt-0.5 text-xs text-cream/50">
-                    {order.ticketBatchName} · {order.quantity} ticket{order.quantity > 1 ? "s" : ""} ·{" "}
+                    {order.ticketBatchName} · {order.quantity} ticket
+                    {order.quantity > 1 ? "s" : ""} ·{" "}
                     {new Date(order.createdAt).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "short",
@@ -259,7 +295,9 @@ function PurchaseHistory({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-cream">£{order.totalAmount.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-cream">
+                    £{order.totalAmount.toFixed(2)}
+                  </p>
                   <StatusBadge status={order.status} />
                 </div>
               </div>
@@ -269,7 +307,9 @@ function PurchaseHistory({
           {totalPages > 1 && (
             <div className="mt-5 flex items-center justify-between border-t border-border/50 pt-4">
               <p className="text-xs text-cream/50">
-                Showing {startIdx + 1}–{Math.min(startIdx + pageSize, orders.length)} of {orders.length}
+                Showing {startIdx + 1}–
+                {Math.min(startIdx + pageSize, orders.length)} of{" "}
+                {orders.length}
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -284,7 +324,9 @@ function PurchaseHistory({
                   const showEllipsis = prev !== undefined && p - prev > 1;
                   return (
                     <span key={p} className="flex items-center">
-                      {showEllipsis && <span className="px-1 text-xs text-cream/40">…</span>}
+                      {showEllipsis && (
+                        <span className="px-1 text-xs text-cream/40">…</span>
+                      )}
                       <button
                         onClick={() => onPageChange(p)}
                         className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-xs font-medium transition ${

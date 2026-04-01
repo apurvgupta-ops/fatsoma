@@ -5,6 +5,7 @@
     "rootDir": "./src",
     "module": "CommonJS",
     "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
     "noEmit": false
   },
   "include": [

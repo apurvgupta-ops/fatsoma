@@ -15,6 +15,7 @@
     "dev:mobile": "turbo run dev --filter=@fatsoma/mobile",
     "build": "turbo run build",
     "build:server": "node scripts/build-server.js",
+    "deploy": "bash scripts/deploy.sh",
     "start": "turbo run start",
     "start:api": "turbo run start --filter=@fatsoma/api",
     "start:admin": "turbo run start --filter=@fatsoma/admin",

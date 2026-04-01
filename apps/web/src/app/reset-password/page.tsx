@@ -55,7 +55,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-void px-4">
         <div className="text-center">
           <p className="text-lg text-cream/60">Invalid reset link</p>
           <Link href="/forgot-password" className="mt-4 inline-block text-sm font-medium text-gold hover:underline">
@@ -67,7 +67,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-void px-4">
       <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/10 blur-[160px]" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-gold-light/10 blur-[160px]" />
 

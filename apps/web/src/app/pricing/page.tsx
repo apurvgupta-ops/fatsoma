@@ -32,7 +32,7 @@ const sections = [
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-cream/90">
+    <div className="min-h-screen bg-void text-cream/90">
       <Header />
 
       <section className="relative overflow-hidden">

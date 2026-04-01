@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { createPublicClient } from "@/lib/api";
 import type { EventResponse } from "@fatsoma/shared";
 import Header from "@/components/Header";
@@ -71,11 +77,11 @@ export default function EventsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-cream/90">
+    <div className="min-h-screen bg-void text-cream/90">
       <Header />
 
-      <div className="relative">
-        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
+        <div className="relative">
           <EventsHeader
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -108,10 +114,10 @@ export default function EventsPage() {
             </div>
           ) : (
             <>
-              <p className="mt-5 mb-5 text-sm text-cream/50">
+              <p className="mb-6 text-sm text-cream/40">
                 {filtered.length} events found
               </p>
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map((event) => (
                   <ExploreEventCard key={event.id} event={event} />
                 ))}
@@ -119,8 +125,9 @@ export default function EventsPage() {
             </>
           )}
         </div>
-        <Footer />
       </div>
+
+      <Footer />
     </div>
   );
 }
@@ -152,6 +159,15 @@ function EventsHeader({
   monthYear: string;
   eventDates: string[];
 }) {
+  const rangeLabel = `${weekDates[0].toLocaleDateString("en-GB", { month: "short" })} - ${weekDates[6].toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
+  const eventCountByDay = eventDates.reduce<Record<string, number>>(
+    (acc, d) => {
+      acc[d] = (acc[d] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+
   const prevWeek = () => {
     const d = new Date(calendarAnchor);
     d.setDate(d.getDate() - 7);
@@ -164,70 +180,98 @@ function EventsHeader({
   };
 
   return (
-    <header className="space-y-8 pt-4">
-      <div>
-        <h1 className="font-serif text-4xl tracking-tight text-cream sm:text-5xl md:text-6xl font-extrabold">
+    <header>
+      <div className="mb-8">
+        <h1 className="font-serif text-4xl font-bold mb-2 text-cream">
           Events
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-cream/55 sm:text-[15px]">
-          Find your next night out. No scalping — resale always at the current
-          release price.
+        <p className="text-muted">
+          Find your next night out. No scalping — listed tickets always at the
+          current release price.
         </p>
       </div>
 
-      {/* Date strip — bordered panel */}
-      <div className="rounded-xl border border-border bg-[#1A1A1A] px-4 py-5 sm:px-6 sm:py-6">
-        <div className="flex items-center justify-between gap-4 ">
+      <div className="relative mb-8 flex items-start gap-4 rounded-xl border border-gold/20 bg-surface px-5 py-4">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10">
+          <ShieldCheck className="h-4 w-4 text-gold" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-relaxed text-muted">
+            <span className="font-semibold text-cream">
+              On The List has two ways to get in
+            </span>{" "}
+            - buy direct from the organiser, or claim a spot passed on by
+            another student. Same price. Fully secure.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="mt-0.5 shrink-0 text-cream/40 transition-colors hover:text-cream"
+          aria-label="Dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mb-8 rounded-2xl border border-border bg-surface p-5">
+        <div className="mb-5 flex items-center justify-between">
           <button
             type="button"
             onClick={prevWeek}
             aria-label="Previous week"
-            className="shrink-0 rounded-lg p-2 text-cream/50 transition hover:bg-white/6 hover:text-cream"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#222222] text-muted transition-colors hover:bg-border hover:text-cream"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-3.75 w-3.75" />
           </button>
-          <span className="flex-1 text-center text-sm font-medium text-cream sm:text-base">
-            {monthYear}
-          </span>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-cream">{rangeLabel}</p>
+          </div>
           <button
             type="button"
             onClick={nextWeek}
             aria-label="Next week"
-            className="shrink-0 rounded-lg p-2 text-cream/50 transition hover:bg-white/6 hover:text-cream"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#222222] text-muted transition-colors hover:bg-border hover:text-cream"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-3.75 w-3.75" />
           </button>
         </div>
-        <div className="mt-5 flex justify-between gap-1.5 overflow-x-auto pb-1 sm:gap-2">
+
+        <div className="grid grid-cols-7 gap-2">
           {weekDates.map((d) => {
             const dateStr = d.toDateString();
             const isSelected = selectedDate?.toDateString() === dateStr;
-            const hasEvents = eventDates.includes(dateStr);
+            const inCurrentMonth = d.getMonth() === calendarAnchor.getMonth();
+            const dayCount = eventCountByDay[dateStr] ?? 0;
             return (
               <button
                 key={dateStr}
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : d)}
-                className={`flex min-w-36 flex-col items-center rounded-lg py-2.5 text-sm transition sm:px-3 ${isSelected
-                  ? "bg-gold/10 text-gold hover:bg-gold/20"
-                  : "text-cream/90 hover:bg-white/5"
-                  }`}
+                className={`relative flex select-none flex-col items-center rounded-xl px-1 py-3 transition-all ${
+                  !inCurrentMonth
+                    ? "opacity-30"
+                    : isSelected
+                      ? "border border-gold/40 bg-gold/10 hover:bg-gold/20"
+                      : "hover:bg-[#222222]"
+                }`}
               >
                 <span
-                  className={`text-[10px] font-medium uppercase tracking-wide ${isSelected ? "text-gold/90" : "text-cream/45"
-                    }`}
+                  className={`mb-1.5 text-[11px] font-medium ${
+                    isSelected ? "text-gold/70" : "text-cream/40"
+                  }`}
                 >
                   {d.toLocaleDateString("en-GB", { weekday: "short" })}
                 </span>
-                <span className="mt-0.5 text-[15px] font-semibold tabular-nums">
+                <span
+                  className={`text-sm font-bold leading-none ${isSelected ? "text-gold" : "text-cream"}`}
+                >
                   {d.getDate()}
                 </span>
-                <span className="mt-1 flex h-2 items-end justify-center">
-                  {hasEvents ? (
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-gold" : "bg-gold/80"
-                        }`}
-                    />
+                <span className="mt-1.5 h-4">
+                  {dayCount > 0 ? (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gold/20 px-1 text-[10px] font-bold text-gold">
+                      {dayCount}
+                    </span>
                   ) : null}
                 </span>
               </button>
@@ -236,43 +280,54 @@ function EventsHeader({
         </div>
       </div>
 
-      {/* Search + category pills — single row on large screens */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/40" />
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-cream/40" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search events or venues..."
-            className="w-full rounded-xl border py-3 pr-4 pl-10 text-sm text-cream outline-none transition placeholder:text-cream/35 focus:border-gold/70 focus:ring-1 focus:ring-gold/30"
+            className="w-full rounded-lg border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-cream outline-none transition-colors placeholder:text-cream/40 focus:border-gold/50"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:max-w-[52%] lg:justify-end xl:max-w-none">
+
+        <select
+          defaultValue="date"
+          className="cursor-pointer rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-muted outline-none transition-colors focus:border-gold/50"
+        >
+          <option value="date">Date (soonest)</option>
+          <option value="price-asc">Price (lowest)</option>
+          <option value="availability">Availability</option>
+        </select>
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onCategoryChange("all")}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+            selectedCategory === "all"
+              ? "bg-gold text-void"
+              : "border border-border bg-surface text-muted hover:border-gold/30 hover:text-cream"
+          }`}
+        >
+          All
+        </button>
+        {categories.map((cat) => (
           <button
+            key={cat}
             type="button"
-            onClick={() => onCategoryChange("all")}
-            className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition ${selectedCategory === "all"
-              ? "bg-gold text-black"
-              : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
-              }`}
+            onClick={() => onCategoryChange(cat)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition-all ${
+              selectedCategory === cat
+                ? "bg-gold text-void"
+                : "border border-border bg-surface text-muted hover:border-gold/30 hover:text-cream"
+            }`}
           >
-            All
+            {cat}
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => onCategoryChange(cat)}
-              className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold capitalize tracking-wide transition ${selectedCategory === cat
-                ? "bg-gold text-black"
-                : "border border-white/8 bg-surface text-cream/90 hover:border-white/15"
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
     </header>
   );

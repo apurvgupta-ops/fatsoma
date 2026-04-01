@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: "rgba(201,169,110,0.15)",
+    backgroundColor: "rgba(206,166,85,0.15)",
     zIndex: 0,
   },
   orb2: {

@@ -1,6 +1,6 @@
 /**
  * Colour palette matching web app (On The List gold/black luxury theme).
- * VOID #0A0A0A, SURFACE #141414, BORDER #2a2a2a, GOLD #c9a96e, GOLD LIGHT #e8d5a3, CREAM #f5f2ec
+ * VOID #0A0A0A, SURFACE #141414, BORDER #2a2a2a, GOLD #CEA655, GOLD LIGHT #e8d5a3, CREAM #f5f2ec
  */
 export const colors = {
   bg: {
@@ -13,10 +13,10 @@ export const colors = {
   },
   cream: "#f5f2ec",
   gold: {
-    DEFAULT: "#c9a96e",
+    DEFAULT: "#CEA655",
     light: "#e8d5a3",
-    dim: "rgba(201,169,110,0.15)",
-    border: "rgba(201,169,110,0.3)",
+    dim: "rgba(206,166,85,0.15)",
+    border: "rgba(206,166,85,0.3)",
   },
   text: {
     primary: "#f5f2ec",
@@ -29,7 +29,7 @@ export const colors = {
     light: "rgba(42,42,42,0.8)",
   },
   status: {
-    success: "#c9a96e",
+    success: "#CEA655",
     error: "#ef4444",
     warning: "#e8d5a3",
   },
