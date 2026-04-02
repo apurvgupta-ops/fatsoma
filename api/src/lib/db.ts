@@ -6,7 +6,7 @@ function getMongoUri(): string {
   const uri = process.env.MONGODB_URI?.trim();
   if (!uri) {
     throw new Error(
-      "MONGODB_URI is not set. Add it to api/.env (or api/.env.local).",
+      "MONGODB_URI is not set. Add it to api/.env.development or api/.env.production.",
     );
   }
   return uri;

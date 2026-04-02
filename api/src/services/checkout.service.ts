@@ -1,4 +1,3 @@
-import Stripe from "stripe";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import Event from "../models/Event";
@@ -7,23 +6,180 @@ import Ticket from "../models/Ticket";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import User from "../models/User";
-import { sendBookingConfirmationEmail, sendResaleBookingEmail, sendTicketSoldEmail } from "../lib/email";
+import {
+  sendBookingConfirmationEmail,
+  sendResaleBookingEmail,
+  sendTicketSoldEmail,
+} from "../lib/email";
 import { logPayment, logRefund } from "../lib/systemLogger";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
 
-let _stripe: Stripe | null = null;
+function resolvePayPalBaseUrl() {
+  const configured = (process.env.PAYPAL_BASE_URL || "").trim();
+  if (!configured) return "https://api-m.sandbox.paypal.com";
 
-function getStripe(): Stripe {
-  if (!_stripe) {
-    const key = process.env.STRIPE_SECRET_KEY;
-    if (!key) throw new AppError("STRIPE_SECRET_KEY is not configured", 500);
-    _stripe = new Stripe(key);
+  const normalized = configured.replace(/\/+$/, "");
+
+  // Guard against common misconfiguration: web host instead of API host.
+  if (/^https?:\/\/(www\.)?sandbox\.paypal\.com$/i.test(normalized)) {
+    return "https://api-m.sandbox.paypal.com";
   }
-  return _stripe;
+
+  if (/^https?:\/\/(www\.)?paypal\.com$/i.test(normalized)) {
+    return "https://api-m.paypal.com";
+  }
+
+  return normalized;
 }
 
-// ── Primary checkout ────────────────────────────────────
+const PAYPAL_BASE_URL = resolvePayPalBaseUrl();
+
+let cachedPaypalToken: { value: string; expiresAt: number } | null = null;
+
+interface PayPalOrderAmount {
+  currency_code: string;
+  value: string;
+  breakdown?: {
+    item_total?: { currency_code: string; value: string };
+  };
+}
+
+interface PayPalOrderRequest {
+  intent: "CAPTURE";
+  purchase_units: Array<{
+    reference_id: string;
+    custom_id?: string;
+    description?: string;
+    amount: PayPalOrderAmount;
+  }>;
+  application_context: {
+    brand_name: string;
+    user_action: "PAY_NOW";
+    shipping_preference: "NO_SHIPPING";
+    return_url: string;
+    cancel_url: string;
+  };
+}
+
+interface PayPalOrderResponse {
+  id: string;
+  status: string;
+  links?: Array<{ href: string; rel: string; method: string }>;
+  payer?: {
+    email_address?: string;
+    name?: {
+      given_name?: string;
+      surname?: string;
+      full_name?: string;
+    };
+  };
+  purchase_units?: Array<{
+    payments?: {
+      captures?: Array<{ id: string; status: string }>;
+    };
+  }>;
+}
+
+async function getPayPalAccessToken() {
+  if (cachedPaypalToken && cachedPaypalToken.expiresAt > Date.now() + 60_000) {
+    return cachedPaypalToken.value;
+  }
+
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new AppError(
+      "PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET are not configured",
+      500,
+    );
+  }
+
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new AppError(`Failed to get PayPal token: ${body}`, 502);
+  }
+
+  const data = (await res.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
+
+  cachedPaypalToken = {
+    value: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+
+  return data.access_token;
+}
+
+async function paypalRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await getPayPalAccessToken();
+  const res = await fetch(`${PAYPAL_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(init.headers ?? {}),
+    },
+  });
+
+  const text = await res.text();
+  const body = text ? JSON.parse(text) : {};
+
+  if (!res.ok) {
+    const detail = typeof body === "object" ? JSON.stringify(body) : String(body);
+    throw new AppError(`PayPal request failed: ${detail}`, res.status);
+  }
+
+  return body as T;
+}
+
+async function createPayPalOrder(payload: PayPalOrderRequest): Promise<{ id: string; approveUrl: string }> {
+  const order = await paypalRequest<PayPalOrderResponse>("/v2/checkout/orders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const approveUrl = order.links?.find((l) => l.rel === "approve")?.href;
+  if (!order.id || !approveUrl) {
+    throw new AppError("PayPal order did not return approval URL", 500);
+  }
+
+  return { id: order.id, approveUrl };
+}
+
+async function getPayPalOrder(orderId: string): Promise<PayPalOrderResponse> {
+  return paypalRequest<PayPalOrderResponse>(`/v2/checkout/orders/${orderId}`, {
+    method: "GET",
+  });
+}
+
+async function capturePayPalOrder(orderId: string): Promise<PayPalOrderResponse> {
+  try {
+    return await paypalRequest<PayPalOrderResponse>(
+      `/v2/checkout/orders/${orderId}/capture`,
+      { method: "POST", body: JSON.stringify({}) },
+    );
+  } catch (err) {
+    if (err instanceof AppError && err.statusCode === 422) {
+      const existing = await getPayPalOrder(orderId);
+      if (existing.status === "COMPLETED") return existing;
+    }
+    throw err;
+  }
+}
 
 interface CreateSessionInput {
   eventId: string;
@@ -79,60 +235,73 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   const unitTotal = basePrice + fee;
   const totalAmount = Math.round(unitTotal * quantity * 100) / 100;
 
-  let session: Stripe.Checkout.Session;
+  let orderId = "";
+  let approveUrl = "";
+
   try {
-    session = await getStripe().checkout.sessions.create({
-      mode: "payment",
-      line_items: [
+    const created = await createPayPalOrder({
+      intent: "CAPTURE",
+      purchase_units: [
         {
-          price_data: {
-            currency: "gbp",
-            product_data: {
-              name: `${event.eventName} — ${batchName}`,
-              description: `Base: £${basePrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+          reference_id: "primary",
+          custom_id: JSON.stringify({ type: "primary", eventId, batchName, userId }),
+          description: `${event.eventName} - ${batchName}`,
+          amount: {
+            currency_code: "GBP",
+            value: totalAmount.toFixed(2),
+            breakdown: {
+              item_total: {
+                currency_code: "GBP",
+                value: totalAmount.toFixed(2),
+              },
             },
-            unit_amount: Math.round(unitTotal * 100),
           },
-          quantity,
         },
       ],
-      metadata: {
-        type: "primary",
-        eventId,
-        batchName,
-        quantity: String(quantity),
-        basePrice: String(basePrice),
-        capturedFee: String(fee),
-        totalAmount: String(totalAmount),
-        eventName: event.eventName,
-        userId,
+      application_context: {
+        brand_name: "On The List",
+        user_action: "PAY_NOW",
+        shipping_preference: "NO_SHIPPING",
+        return_url: `${WEB_URL}/checkout/success`,
+        cancel_url: `${WEB_URL}/events/${eventId}`,
       },
-      success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${WEB_URL}/events/${eventId}`,
+    });
+
+    orderId = created.id;
+    approveUrl = created.approveUrl;
+
+    await Order.create({
+      eventId,
+      userId,
+      eventName: event.eventName,
+      ticketBatchName: batchName,
+      quantity,
+      basePrice,
+      capturedBookingFee: fee,
+      totalAmount,
+      currency: "gbp",
+      stripeSessionId: orderId,
+      type: "primary",
+      status: "pending",
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code =
-      err && typeof err === "object" && "code" in err
-        ? String((err as { code?: string }).code)
-        : undefined;
     logPayment({
-      event: "checkout_session_create_failed",
+      event: "paypal_order_create_failed",
       outcome: "failure",
       type: "primary",
       userId,
       errorMessage: msg,
-      errorCode: code,
       metadata: { eventId, batchName, quantity },
     });
     throw err;
   }
 
   logPayment({
-    event: "checkout_session_created",
+    event: "paypal_order_created",
     outcome: "success",
     type: "primary",
-    sessionId: session.id,
+    sessionId: orderId,
     userId,
     amountGbp: totalAmount,
     currency: "gbp",
@@ -140,12 +309,10 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   });
 
   return {
-    sessionId: session.id,
-    url: session.url,
+    sessionId: orderId,
+    url: approveUrl,
   };
 }
-
-// ── Resale checkout ─────────────────────────────────────
 
 interface CreateResaleSessionInput {
   listingId: string;
@@ -180,237 +347,163 @@ export async function createResaleCheckoutSession(
   if (!event) throw AppError.notFound("Event not found");
 
   const fee = Math.round(capturedFee * 100) / 100;
-  const unitTotal = listing.askingPrice + fee;
+  const totalAmount = Math.round((listing.askingPrice + fee) * 100) / 100;
 
-  let session: Stripe.Checkout.Session;
+  let orderId = "";
+  let approveUrl = "";
+
   try {
-    session = await getStripe().checkout.sessions.create({
-      mode: "payment",
-      line_items: [
+    const created = await createPayPalOrder({
+      intent: "CAPTURE",
+      purchase_units: [
         {
-          price_data: {
-            currency: "gbp",
-            product_data: {
-              name: `${event.eventName} — ${ticket.ticketBatchName} (Resale)`,
-              description: `Resale: £${listing.askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+          reference_id: "resale",
+          custom_id: JSON.stringify({ type: "resale", listingId, userId }),
+          description: `${event.eventName} - ${ticket.ticketBatchName} (Resale)`,
+          amount: {
+            currency_code: "GBP",
+            value: totalAmount.toFixed(2),
+            breakdown: {
+              item_total: {
+                currency_code: "GBP",
+                value: totalAmount.toFixed(2),
+              },
             },
-            unit_amount: Math.round(unitTotal * 100),
           },
-          quantity: 1,
         },
       ],
-      metadata: {
-        type: "resale",
-        listingId: listing._id.toString(),
-        eventId: listing.eventId.toString(),
-        ticketId: ticket._id.toString(),
-        eventName: event.eventName,
-        ticketBatchName: ticket.ticketBatchName,
-        basePrice: String(listing.askingPrice),
-        capturedFee: String(fee),
-        totalAmount: String(Math.round(unitTotal * 100) / 100),
-        userId,
+      application_context: {
+        brand_name: "On The List",
+        user_action: "PAY_NOW",
+        shipping_preference: "NO_SHIPPING",
+        return_url: `${WEB_URL}/checkout/success`,
+        cancel_url: `${WEB_URL}/events/${listing.eventId}`,
       },
-      success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${WEB_URL}/events/${listing.eventId}`,
+    });
+
+    orderId = created.id;
+    approveUrl = created.approveUrl;
+
+    await Order.create({
+      eventId: listing.eventId,
+      userId,
+      eventName: event.eventName,
+      ticketBatchName: ticket.ticketBatchName,
+      quantity: 1,
+      basePrice: listing.askingPrice,
+      capturedBookingFee: fee,
+      totalAmount,
+      currency: "gbp",
+      stripeSessionId: orderId,
+      type: "resale",
+      resaleListingId: listing._id,
+      status: "pending",
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code =
-      err && typeof err === "object" && "code" in err
-        ? String((err as { code?: string }).code)
-        : undefined;
     logPayment({
-      event: "checkout_session_create_failed",
+      event: "paypal_order_create_failed",
       outcome: "failure",
       type: "resale",
       userId,
       errorMessage: msg,
-      errorCode: code,
-      metadata: { listingId: listing._id.toString() },
+      metadata: { listingId },
     });
     throw err;
   }
 
   logPayment({
-    event: "checkout_session_created",
+    event: "paypal_order_created",
     outcome: "success",
     type: "resale",
-    sessionId: session.id,
+    sessionId: orderId,
     userId,
-    amountGbp: Math.round(unitTotal * 100) / 100,
+    amountGbp: totalAmount,
     currency: "gbp",
-    metadata: { listingId: listing._id.toString() },
+    metadata: { listingId },
   });
 
   return {
-    sessionId: session.id,
-    url: session.url,
+    sessionId: orderId,
+    url: approveUrl,
   };
-}
-
-// ── Confirm & ticket generation ─────────────────────────
-
-async function findOrCreateOrderFromSession(
-  session: Stripe.Checkout.Session,
-  status: "paid" | "expired" | "failed",
-) {
-  let order = await Order.findOne({ stripeSessionId: session.id });
-  if (order) return order;
-
-  const meta = session.metadata ?? {};
-  const isPrimary = meta.type === "primary";
-
-  order = await Order.create({
-    eventId: meta.eventId,
-    userId: meta.userId || undefined,
-    eventName: meta.eventName || "Unknown Event",
-    ticketBatchName: isPrimary
-      ? meta.batchName
-      : meta.ticketBatchName || "Unknown",
-    quantity: isPrimary ? Number(meta.quantity) || 1 : 1,
-    basePrice: Number(meta.basePrice) || 0,
-    capturedBookingFee: Number(meta.capturedFee) || 0,
-    totalAmount: Number(meta.totalAmount) || 0,
-    stripeSessionId: session.id,
-    stripePaymentIntentId: (session.payment_intent as string) || undefined,
-    type: isPrimary ? "primary" : "resale",
-    resaleListingId: meta.listingId || undefined,
-    status,
-    customerEmail: session.customer_details?.email ?? undefined,
-    customerName: session.customer_details?.name ?? undefined,
-  });
-
-  return order;
 }
 
 export async function confirmSession(sessionId: string) {
   const existingOrder = await Order.findOne({ stripeSessionId: sessionId });
-  if (existingOrder?.status === "paid") {
-    logPayment({
-      event: "payment_confirm_idempotent",
-      outcome: "success",
-      type: "confirm",
-      sessionId,
-      orderId: existingOrder._id.toString(),
-      paymentIntentId: existingOrder.stripePaymentIntentId,
-    });
+  if (!existingOrder) {
+    throw AppError.notFound("Order not found");
+  }
+
+  if (existingOrder.status === "paid") {
     return formatOrder(existingOrder.toObject());
   }
 
-  const stripe = getStripe();
-  let session: Stripe.Checkout.Session;
-  try {
-    session = await stripe.checkout.sessions.retrieve(sessionId);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logPayment({
-      event: "session_retrieve_failed",
-      outcome: "failure",
-      type: "confirm",
-      sessionId,
-      errorMessage: msg,
-    });
-    throw err;
+  const paypalOrder = await capturePayPalOrder(sessionId);
+
+  if (paypalOrder.status !== "COMPLETED") {
+    existingOrder.status = "failed";
+    await existingOrder.save();
+    throw AppError.badRequest("Payment not completed on PayPal");
   }
 
-  if (session.payment_status === "paid") {
-    const order = await findOrCreateOrderFromSession(session, "paid");
-    if (order.status !== "paid") {
-      order.status = "paid";
-      order.stripePaymentIntentId = session.payment_intent as string;
-      order.customerEmail = session.customer_details?.email ?? undefined;
-      order.customerName = session.customer_details?.name ?? undefined;
-      await order.save();
-    }
+  const payerEmail = paypalOrder.payer?.email_address;
+  const payerName =
+    paypalOrder.payer?.name?.full_name ||
+    [paypalOrder.payer?.name?.given_name, paypalOrder.payer?.name?.surname]
+      .filter(Boolean)
+      .join(" ") ||
+    undefined;
 
-    logPayment({
-      event: "payment_confirmed",
-      outcome: "success",
-      type: "confirm",
-      sessionId,
-      orderId: order._id.toString(),
-      paymentIntentId: order.stripePaymentIntentId as string | undefined,
-      userId: order.userId?.toString(),
-      amountGbp: order.totalAmount,
-      metadata: { orderType: order.type },
-    });
+  const captureId =
+    paypalOrder.purchase_units?.[0]?.payments?.captures?.[0]?.id || undefined;
 
-    if (order.type === "primary") {
-      await generateTickets(order);
-      if (order.customerEmail) {
-        sendBookingConfirmationEmail({
-          email: order.customerEmail,
-          customerName: order.customerName || "",
-          eventName: order.eventName,
-          ticketBatchName: order.ticketBatchName,
-          quantity: order.quantity,
-          totalAmount: order.totalAmount,
-          orderId: order._id.toString(),
-        });
-      }
-    } else if (order.type === "resale") {
-      await completeResaleTransfer(order);
-      if (order.customerEmail) {
-        sendResaleBookingEmail({
-          email: order.customerEmail,
-          customerName: order.customerName || "",
-          eventName: order.eventName,
-          ticketBatchName: order.ticketBatchName,
-          totalAmount: order.totalAmount,
-          orderId: order._id.toString(),
-        });
-      }
-    }
-
-    return formatOrder(order.toObject());
-  }
-
-  if (session.status === "expired") {
-    const order = await findOrCreateOrderFromSession(session, "expired");
-    if (order.status !== "expired") {
-      order.status = "expired";
-      await order.save();
-    }
-    logPayment({
-      event: "checkout_session_expired",
-      outcome: "failure",
-      type: "confirm",
-      sessionId,
-      orderId: order._id.toString(),
-      reason: "Session expired before payment",
-      metadata: { orderType: order.type },
-    });
-    if (order.type === "resale" && order.resaleListingId) {
-      await cancelResaleOnExpiry(order.resaleListingId);
-    }
-    return formatOrder(order.toObject());
-  }
-
-  if (existingOrder) {
-    logPayment({
-      event: "payment_confirm_partial",
-      outcome: "pending",
-      type: "confirm",
-      sessionId,
-      orderId: existingOrder._id.toString(),
-      reason: `payment_status=${session.payment_status} status=${session.status}`,
-    });
-    return formatOrder(existingOrder.toObject());
-  }
+  existingOrder.status = "paid";
+  existingOrder.stripePaymentIntentId = captureId;
+  existingOrder.customerEmail = payerEmail;
+  existingOrder.customerName = payerName;
+  await existingOrder.save();
 
   logPayment({
-    event: "payment_confirm_rejected",
-    outcome: "failure",
+    event: "paypal_payment_captured",
+    outcome: "success",
     type: "confirm",
     sessionId,
-    reason: "Payment session is still open or was cancelled",
-    metadata: {
-      payment_status: session.payment_status,
-      session_status: session.status ?? "null",
-    },
+    orderId: existingOrder._id.toString(),
+    paymentIntentId: captureId,
+    userId: existingOrder.userId?.toString(),
+    amountGbp: existingOrder.totalAmount,
+    metadata: { orderType: existingOrder.type },
   });
-  throw AppError.badRequest("Payment session is still open or was cancelled");
+
+  if (existingOrder.type === "primary") {
+    await generateTickets(existingOrder);
+    if (existingOrder.customerEmail) {
+      sendBookingConfirmationEmail({
+        email: existingOrder.customerEmail,
+        customerName: existingOrder.customerName || "",
+        eventName: existingOrder.eventName,
+        ticketBatchName: existingOrder.ticketBatchName,
+        quantity: existingOrder.quantity,
+        totalAmount: existingOrder.totalAmount,
+        orderId: existingOrder._id.toString(),
+      });
+    }
+  } else if (existingOrder.type === "resale") {
+    await completeResaleTransfer(existingOrder);
+    if (existingOrder.customerEmail) {
+      sendResaleBookingEmail({
+        email: existingOrder.customerEmail,
+        customerName: existingOrder.customerName || "",
+        eventName: existingOrder.eventName,
+        ticketBatchName: existingOrder.ticketBatchName,
+        totalAmount: existingOrder.totalAmount,
+        orderId: existingOrder._id.toString(),
+      });
+    }
+  }
+
+  return formatOrder(existingOrder.toObject());
 }
 
 async function generateTickets(order: any) {
@@ -454,15 +547,13 @@ async function completeResaleTransfer(order: any) {
   listing.sellerPayout = sellerPayout;
   listing.organiserRevenue = organiserRevenue;
 
-  const sellerPaymentIntentId = ticket.stripePaymentIntentId;
-
   ticket.userId = order.userId;
   ticket.purchasePrice = listing.askingPrice;
   ticket.status = "active";
   ticket.qrCode = crypto.randomUUID();
   await ticket.save();
 
-  await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
+  await issueSellerRefundPlaceholder(listing, sellerPayout);
   await listing.save();
 
   notifySellerOfSale(listing, order).catch((err) =>
@@ -470,86 +561,22 @@ async function completeResaleTransfer(order: any) {
   );
 }
 
-/**
- * Issues a partial refund to the seller's original payment method.
- * Falls back gracefully if the original payment intent is unavailable.
- */
-async function issueSellerRefund(
-  listing: any,
-  paymentIntentId: string | undefined,
-  amount: number,
-) {
-  const listingId = listing._id.toString();
-
-  if (!paymentIntentId || amount <= 0) {
-    listing.sellerRefundStatus = "failed";
-    logRefund({
-      event: "seller_refund_skipped",
-      outcome: "skipped",
-      listingId,
-      ...(paymentIntentId ? { paymentIntentId } : {}),
-      amountGbp: amount,
-      reason: !paymentIntentId
-        ? "No stripePaymentIntentId on original ticket"
-        : "Refund amount is zero or negative",
-    });
-    return;
-  }
-
-  try {
-    const stripe = getStripe();
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: Math.round(amount * 100),
-      reason: "requested_by_customer",
-      metadata: {
-        type: "resale_seller_payout",
-        listingId,
-        sellerId: listing.sellerId.toString(),
-      },
-    });
-
-    listing.sellerRefundId = refund.id;
-    listing.sellerRefundStatus =
-      refund.status === "succeeded" ? "succeeded" : "pending";
-    logRefund({
-      event: "seller_refund_created",
-      outcome:
-        refund.status === "succeeded"
-          ? "success"
-          : refund.status === "pending"
-            ? "pending"
-            : "failure",
-      refundId: refund.id,
-      listingId,
-      paymentIntentId,
-      amountGbp: amount,
-      ...(refund.status ? { stripeStatus: refund.status } : {}),
-    });
-  } catch (err: unknown) {
-    listing.sellerRefundStatus = "failed";
-    const msg = err instanceof Error ? err.message : String(err);
-    const code =
-      err && typeof err === "object" && "code" in err
-        ? String((err as { code?: string }).code)
-        : undefined;
-    logRefund({
-      event: "seller_refund_failed",
-      outcome: "failure",
-      listingId,
-      paymentIntentId,
-      amountGbp: amount,
-      errorMessage: msg,
-      errorCode: code,
-    });
-  }
+async function issueSellerRefundPlaceholder(listing: any, amount: number) {
+  listing.sellerRefundStatus = "failed";
+  logRefund({
+    event: "seller_refund_not_automated",
+    outcome: "skipped",
+    listingId: listing._id.toString(),
+    amountGbp: amount,
+    reason: "Automatic seller refund is not implemented for PayPal yet",
+  });
 }
 
 async function notifySellerOfSale(listing: any, order: any) {
-  const seller = await User.findById(listing.sellerId).lean() as any;
+  const seller = (await User.findById(listing.sellerId).lean()) as any;
   if (!seller) return;
 
-  const event = await Event.findById(listing.eventId).lean() as any;
+  const event = (await Event.findById(listing.eventId).lean()) as any;
   const eventName = event?.eventName || order.eventName || "Unknown Event";
 
   await sendTicketSoldEmail({
@@ -563,22 +590,8 @@ async function notifySellerOfSale(listing: any, order: any) {
   });
 }
 
-async function cancelResaleOnExpiry(listingId: mongoose.Types.ObjectId) {
-  const listing = await ResaleListing.findById(listingId);
-  if (!listing || listing.status !== "active") return;
-
-  listing.status = "cancelled";
-  await listing.save();
-
-  await Ticket.findByIdAndUpdate(listing.ticketId, { status: "active" });
-}
-
-// ── Read helpers ────────────────────────────────────────
-
 export async function getOrderBySessionId(sessionId: string) {
-  const order = (await Order.findOne({
-    stripeSessionId: sessionId,
-  }).lean()) as any;
+  const order = (await Order.findOne({ stripeSessionId: sessionId }).lean()) as any;
   if (!order) throw AppError.notFound("Order not found");
   return formatOrder(order);
 }
@@ -601,130 +614,7 @@ function formatOrder(order: any) {
   };
 }
 
-// ── Webhook ─────────────────────────────────────────────
-
-export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-
-  let stripeEvent: Stripe.Event;
-  try {
-    stripeEvent = getStripe().webhooks.constructEvent(
-      rawBody,
-      signature,
-      webhookSecret,
-    );
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "invalid_signature";
-    logPayment({
-      event: "webhook_signature_invalid",
-      outcome: "failure",
-      type: "webhook",
-      errorMessage: msg,
-      reason: "Stripe webhook signature verification failed — check STRIPE_WEBHOOK_SECRET and raw body",
-    });
-    throw AppError.badRequest("Webhook signature verification failed");
-  }
-
-  logPayment({
-    event: "webhook_received",
-    outcome: "success",
-    type: "webhook",
-    stripeEventType: stripeEvent.type,
-    metadata: { id: stripeEvent.id },
-  });
-
-  switch (stripeEvent.type) {
-    case "checkout.session.completed": {
-      const session = stripeEvent.data.object as Stripe.Checkout.Session;
-      const order = await findOrCreateOrderFromSession(session, "paid");
-
-      if (order.status !== "paid") {
-        order.status = "paid";
-        order.stripePaymentIntentId = session.payment_intent as string;
-        order.customerEmail = session.customer_details?.email ?? undefined;
-        order.customerName = session.customer_details?.name ?? undefined;
-        await order.save();
-      }
-
-      logPayment({
-        event: "webhook_checkout_completed",
-        outcome: "success",
-        type: "webhook",
-        sessionId: session.id,
-        orderId: order._id.toString(),
-        paymentIntentId: session.payment_intent as string | undefined,
-        userId: order.userId?.toString(),
-        amountGbp: order.totalAmount,
-        metadata: { orderType: order.type },
-      });
-
-      if (order.type === "primary") {
-        await generateTickets(order);
-        if (order.customerEmail) {
-          sendBookingConfirmationEmail({
-            email: order.customerEmail,
-            customerName: order.customerName || "",
-            eventName: order.eventName,
-            ticketBatchName: order.ticketBatchName,
-            quantity: order.quantity,
-            totalAmount: order.totalAmount,
-            orderId: order._id.toString(),
-          });
-        }
-      } else if (order.type === "resale") {
-        await completeResaleTransfer(order);
-        if (order.customerEmail) {
-          sendResaleBookingEmail({
-            email: order.customerEmail,
-            customerName: order.customerName || "",
-            eventName: order.eventName,
-            ticketBatchName: order.ticketBatchName,
-            totalAmount: order.totalAmount,
-            orderId: order._id.toString(),
-          });
-        }
-      }
-      break;
-    }
-
-    case "checkout.session.expired": {
-      const session = stripeEvent.data.object as Stripe.Checkout.Session;
-      const order = await Order.findOne({ stripeSessionId: session.id });
-      if (order && order.status !== "expired") {
-        order.status = "expired";
-        await order.save();
-        logPayment({
-          event: "webhook_checkout_expired",
-          outcome: "failure",
-          type: "webhook",
-          sessionId: session.id,
-          orderId: order._id.toString(),
-          reason: "Stripe checkout session expired",
-          metadata: { orderType: order.type },
-        });
-        if (order.type === "resale" && order.resaleListingId) {
-          await cancelResaleOnExpiry(order.resaleListingId);
-        }
-      } else if (!order) {
-        logPayment({
-          event: "webhook_checkout_expired",
-          outcome: "pending",
-          type: "webhook",
-          sessionId: session.id,
-          reason: "No matching order in database for expired session",
-        });
-      }
-      break;
-    }
-
-    default: {
-      logPayment({
-        event: "webhook_unhandled_type",
-        outcome: "pending",
-        type: "webhook",
-        stripeEventType: stripeEvent.type,
-        reason: "No handler for this event type",
-      });
-    }
-  }
+export async function handleWebhookEvent() {
+  throw AppError.badRequest("Webhook endpoint is disabled. PayPal flow uses order capture on return.");
 }
+

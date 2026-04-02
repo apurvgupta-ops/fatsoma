@@ -54,7 +54,7 @@ export function logApiAccess(payload: {
   writeJson("api-access", payload as Record<string, unknown>);
 }
 
-/** Checkout sessions, payment confirmation, webhooks, Stripe errors. */
+/** Checkout sessions, payment confirmation, provider errors. */
 export function logPayment(payload: {
   event: string;
   outcome?: "success" | "failure" | "pending";
@@ -106,3 +106,4 @@ export function logServerError(payload: {
 export function getLogsDirectory(): string {
   return LOG_ROOT;
 }
+

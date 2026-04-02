@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+const nodeEnv = process.env.NODE_ENV === "production" ? "production" : "development";
+dotenv.config({ path: path.resolve(process.cwd(), `.env.${nodeEnv}`) });
 
 import express from "express";
 import cors from "cors";
@@ -34,8 +34,6 @@ export function createApp() {
   app.use(cors({ origin: origins, credentials: true }));
 
   // ── Body parsers ────────────────────────────────────
-  // Stripe webhook requires raw body — mounted before JSON parser
-  app.use("/api/checkout/webhook", express.raw({ type: "application/json" }));
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
 
@@ -90,3 +88,4 @@ start().catch((err) => {
   console.error("❌ Failed to start server:", err);
   process.exit(1);
 });
+
