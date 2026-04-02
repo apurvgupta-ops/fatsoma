@@ -480,7 +480,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
 
         {/* <p className="mt-4 text-center text-[10px] leading-relaxed text-cream/40">
           The Smart Timing Fee reflects time and demand — your ticket price
-          stays fair. Secure checkout via Stripe.
+          stays fair. Secure checkout via PayPal.
         </p> */}
       </div>
     </div>
@@ -772,4 +772,5 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
     </section>
   );
 }
+
 

@@ -293,7 +293,7 @@ export class FatsomaClient {
     return this.request(`/api/checkout/session/${sessionId}`);
   }
 
-  /** Verify payment with Stripe and update the order status. */
+  /** Verify payment with PayPal and update the order status. */
   async confirmCheckoutSession(
     sessionId: string,
   ): Promise<ApiResponse<CheckoutOrder>> {
@@ -405,5 +405,6 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
+
 
 

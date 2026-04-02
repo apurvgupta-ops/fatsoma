@@ -16,7 +16,6 @@ import {
   AlertCircle,
   Banknote,
   TicketCheck,
-  ExternalLink,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -252,7 +251,7 @@ export default function PaymentsPage() {
                     )}
                     <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Status</th>
                     <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Date</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">Stripe</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">Transaction</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -339,15 +338,7 @@ export default function PaymentsPage() {
                         </td>
                         <td className="px-5 py-4 text-center">
                           {order.stripePaymentIntentId ? (
-                            <a
-                              href={`https://dashboard.stripe.com/test/payments/${order.stripePaymentIntentId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-gold transition hover:text-gold"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              View
-                            </a>
+                            <span className="inline-flex items-center gap-1 text-xs text-gold">{order.stripePaymentIntentId.slice(0, 10)}...</span>
                           ) : (
                             <span className="text-xs text-cream/60">—</span>
                           )}
@@ -435,4 +426,6 @@ function StatCard({
     </div>
   );
 }
+
+
 

@@ -23,7 +23,7 @@ export default function CheckoutSuccessPage() {
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const sessionId = searchParams.get("session_id") || searchParams.get("token");
 
   const [order, setOrder] = useState<CheckoutOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,4 +140,5 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
     </div>
   );
 }
+
 

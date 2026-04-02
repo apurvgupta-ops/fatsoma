@@ -42,9 +42,9 @@ const policies = [
     icon: Lock,
     title: "Secure Payments",
     description:
-      "All payments are processed through Stripe, the industry standard for online payments. Your card details never touch our servers — everything is handled by Stripe's PCI-compliant infrastructure.",
+      "All payments are processed through PayPal, the industry standard for online payments. Your card details never touch our servers — everything is handled by PayPal's PCI-compliant infrastructure.",
     highlights: [
-      "Stripe-powered checkout",
+      "PayPal-powered checkout",
       "PCI DSS compliant",
       "Card details never stored",
     ],
@@ -148,4 +148,5 @@ export default function TrustSafetyPage() {
     </div>
   );
 }
+
 

@@ -24,7 +24,7 @@ const steps = [
     icon: ShoppingCart,
     title: "Select & Checkout",
     description:
-      "Pick your tickets, choose your quantity, and pay securely through Stripe. Your QR code is generated instantly.",
+      "Pick your tickets, choose your quantity, and pay securely through PayPal. Your QR code is generated instantly.",
   },
   {
     number: "03",
@@ -146,4 +146,5 @@ export default function HowItWorksPage() {
     </div>
   );
 }
+
 
