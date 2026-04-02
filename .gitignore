@@ -47,19 +47,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# React Native / Android
-apps/mobile/android/app/build/
-apps/mobile/android/.gradle/
-apps/mobile/android/build/
-*.apk
-*.aab
-local.properties
-
-# React Native / iOS
-apps/mobile/ios/build/
-apps/mobile/ios/Pods/
-*.xcworkspace
-!apps/mobile/ios/OnTheList.xcworkspace
-
-# Expo (legacy)
-.expo/
