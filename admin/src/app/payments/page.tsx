@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Banknote,
   TicketCheck,
+  ExternalLink,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -23,11 +24,30 @@ import {
 
 const PAGE_SIZE = 15;
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  paid: { label: "Paid", color: "bg-gold/10 text-gold border-gold/40", icon: CheckCircle },
-  pending: { label: "Pending", color: "bg-gold-light/10 text-gold-light border-gold-light/30", icon: Clock },
-  failed: { label: "Failed", color: "bg-rose-500/10 text-rose-300 border-rose-500/40", icon: XCircle },
-  expired: { label: "Expired", color: "bg-border/40 text-cream/60 border-border", icon: AlertCircle },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: typeof CheckCircle }
+> = {
+  paid: {
+    label: "Paid",
+    color: "bg-gold/10 text-gold border-gold/40",
+    icon: CheckCircle,
+  },
+  pending: {
+    label: "Pending",
+    color: "bg-gold-light/10 text-gold-light border-gold-light/30",
+    icon: Clock,
+  },
+  failed: {
+    label: "Failed",
+    color: "bg-rose-500/10 text-rose-300 border-rose-500/40",
+    icon: XCircle,
+  },
+  expired: {
+    label: "Expired",
+    color: "bg-border/40 text-cream/60 border-border",
+    icon: AlertCircle,
+  },
 };
 
 export default function PaymentsPage() {
@@ -107,9 +127,12 @@ export default function PaymentsPage() {
             <span className="h-px w-10 bg-linear-to-r from-gold to-gold-light" />
             Payments
           </div>
-          <h1 className="text-3xl font-semibold text-cream sm:text-4xl">Payment History</h1>
+          <h1 className="text-3xl font-semibold text-cream sm:text-4xl">
+            Payment History
+          </h1>
           <p className="mt-2 max-w-2xl text-sm text-cream/60">
-            Track all ticket purchases, resale transactions, revenue, and booking fees.
+            Track all ticket purchases, resale transactions, revenue, and
+            booking fees.
           </p>
         </header>
 
@@ -192,7 +215,7 @@ export default function PaymentsPage() {
               </button>
             ))}
 
-                    <div className="mx-1 w-px bg-border" />
+            <div className="mx-1 w-px bg-border" />
 
             {/* Status filter */}
             {["all", "paid", "pending", "failed", "expired"].map((s) => (
@@ -220,9 +243,13 @@ export default function PaymentsPage() {
           <div className="flex min-h-60 items-center justify-center rounded-3xl border border-border bg-void/60 p-12">
             <div className="text-center">
               <TicketCheck className="mx-auto mb-3 h-10 w-10 text-cream/60" />
-              <h3 className="text-lg font-semibold text-cream">No payments found</h3>
+              <h3 className="text-lg font-semibold text-cream">
+                No payments found
+              </h3>
               <p className="mt-2 text-sm text-cream/60">
-                {debouncedSearch || statusFilter !== "all" || typeFilter !== "all"
+                {debouncedSearch ||
+                statusFilter !== "all" ||
+                typeFilter !== "all"
                   ? "Try adjusting your filters or search query."
                   : "Payments will appear here once users purchase tickets."}
               </p>
@@ -234,45 +261,79 @@ export default function PaymentsPage() {
               <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Order</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Type</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Customer</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Event</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Ticket</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Qty</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Base</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Fee</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">Total</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Order
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Type
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Customer
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Event
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Ticket
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Qty
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Base
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Fee
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Total
+                    </th>
                     {typeFilter === "resale" && (
                       <>
-                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Seller Gets</th>
-                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">Organiser Gets</th>
+                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">
+                          Refunded Amount
+                        </th>
+                        <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-gold-light">
+                          Organiser Gets
+                        </th>
                       </>
                     )}
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Status</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">Date</th>
-                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">Transaction</th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Status
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Date
+                    </th>
+                    <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Stripe
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {paginatedOrders.map((order) => {
-                    const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+                    const cfg =
+                      STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
                     const StatusIcon = cfg.icon;
                     const isResale = order.type === "resale";
 
                     return (
-                      <tr key={order.id} className="transition hover:bg-surface/40">
+                      <tr
+                        key={order.id}
+                        className="transition hover:bg-surface/40"
+                      >
                         <td className="px-5 py-4">
                           <span className="font-mono text-xs text-cream/60">
                             {order.id.slice(-8).toUpperCase()}
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                            isResale
-                              ? "bg-gold-light/10 text-gold-light border border-gold-light/30"
-                              : "bg-gold/10 text-gold border border-gold/30"
-                          }`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                              isResale
+                                ? "bg-gold-light/10 text-gold-light border border-gold-light/30"
+                                : "bg-gold/10 text-gold border border-gold/30"
+                            }`}
+                          >
                             {isResale && <RefreshCw className="h-2.5 w-2.5" />}
                             {isResale ? "Resale" : "Primary"}
                           </span>
@@ -288,13 +349,19 @@ export default function PaymentsPage() {
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="truncate text-sm text-cream/90">{order.eventName}</p>
+                          <p className="truncate text-sm text-cream/90">
+                            {order.eventName}
+                          </p>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-sm text-cream/60">{order.ticketBatchName}</p>
+                          <p className="text-sm text-cream/60">
+                            {order.ticketBatchName}
+                          </p>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <span className="font-mono text-sm text-cream/90">{order.quantity}</span>
+                          <span className="font-mono text-sm text-cream/90">
+                            {order.quantity}
+                          </span>
                         </td>
                         <td className="px-5 py-4 text-right">
                           <span className="font-mono text-sm text-cream/60">
@@ -315,18 +382,26 @@ export default function PaymentsPage() {
                           <>
                             <td className="px-5 py-4 text-right">
                               <span className="font-mono text-sm text-gold-light">
-                                {order.sellerPayout != null ? formatCurrency(order.sellerPayout) : "—"}
+                                {order.refundedAmount != null
+                                  ? formatCurrency(order.refundedAmount)
+                                  : order.sellerPayout != null
+                                    ? formatCurrency(order.sellerPayout)
+                                    : "—"}
                               </span>
                             </td>
                             <td className="px-5 py-4 text-right">
                               <span className="font-mono text-sm text-gold-light">
-                                {order.organiserRevenue != null ? formatCurrency(order.organiserRevenue) : "—"}
+                                {order.organiserRevenue != null
+                                  ? formatCurrency(order.organiserRevenue)
+                                  : "—"}
                               </span>
                             </td>
                           </>
                         )}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.color}`}>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.color}`}
+                          >
                             <StatusIcon className="h-3 w-3" />
                             {cfg.label}
                           </span>
@@ -338,7 +413,15 @@ export default function PaymentsPage() {
                         </td>
                         <td className="px-5 py-4 text-center">
                           {order.stripePaymentIntentId ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-gold">{order.stripePaymentIntentId.slice(0, 10)}...</span>
+                            <a
+                              href={`https://dashboard.stripe.com/test/payments/${order.stripePaymentIntentId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-gold transition hover:text-gold"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </a>
                           ) : (
                             <span className="text-xs text-cream/60">—</span>
                           )}
@@ -353,7 +436,9 @@ export default function PaymentsPage() {
             {/* Pagination Footer */}
             <div className="flex items-center justify-between border-t border-border px-5 py-3">
               <p className="text-xs text-cream/60">
-                Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, orders.length)} of {orders.length} order{orders.length !== 1 ? "s" : ""}
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                {Math.min(currentPage * PAGE_SIZE, orders.length)} of{" "}
+                {orders.length} order{orders.length !== 1 ? "s" : ""}
               </p>
               {totalPages > 1 && (
                 <div className="flex items-center gap-1">
@@ -365,20 +450,31 @@ export default function PaymentsPage() {
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .filter(
+                      (p) =>
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1,
+                    )
                     .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
-                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                        acc.push("ellipsis");
                       acc.push(p);
                       return acc;
                     }, [])
                     .map((item, idx) =>
                       item === "ellipsis" ? (
-                        <span key={`e-${idx}`} className="px-1 text-xs text-cream/40">…</span>
+                        <span
+                          key={`e-${idx}`}
+                          className="px-1 text-xs text-cream/40"
+                        >
+                          …
+                        </span>
                       ) : (
                         <button
                           key={item}
                           onClick={() => setCurrentPage(item)}
-                          className={`min-w-[28px] rounded-lg px-2 py-1 text-xs font-medium transition ${
+                          className={`min-w-7 rounded-lg px-2 py-1 text-xs font-medium transition ${
                             currentPage === item
                               ? "bg-gold/20 text-gold border border-gold/40"
                               : "border border-border text-cream/60 hover:bg-surface/60 hover:text-cream"
@@ -389,7 +485,9 @@ export default function PaymentsPage() {
                       ),
                     )}
                   <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     disabled={currentPage === totalPages}
                     className="rounded-lg border border-border p-1.5 text-cream/60 transition hover:bg-surface/60 hover:text-cream disabled:opacity-30 disabled:hover:bg-transparent"
                   >
@@ -420,12 +518,11 @@ function StatCard({
     <div className="rounded-2xl border border-border bg-void/60 p-5">
       <div className="mb-3 flex items-center gap-2">
         <div className={color}>{icon}</div>
-        <span className="text-xs font-medium uppercase tracking-wider text-cream/60">{label}</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-cream/60">
+          {label}
+        </span>
       </div>
       <p className="font-mono text-2xl font-bold text-cream">{value}</p>
     </div>
   );
 }
-
-
-

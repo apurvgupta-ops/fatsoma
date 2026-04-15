@@ -28,4 +28,8 @@ export async function confirmSession(req: Request, res: Response) {
   sendSuccess(res, order, "Order confirmed");
 }
 
-
+export async function webhook(req: Request, res: Response) {
+  const signature = req.headers["stripe-signature"] as string;
+  await checkoutService.handleWebhookEvent(req.body as Buffer, signature);
+  res.json({ received: true });
+}

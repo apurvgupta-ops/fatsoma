@@ -32,7 +32,7 @@ const sections = [
     number: 5,
     title: "Fees and Payments",
     content:
-      "All payments are processed through PayPal, a PCI DSS Level 1 compliant payment processor. A booking fee is applied to all ticket purchases and resale transactions. The current fee structure is displayed at checkout before payment is confirmed. Sellers receive their original purchase price when a resale is completed. The Platform does not store payment card details — all sensitive payment information is handled by PayPal.",
+      "All payments are processed through Stripe, a PCI DSS Level 1 compliant payment processor. A booking fee is applied to all ticket purchases and resale transactions. The current fee structure is displayed at checkout before payment is confirmed. Sellers receive their original purchase price when a resale is completed. The Platform does not store payment card details — all sensitive payment information is handled by Stripe.",
   },
   {
     number: 6,
@@ -125,5 +125,4 @@ export default function TermsPage() {
     </div>
   );
 }
-
 

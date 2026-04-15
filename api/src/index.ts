@@ -34,6 +34,7 @@ export function createApp() {
   app.use(cors({ origin: origins, credentials: true }));
 
   // ── Body parsers ────────────────────────────────────
+  app.use("/api/checkout/webhook", express.raw({ type: "application/json" }));
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
 

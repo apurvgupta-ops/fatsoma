@@ -9,7 +9,7 @@ const faqs = [
   {
     question: "How do I buy tickets?",
     answer:
-      "Browse events on our platform, select the event you want to attend, choose your ticket quantity, and proceed to checkout. Payments are processed securely through PayPal. Once your payment is confirmed, a unique QR code is generated and linked to your account — that's your ticket.",
+      "Browse events on our platform, select the event you want to attend, choose your ticket quantity, and proceed to checkout. Payments are processed securely through Stripe. Once your payment is confirmed, a unique QR code is generated and linked to your account — that's your ticket.",
   },
   {
     question: "Can I get a refund?",
@@ -34,7 +34,7 @@ const faqs = [
   {
     question: "Is my payment secure?",
     answer:
-      "Absolutely. All payments are handled by PayPal, the industry-leading payment processor. Your card details never touch our servers. PayPal is PCI DSS Level 1 compliant — the highest level of security certification available in the payments industry.",
+      "Absolutely. All payments are handled by Stripe, the industry-leading payment processor. Your card details never touch our servers. Stripe is PCI DSS Level 1 compliant — the highest level of security certification available in the payments industry.",
   },
   {
     question: "What happens if an event is cancelled?",
@@ -135,5 +135,4 @@ export default function HelpCentrePage() {
     </div>
   );
 }
-
 

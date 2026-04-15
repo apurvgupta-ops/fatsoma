@@ -50,6 +50,7 @@ export interface OrderResponse {
   customerEmail: string | null;
   customerName: string | null;
   sellerPayout?: number;
+  refundedAmount?: number;
   organiserRevenue?: number;
   originalPurchasePrice?: number;
   createdAt: string;
@@ -137,7 +138,8 @@ export class FatsomaClient {
         });
         if (!res.ok) return null;
         const data: any = await res.json();
-        const newToken: string | undefined = data.accessToken ?? data.data?.accessToken;
+        const newToken: string | undefined =
+          data.accessToken ?? data.data?.accessToken;
         if (newToken) {
           this.onTokenRefreshed?.(newToken);
           return newToken;
@@ -278,9 +280,7 @@ export class FatsomaClient {
     batchName: string;
     quantity: number;
     capturedFee: number;
-  }): Promise<
-    ApiResponse<{ sessionId: string; url: string }>
-  > {
+  }): Promise<ApiResponse<{ sessionId: string; url: string }>> {
     return this.request("/api/checkout/create-session", {
       method: "POST",
       body: JSON.stringify(input),
@@ -293,7 +293,7 @@ export class FatsomaClient {
     return this.request(`/api/checkout/session/${sessionId}`);
   }
 
-  /** Verify payment with PayPal and update the order status. */
+  /** Verify payment with Stripe and update the order status. */
   async confirmCheckoutSession(
     sessionId: string,
   ): Promise<ApiResponse<CheckoutOrder>> {
@@ -322,7 +322,9 @@ export class FatsomaClient {
     });
   }
 
-  async cancelResaleListing(id: string): Promise<ApiResponse<ResaleListingResponse>> {
+  async cancelResaleListing(
+    id: string,
+  ): Promise<ApiResponse<ResaleListingResponse>> {
     return this.request(`/api/resale/${id}`, { method: "DELETE" });
   }
 
@@ -330,7 +332,9 @@ export class FatsomaClient {
     return this.request("/api/resale/my");
   }
 
-  async getResaleListings(eventId: string): Promise<ApiResponse<ResaleListingResponse[]>> {
+  async getResaleListings(
+    eventId: string,
+  ): Promise<ApiResponse<ResaleListingResponse[]>> {
     return this.request(`/api/resale/event/${eventId}`);
   }
 
@@ -405,6 +409,3 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
-
-
-
