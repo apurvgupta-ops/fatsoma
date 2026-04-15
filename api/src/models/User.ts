@@ -7,6 +7,15 @@ export interface IUser {
   password: string;
   role: "admin" | "user";
   isActive: boolean;
+  googleCalendar?: {
+    connected: boolean;
+    email?: string | null;
+    accessToken?: string;
+    refreshToken?: string;
+    expiryDate?: Date;
+    scope?: string;
+    connectedAt?: Date;
+  };
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   createdAt: Date;
@@ -28,7 +37,10 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email address"],
+      match: [
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Please provide a valid email address",
+      ],
     },
     password: {
       type: String,
@@ -37,12 +49,24 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: { values: ["admin", "user"], message: "Role must be either admin or user" },
+      enum: {
+        values: ["admin", "user"],
+        message: "Role must be either admin or user",
+      },
       default: "user",
     },
     isActive: {
       type: Boolean,
       default: true,
+    },
+    googleCalendar: {
+      connected: { type: Boolean, default: false },
+      email: { type: String, default: null },
+      accessToken: { type: String },
+      refreshToken: { type: String },
+      expiryDate: { type: Date },
+      scope: { type: String },
+      connectedAt: { type: Date },
     },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, type ReactNode } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createPublicClient, createBrowserClient } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import type {
@@ -33,108 +33,19 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
 
-function formatIcsDate(date: Date) {
-  return date
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d{3}Z$/, "Z");
-}
-
-function escapeIcsText(value: string) {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
-    .replace(/,/g, "\\,")
-    .replace(/;/g, "\\;");
-}
-
-function buildLocalDateTime(dateValue: string, timeValue: string) {
-  const [year, month, day] = dateValue.split("T")[0].split("-").map(Number);
-  const [hours, minutes] = timeValue.split(":").map(Number);
-  return new Date(
-    year,
-    (month || 1) - 1,
-    day || 1,
-    hours || 0,
-    minutes || 0,
-    0,
-  );
-}
-
-function formatGoogleCalendarDate(date: Date) {
-  return date
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d{3}Z$/, "Z");
-}
-
-function buildGoogleCalendarUrl(event: EventResponse) {
-  const startDate = buildLocalDateTime(event.eventDate, event.startTime);
-  const endDate = buildLocalDateTime(event.eventDate, event.endTime);
-  const title = event.eventName;
-  const details = [
-    event.eventDescription,
-    event.mapsLink ? `Map: ${event.mapsLink}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  const location = [event.venueName, event.city].filter(Boolean).join(", ");
-
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${formatGoogleCalendarDate(startDate)}/${formatGoogleCalendarDate(endDate)}`,
-    details,
-    location,
-    sf: "true",
-    output: "xml",
-  });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function buildIcsContent(event: EventResponse) {
-  const startDate = buildLocalDateTime(event.eventDate, event.startTime);
-  const endDate = buildLocalDateTime(event.eventDate, event.endTime);
-  const location = [event.venueName, event.city].filter(Boolean).join(", ");
-  const descriptionParts = [
-    event.eventDescription,
-    event.mapsLink ? `Map: ${event.mapsLink}` : "",
-  ]
-    .filter(Boolean)
-    .map(escapeIcsText)
-    .join("\\n\\n");
-
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//On The List//Events//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
-    `UID:${event.id}@on-the-list`,
-    `DTSTAMP:${formatIcsDate(new Date())}`,
-    `DTSTART:${formatIcsDate(startDate)}`,
-    `DTEND:${formatIcsDate(endDate)}`,
-    `SUMMARY:${escapeIcsText(event.eventName)}`,
-    `DESCRIPTION:${descriptionParts || escapeIcsText(event.eventDescription)}`,
-    `LOCATION:${escapeIcsText(location)}`,
-    event.mapsLink ? `URL:${escapeIcsText(event.mapsLink)}` : "",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ]
-    .filter(Boolean)
-    .join("\r\n");
-}
-
 export default function EventDetailPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
 
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarBusy, setCalendarBusy] = useState(false);
   const [calendarToast, setCalendarToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -151,6 +62,44 @@ export default function EventDetailPage() {
       .catch(() => setError("Failed to load event"))
       .finally(() => setLoading(false));
   }, [eventId]);
+
+  useEffect(() => {
+    if (!user) {
+      setCalendarConnected(false);
+      return;
+    }
+
+    const client = createBrowserClient();
+    client
+      .getGoogleCalendarStatus()
+      .then((res) => {
+        if (res.ok && res.data) {
+          setCalendarConnected(Boolean(res.data.connected));
+        }
+      })
+      .catch(() => {
+        setCalendarConnected(false);
+      });
+  }, [user]);
+
+  useEffect(() => {
+    const status = searchParams.get("calendar");
+    const message = searchParams.get("calendar_message");
+
+    if (!status) return;
+
+    if (status === "connected") {
+      setCalendarToast(
+        "Google Calendar connected. Tap again to add this event.",
+      );
+      setCalendarConnected(true);
+    } else if (status === "failed") {
+      setCalendarToast(message || "Google Calendar connection failed.");
+    }
+
+    window.setTimeout(() => setCalendarToast(null), 3500);
+    router.replace(`/events/${eventId}`);
+  }, [searchParams, router, eventId]);
 
   if (loading) {
     return (
@@ -179,24 +128,88 @@ export default function EventDetailPage() {
       : event.eventImage;
 
   const handleAddToCalendar = () => {
-    const icsContent = buildIcsContent(event);
-    const blob = new Blob([icsContent], {
-      type: "text/calendar;charset=utf-8",
-    });
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    if (!user) {
+      router.push(
+        `/login?redirect=${encodeURIComponent(`/events/${event.id}`)}`,
+      );
+      return;
+    }
 
-    link.href = downloadUrl;
-    link.download = `${event.eventName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "event"}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(downloadUrl);
+    setCalendarBusy(true);
+    const client = createBrowserClient();
 
-    setCalendarToast(
-      "Calendar file downloaded. Import it to your calendar app.",
-    );
-    window.setTimeout(() => setCalendarToast(null), 3000);
+    const addEvent = async () => {
+      const addRes = await client.addGoogleCalendarEvent({
+        eventName: event.eventName,
+        eventDescription: event.eventDescription,
+        eventDate: event.eventDate,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        venueName: event.venueName,
+        city: event.city,
+        mapsLink: event.mapsLink,
+      });
+
+      if (addRes.ok) {
+        setCalendarToast("Event added to your Google Calendar.");
+      } else {
+        const msg = addRes.message || "Failed to add event to calendar.";
+        const needsReconnect =
+          /authorization expired|reconnect google calendar/i.test(msg);
+
+        if (needsReconnect) {
+          setCalendarConnected(false);
+          const connectRes = await client.getGoogleCalendarConnectUrl(
+            `/events/${event.id}`,
+          );
+          if (connectRes.ok && connectRes.data?.url) {
+            setCalendarToast("Reconnecting Google Calendar...");
+            window.location.href = connectRes.data.url;
+            return;
+          }
+        }
+
+        setCalendarToast(msg);
+      }
+      window.setTimeout(() => setCalendarToast(null), 3500);
+      setCalendarBusy(false);
+    };
+
+    if (calendarConnected) {
+      addEvent().catch((err: unknown) => {
+        setCalendarToast(
+          err instanceof Error
+            ? err.message
+            : "Failed to add event to calendar.",
+        );
+        window.setTimeout(() => setCalendarToast(null), 3500);
+        setCalendarBusy(false);
+      });
+      return;
+    }
+
+    client
+      .getGoogleCalendarConnectUrl(`/events/${event.id}`)
+      .then((res) => {
+        if (res.ok && res.data?.url) {
+          window.location.href = res.data.url;
+          return;
+        }
+        setCalendarToast(
+          res.message || "Failed to start Google Calendar connect.",
+        );
+        window.setTimeout(() => setCalendarToast(null), 3500);
+        setCalendarBusy(false);
+      })
+      .catch((err: unknown) => {
+        setCalendarToast(
+          err instanceof Error
+            ? err.message
+            : "Failed to start Google Calendar connect.",
+        );
+        window.setTimeout(() => setCalendarToast(null), 3500);
+        setCalendarBusy(false);
+      });
   };
 
   return (
@@ -276,10 +289,17 @@ export default function EventDetailPage() {
             <button
               type="button"
               onClick={handleAddToCalendar}
-              className="mb-6 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs text-cream/40 transition-colors hover:border-gold/30 hover:text-gold"
+              disabled={calendarBusy}
+              className="mb-6 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs text-cream/40 transition-colors hover:border-gold/30 hover:text-gold disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <CalendarDays className="h-3.5 w-3.5" />
-              Add to calendar
+              {calendarBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CalendarDays className="h-3.5 w-3.5" />
+              )}
+              {calendarConnected
+                ? "Add to Google Calendar"
+                : "Connect Google Calendar"}
             </button>
 
             <div className="space-y-8">

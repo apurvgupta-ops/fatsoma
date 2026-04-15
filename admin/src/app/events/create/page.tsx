@@ -17,6 +17,8 @@ import {
   Ticket,
   Settings,
   Image as ImageIcon,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -42,8 +44,19 @@ export default function CreateEventPage() {
   const router = useRouter();
 
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const showToast = useCallback(
+    (type: "success" | "error", message: string) => {
+      setToast({ type, message });
+      window.setTimeout(() => setToast(null), 3500);
+    },
+    [],
+  );
 
   const [form, setForm] = useState({
     eventName: "",
@@ -82,12 +95,12 @@ export default function CreateEventPage() {
       prev.map((b, i) =>
         i === index
           ? {
-            ...b,
-            [field]:
-              typeof DEFAULT_BATCH[field] === "number"
-                ? Number(value)
-                : value,
-          }
+              ...b,
+              [field]:
+                typeof DEFAULT_BATCH[field] === "number"
+                  ? Number(value)
+                  : value,
+            }
           : b,
       ),
     );
@@ -109,18 +122,21 @@ export default function CreateEventPage() {
         const res = await client.uploadImage(file);
         if (res.ok && res.data) {
           updateField("eventImage", res.data.url);
+          showToast("success", "Image uploaded successfully.");
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Image upload failed");
+        showToast(
+          "error",
+          err instanceof Error ? err.message : "Image upload failed",
+        );
       } finally {
         setUploading(false);
       }
     },
-    [token],
+    [token, showToast],
   );
 
   const handleSubmit = async (status: "draft" | "published") => {
-    setError(null);
     setSaving(true);
 
     try {
@@ -138,12 +154,21 @@ export default function CreateEventPage() {
       const client = createApiClient(token);
       const res = await client.createEvent(input);
       if (res.ok) {
-        router.push("/events");
+        showToast(
+          "success",
+          status === "published"
+            ? "Event published successfully."
+            : "Event saved as draft.",
+        );
+        window.setTimeout(() => router.push("/events"), 500);
       } else {
-        setError(res.message || "Failed to create event");
+        showToast("error", res.message || "Failed to create event");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create event");
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Failed to create event",
+      );
     } finally {
       setSaving(false);
     }
@@ -174,12 +199,6 @@ export default function CreateEventPage() {
             <h1 className="text-3xl font-semibold text-cream">Create Event</h1>
           </div>
         </header>
-
-        {error && (
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-            {error}
-          </div>
-        )}
 
         {/* Event Details */}
         <Section title="Event Details" icon={<Calendar className="h-5 w-5" />}>
@@ -401,24 +420,26 @@ export default function CreateEventPage() {
           icon={<Settings className="h-5 w-5" />}
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <InputField
+            {/* <InputField
               label="Platform Commission (%)"
               type="number"
               value={String(form.platformCommission)}
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
-            />
+            /> */}
             <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/40 px-4 py-3">
               <span className="text-sm text-cream/60">Booking Fee</span>
-              <span className="ml-auto font-mono text-sm font-semibold text-gold">{BOOKING_FEE_PERCENT}%</span>
+              <span className="ml-auto font-mono text-sm font-semibold text-gold">
+                {BOOKING_FEE_PERCENT}%
+              </span>
               <span className="text-xs text-cream/60">(platform-wide)</span>
             </div>
-            <ToggleField
+            {/* <ToggleField
               label="Dynamic Pricing"
               checked={form.dynamicPricing}
               onChange={(v) => updateField("dynamicPricing", v)}
               description="Automatically adjust prices based on demand"
-            />
+            /> */}
             <ToggleField
               label="Allow Resale"
               checked={form.allowResale}
@@ -448,7 +469,23 @@ export default function CreateEventPage() {
           </button>
         </div>
       </div>
+
+      {toast && (
+        <div
+          className={`fixed right-6 top-6 z-50 flex max-w-md items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm ${
+            toast.type === "success"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+              : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
     </AuthenticatedLayout>
   );
 }
-

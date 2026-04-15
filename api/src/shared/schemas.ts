@@ -1,38 +1,63 @@
 import { z } from "zod";
 import { EVENT_CATEGORIES, EVENT_STATUSES, USER_ROLES } from "./constants";
 
-export const ticketBatchSchema = z.object({
-  name: z.string().min(1, "Batch name is required").trim(),
-  quantity: z.number().min(0, "Quantity cannot be negative"),
-  basePrice: z.number().min(0, "Price cannot be negative"),
-  minDiscount: z.number().min(0).max(100),
-  maxDiscount: z.number().min(0).max(100),
-}).refine((b) => b.minDiscount <= b.maxDiscount, {
-  message: "Minimum discount cannot exceed maximum discount",
-  path: ["minDiscount"],
-});
+export const ticketBatchSchema = z
+  .object({
+    name: z.string().min(1, "Batch name is required").trim(),
+    quantity: z.number().min(0, "Quantity cannot be negative"),
+    basePrice: z.number().gt(0, "Price must be greater than 0"),
+    minDiscount: z
+      .number()
+      .min(0, "Minimum discount cannot be negative")
+      .max(100, "Minimum discount cannot exceed 100"),
+    maxDiscount: z
+      .number()
+      .min(0, "Maximum discount cannot be negative")
+      .max(100, "Maximum discount cannot exceed 100"),
+  })
+  .refine((b) => b.minDiscount <= b.maxDiscount, {
+    message: "Minimum discount cannot exceed maximum discount",
+    path: ["minDiscount"],
+  });
 
 export const createEventSchema = z.object({
-  eventName: z.string().min(1).max(200).trim(),
-  eventDescription: z.string().min(1).max(5000).trim(),
+  eventName: z
+    .string()
+    .min(1, "Event name is required")
+    .max(200, "Event name cannot exceed 200 characters")
+    .trim(),
+  eventDescription: z
+    .string()
+    .min(1, "Event description is required")
+    .max(5000, "Event description cannot exceed 5000 characters")
+    .trim(),
   eventCategory: z.enum(EVENT_CATEGORIES),
-  eventImage: z.string().min(1),
+  eventImage: z.string().min(1, "Event image is required"),
   eventBanner: z.string().optional(),
-  venueName: z.string().min(1).trim(),
-  addressLine: z.string().min(1).trim(),
-  city: z.string().min(1).trim(),
-  postcode: z.string().min(1).trim(),
-  country: z.string().min(1).trim(),
+  venueName: z.string().min(1, "Venue name is required").trim(),
+  addressLine: z.string().min(1, "Address line is required").trim(),
+  city: z.string().min(1, "City is required").trim(),
+  postcode: z.string().min(1, "Postcode is required").trim(),
+  country: z.string().min(1, "Country is required").trim(),
   mapsLink: z.string().optional(),
-  eventDate: z.string().min(1),
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
-  totalTickets: z.number().min(0),
-  ticketBatches: z.array(ticketBatchSchema).min(1, "At least one ticket batch is required"),
+  eventDate: z.string().min(1, "Event date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  totalTickets: z.number().min(1, "Total tickets must be greater than 0"),
+  ticketBatches: z
+    .array(ticketBatchSchema)
+    .min(1, "At least one ticket batch is required"),
   dynamicPricing: z.boolean(),
-  bookingFee: z.number().min(0).max(100).optional(),
+  bookingFee: z
+    .number()
+    .min(0, "Booking fee cannot be negative")
+    .max(100, "Booking fee cannot exceed 100%")
+    .optional(),
   allowResale: z.boolean(),
-  platformCommission: z.number().min(0).max(100),
+  platformCommission: z
+    .number()
+    .min(0, "Platform commission cannot be negative")
+    .max(100, "Platform commission cannot exceed 100%"),
   status: z.enum(EVENT_STATUSES),
 });
 
@@ -42,9 +67,13 @@ export const loginSchema = z.object({
 });
 
 export const createUserSchema = z.object({
-  name: z.string().min(2).max(100).trim(),
-  email: z.string().email(),
-  password: z.string().min(6),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name cannot exceed 100 characters")
+    .trim(),
+  email: z.string().email("Please provide a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(USER_ROLES),
 });
 

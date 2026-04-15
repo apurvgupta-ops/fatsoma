@@ -48,8 +48,16 @@ export default function EditEventPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!error) return;
+    setErrorToast(error);
+    const timer = window.setTimeout(() => setErrorToast(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [error]);
 
   const [form, setForm] = useState({
     eventName: "",
@@ -125,12 +133,12 @@ export default function EditEventPage() {
       prev.map((b, i) =>
         i === index
           ? {
-            ...b,
-            [field]:
-              typeof DEFAULT_BATCH[field] === "number"
-                ? Number(value)
-                : value,
-          }
+              ...b,
+              [field]:
+                typeof DEFAULT_BATCH[field] === "number"
+                  ? Number(value)
+                  : value,
+            }
           : b,
       ),
     );
@@ -245,10 +253,11 @@ export default function EditEventPage() {
             </div>
           </div>
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${form.status === "published"
-              ? "bg-gold/20 text-gold border border-gold/40"
-              : "bg-gold-light/15 text-gold-light border border-gold-light/30"
-              }`}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              form.status === "published"
+                ? "bg-gold/20 text-gold border border-gold/40"
+                : "bg-gold-light/15 text-gold-light border border-gold-light/30"
+            }`}
           >
             {form.status === "published" ? "Published" : "Draft"}
           </span>
@@ -468,24 +477,26 @@ export default function EditEventPage() {
           icon={<Settings className="h-5 w-5" />}
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <InputField
+            {/* <InputField
               label="Platform Commission (%)"
               type="number"
               value={String(form.platformCommission)}
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
-            />
+            /> */}
             <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/40 px-4 py-3">
               <span className="text-sm text-cream/60">Booking Fee</span>
-              <span className="ml-auto font-mono text-sm font-semibold text-gold">{BOOKING_FEE_PERCENT}%</span>
+              <span className="ml-auto font-mono text-sm font-semibold text-gold">
+                {BOOKING_FEE_PERCENT}%
+              </span>
               <span className="text-xs text-cream/60">(platform-wide)</span>
             </div>
-            <ToggleField
+            {/* <ToggleField
               label="Dynamic Pricing"
               checked={form.dynamicPricing}
               onChange={(v) => updateField("dynamicPricing", v)}
               description="Automatically adjust prices based on demand"
-            />
+            /> */}
             <ToggleField
               label="Allow Resale"
               checked={form.allowResale}
@@ -543,7 +554,9 @@ export default function EditEventPage() {
           )}
           <button
             type="button"
-            onClick={() => handleSave(form.status === "published" ? "published" : "draft")}
+            onClick={() =>
+              handleSave(form.status === "published" ? "published" : "draft")
+            }
             disabled={saving}
             className="rounded-xl border border-border bg-surface/40 px-6 py-3 text-sm font-semibold text-cream/90 transition hover:bg-surface/60 disabled:opacity-50"
           >
@@ -563,7 +576,12 @@ export default function EditEventPage() {
           </button>
         </div>
       </div>
+
+      {errorToast && (
+        <div className="fixed right-6 top-6 z-50 max-w-md rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200 shadow-lg backdrop-blur-sm">
+          {errorToast}
+        </div>
+      )}
     </AuthenticatedLayout>
   );
 }
-

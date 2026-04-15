@@ -1,8 +1,10 @@
 import dotenv from "dotenv";
 import path from "path";
-
-const nodeEnv = process.env.NODE_ENV === "production" ? "production" : "development";
-dotenv.config({ path: path.resolve(process.cwd(), `.env.${nodeEnv}`) });
+const nodeEnv =
+  process.env.NODE_ENV === "production" ? "production" : "development";
+dotenv.config({
+  path: path.resolve(process.cwd(), `.env.${nodeEnv}`),
+});
 
 import express from "express";
 import cors from "cors";
@@ -15,6 +17,7 @@ import { checkoutRouter } from "./routes/checkout";
 import { orderRouter } from "./routes/orders";
 import { ticketRouter } from "./routes/tickets";
 import { resaleRouter } from "./routes/resale";
+import { calendarRouter } from "./routes/calendar";
 import { errorHandler } from "./middleware/error";
 import { requestLogger } from "./middleware/logger";
 
@@ -54,6 +57,7 @@ export function createApp() {
   app.use("/api/orders", orderRouter);
   app.use("/api/tickets", ticketRouter);
   app.use("/api/resale", resaleRouter);
+  app.use("/api/calendar", calendarRouter);
 
   // ── Health check ────────────────────────────────────
   app.get("/api/health", (_req, res) => {
@@ -89,4 +93,3 @@ start().catch((err) => {
   console.error("❌ Failed to start server:", err);
   process.exit(1);
 });
-

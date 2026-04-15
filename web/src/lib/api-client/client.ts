@@ -137,7 +137,8 @@ export class FatsomaClient {
         });
         if (!res.ok) return null;
         const data: any = await res.json();
-        const newToken: string | undefined = data.accessToken ?? data.data?.accessToken;
+        const newToken: string | undefined =
+          data.accessToken ?? data.data?.accessToken;
         if (newToken) {
           this.onTokenRefreshed?.(newToken);
           return newToken;
@@ -278,9 +279,7 @@ export class FatsomaClient {
     batchName: string;
     quantity: number;
     capturedFee: number;
-  }): Promise<
-    ApiResponse<{ sessionId: string; url: string }>
-  > {
+  }): Promise<ApiResponse<{ sessionId: string; url: string }>> {
     return this.request("/api/checkout/create-session", {
       method: "POST",
       body: JSON.stringify(input),
@@ -322,7 +321,9 @@ export class FatsomaClient {
     });
   }
 
-  async cancelResaleListing(id: string): Promise<ApiResponse<ResaleListingResponse>> {
+  async cancelResaleListing(
+    id: string,
+  ): Promise<ApiResponse<ResaleListingResponse>> {
     return this.request(`/api/resale/${id}`, { method: "DELETE" });
   }
 
@@ -330,7 +331,9 @@ export class FatsomaClient {
     return this.request("/api/resale/my");
   }
 
-  async getResaleListings(eventId: string): Promise<ApiResponse<ResaleListingResponse[]>> {
+  async getResaleListings(
+    eventId: string,
+  ): Promise<ApiResponse<ResaleListingResponse[]>> {
     return this.request(`/api/resale/event/${eventId}`);
   }
 
@@ -341,6 +344,40 @@ export class FatsomaClient {
     return this.request(`/api/resale/${listingId}/buy`, {
       method: "POST",
       body: JSON.stringify({ capturedFee }),
+    });
+  }
+
+  // ── Calendar (Google) ───────────────────────────────
+  async getGoogleCalendarStatus(): Promise<
+    ApiResponse<{ connected: boolean; email: string | null }>
+  > {
+    return this.request("/api/calendar/google/status");
+  }
+
+  async getGoogleCalendarConnectUrl(
+    redirectPath: string,
+  ): Promise<ApiResponse<{ url: string }>> {
+    return this.request("/api/calendar/google/connect-url", {
+      method: "POST",
+      body: JSON.stringify({ redirectPath }),
+    });
+  }
+
+  async addGoogleCalendarEvent(input: {
+    eventName: string;
+    eventDescription: string;
+    eventDate: string;
+    startTime: string;
+    endTime: string;
+    venueName: string;
+    city: string;
+    mapsLink?: string;
+  }): Promise<
+    ApiResponse<{ eventId: string | null; htmlLink: string | null }>
+  > {
+    return this.request("/api/calendar/google/add-event", {
+      method: "POST",
+      body: JSON.stringify(input),
     });
   }
 
@@ -405,5 +442,3 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
-
-
