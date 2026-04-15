@@ -33,6 +33,100 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
 
+function formatIcsDate(date: Date) {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+}
+
+function escapeIcsText(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function buildLocalDateTime(dateValue: string, timeValue: string) {
+  const [year, month, day] = dateValue.split("T")[0].split("-").map(Number);
+  const [hours, minutes] = timeValue.split(":").map(Number);
+  return new Date(
+    year,
+    (month || 1) - 1,
+    day || 1,
+    hours || 0,
+    minutes || 0,
+    0,
+  );
+}
+
+function formatGoogleCalendarDate(date: Date) {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+}
+
+function buildGoogleCalendarUrl(event: EventResponse) {
+  const startDate = buildLocalDateTime(event.eventDate, event.startTime);
+  const endDate = buildLocalDateTime(event.eventDate, event.endTime);
+  const title = event.eventName;
+  const details = [
+    event.eventDescription,
+    event.mapsLink ? `Map: ${event.mapsLink}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const location = [event.venueName, event.city].filter(Boolean).join(", ");
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${formatGoogleCalendarDate(startDate)}/${formatGoogleCalendarDate(endDate)}`,
+    details,
+    location,
+    sf: "true",
+    output: "xml",
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function buildIcsContent(event: EventResponse) {
+  const startDate = buildLocalDateTime(event.eventDate, event.startTime);
+  const endDate = buildLocalDateTime(event.eventDate, event.endTime);
+  const location = [event.venueName, event.city].filter(Boolean).join(", ");
+  const descriptionParts = [
+    event.eventDescription,
+    event.mapsLink ? `Map: ${event.mapsLink}` : "",
+  ]
+    .filter(Boolean)
+    .map(escapeIcsText)
+    .join("\\n\\n");
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//On The List//Events//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${event.id}@on-the-list`,
+    `DTSTAMP:${formatIcsDate(new Date())}`,
+    `DTSTART:${formatIcsDate(startDate)}`,
+    `DTEND:${formatIcsDate(endDate)}`,
+    `SUMMARY:${escapeIcsText(event.eventName)}`,
+    `DESCRIPTION:${descriptionParts || escapeIcsText(event.eventDescription)}`,
+    `LOCATION:${escapeIcsText(location)}`,
+    event.mapsLink ? `URL:${escapeIcsText(event.mapsLink)}` : "",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ]
+    .filter(Boolean)
+    .join("\r\n");
+}
+
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params.id as string;
@@ -41,6 +135,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [calendarToast, setCalendarToast] = useState<string | null>(null);
 
   useEffect(() => {
     const client = createPublicClient();
@@ -82,6 +177,27 @@ export default function EventDetailPage() {
     : event.eventImage.startsWith("/uploads/")
       ? `${API_URL}${event.eventImage}`
       : event.eventImage;
+
+  const handleAddToCalendar = () => {
+    const icsContent = buildIcsContent(event);
+    const blob = new Blob([icsContent], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = `${event.eventName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "event"}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+
+    setCalendarToast(
+      "Calendar file downloaded. Import it to your calendar app.",
+    );
+    window.setTimeout(() => setCalendarToast(null), 3000);
+  };
 
   return (
     <div className="min-h-screen bg-black text-cream/90">
@@ -159,7 +275,8 @@ export default function EventDetailPage() {
 
             <button
               type="button"
-              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs text-cream/40 transition-colors hover:border-gold/30 hover:text-gold"
+              onClick={handleAddToCalendar}
+              className="mb-6 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs text-cream/40 transition-colors hover:border-gold/30 hover:text-gold"
             >
               <CalendarDays className="h-3.5 w-3.5" />
               Add to calendar
@@ -192,6 +309,12 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
+
+      {calendarToast && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 shadow-lg backdrop-blur-sm">
+          {calendarToast}
+        </div>
+      )}
     </div>
   );
 }
@@ -772,4 +895,3 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
     </section>
   );
 }
-
