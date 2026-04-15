@@ -9,6 +9,7 @@ import type {
   CreateUserInput,
   TicketResponse,
   ResaleListingResponse,
+  NotificationResponse,
 } from "../shared";
 
 export interface ClientConfig {
@@ -379,6 +380,36 @@ export class FatsomaClient {
       method: "POST",
       body: JSON.stringify(input),
     });
+  }
+
+  // ── Notifications ───────────────────────────────────
+  async getMyNotifications(params?: {
+    limit?: number;
+    cursor?: string;
+  }): Promise<
+    ApiResponse<{ items: NotificationResponse[]; nextCursor: string | null }>
+  > {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    const query = qs.toString();
+    return this.request(`/api/notifications/my${query ? `?${query}` : ""}`);
+  }
+
+  async getUnreadNotificationsCount(): Promise<ApiResponse<{ count: number }>> {
+    return this.request("/api/notifications/unread-count");
+  }
+
+  async markNotificationRead(
+    id: string,
+  ): Promise<ApiResponse<NotificationResponse>> {
+    return this.request(`/api/notifications/${id}/read`, { method: "PATCH" });
+  }
+
+  async markAllNotificationsRead(): Promise<
+    ApiResponse<{ modifiedCount: number }>
+  > {
+    return this.request("/api/notifications/read-all", { method: "PATCH" });
   }
 
   // ── Orders ─────────────────────────────────────────────

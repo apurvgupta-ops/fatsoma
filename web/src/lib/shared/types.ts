@@ -131,3 +131,19 @@ export interface ResaleListingResponse {
   updatedAt: string | null;
 }
 
+export interface NotificationResponse {
+  id: string;
+  userId: string;
+  type:
+    | "order_paid"
+    | "resale_sold"
+    | "resale_bought"
+    | "calendar_connected"
+    | "system";
+  title: string;
+  body: string;
+  metadata: Record<string, unknown> | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}

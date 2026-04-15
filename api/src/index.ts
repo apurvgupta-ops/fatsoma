@@ -18,6 +18,7 @@ import { orderRouter } from "./routes/orders";
 import { ticketRouter } from "./routes/tickets";
 import { resaleRouter } from "./routes/resale";
 import { calendarRouter } from "./routes/calendar";
+import { notificationRouter } from "./routes/notifications";
 import { errorHandler } from "./middleware/error";
 import { requestLogger } from "./middleware/logger";
 
@@ -58,6 +59,7 @@ export function createApp() {
   app.use("/api/tickets", ticketRouter);
   app.use("/api/resale", resaleRouter);
   app.use("/api/calendar", calendarRouter);
+  app.use("/api/notifications", notificationRouter);
 
   // ── Health check ────────────────────────────────────
   app.get("/api/health", (_req, res) => {

@@ -7,8 +7,13 @@ import Ticket from "../models/Ticket";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import User from "../models/User";
-import { sendBookingConfirmationEmail, sendResaleBookingEmail, sendTicketSoldEmail } from "../lib/email";
+import {
+  sendBookingConfirmationEmail,
+  sendResaleBookingEmail,
+  sendTicketSoldEmail,
+} from "../lib/email";
 import { logPayment, logRefund } from "../lib/systemLogger";
+import { createNotification } from "./notification.service";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
 
@@ -338,6 +343,20 @@ export async function confirmSession(sessionId: string) {
 
     if (order.type === "primary") {
       await generateTickets(order);
+      if (order.userId) {
+        await createNotification({
+          userId: order.userId.toString(),
+          type: "order_paid",
+          title: "Booking Confirmed",
+          body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
+          metadata: {
+            orderId: order._id.toString(),
+            type: order.type,
+            totalAmount: order.totalAmount,
+          },
+          dedupeKey: `order_paid:${order._id.toString()}`,
+        });
+      }
       if (order.customerEmail) {
         sendBookingConfirmationEmail({
           email: order.customerEmail,
@@ -351,6 +370,20 @@ export async function confirmSession(sessionId: string) {
       }
     } else if (order.type === "resale") {
       await completeResaleTransfer(order);
+      if (order.userId) {
+        await createNotification({
+          userId: order.userId.toString(),
+          type: "resale_bought",
+          title: "Resale Ticket Purchased",
+          body: `Your resale ticket for ${order.eventName} is confirmed.`,
+          metadata: {
+            orderId: order._id.toString(),
+            type: order.type,
+            totalAmount: order.totalAmount,
+          },
+          dedupeKey: `resale_bought:${order._id.toString()}`,
+        });
+      }
       if (order.customerEmail) {
         sendResaleBookingEmail({
           email: order.customerEmail,
@@ -546,10 +579,10 @@ async function issueSellerRefund(
 }
 
 async function notifySellerOfSale(listing: any, order: any) {
-  const seller = await User.findById(listing.sellerId).lean() as any;
+  const seller = (await User.findById(listing.sellerId).lean()) as any;
   if (!seller) return;
 
-  const event = await Event.findById(listing.eventId).lean() as any;
+  const event = (await Event.findById(listing.eventId).lean()) as any;
   const eventName = event?.eventName || order.eventName || "Unknown Event";
 
   await sendTicketSoldEmail({
@@ -560,6 +593,20 @@ async function notifySellerOfSale(listing: any, order: any) {
     askingPrice: listing.askingPrice,
     sellerPayout: listing.sellerPayout,
     buyerName: order.customerName || "A buyer",
+  });
+
+  await createNotification({
+    userId: listing.sellerId.toString(),
+    type: "resale_sold",
+    title: "Your Ticket Was Sold",
+    body: `${eventName} (${order.ticketBatchName || "General"}) sold for £${Number(listing.askingPrice || 0).toFixed(2)}.`,
+    metadata: {
+      listingId: listing._id.toString(),
+      resaleOrderId: order._id.toString(),
+      sellerPayout: listing.sellerPayout,
+      sellerRefundStatus: listing.sellerRefundStatus,
+    },
+    dedupeKey: `resale_sold:${listing._id.toString()}`,
   });
 }
 
@@ -620,7 +667,8 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
       outcome: "failure",
       type: "webhook",
       errorMessage: msg,
-      reason: "Stripe webhook signature verification failed — check STRIPE_WEBHOOK_SECRET and raw body",
+      reason:
+        "Stripe webhook signature verification failed — check STRIPE_WEBHOOK_SECRET and raw body",
     });
     throw AppError.badRequest("Webhook signature verification failed");
   }
@@ -660,6 +708,20 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
 
       if (order.type === "primary") {
         await generateTickets(order);
+        if (order.userId) {
+          await createNotification({
+            userId: order.userId.toString(),
+            type: "order_paid",
+            title: "Booking Confirmed",
+            body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
+            metadata: {
+              orderId: order._id.toString(),
+              type: order.type,
+              totalAmount: order.totalAmount,
+            },
+            dedupeKey: `order_paid:${order._id.toString()}`,
+          });
+        }
         if (order.customerEmail) {
           sendBookingConfirmationEmail({
             email: order.customerEmail,
@@ -673,6 +735,20 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
         }
       } else if (order.type === "resale") {
         await completeResaleTransfer(order);
+        if (order.userId) {
+          await createNotification({
+            userId: order.userId.toString(),
+            type: "resale_bought",
+            title: "Resale Ticket Purchased",
+            body: `Your resale ticket for ${order.eventName} is confirmed.`,
+            metadata: {
+              orderId: order._id.toString(),
+              type: order.type,
+              totalAmount: order.totalAmount,
+            },
+            dedupeKey: `resale_bought:${order._id.toString()}`,
+          });
+        }
         if (order.customerEmail) {
           sendResaleBookingEmail({
             email: order.customerEmail,
