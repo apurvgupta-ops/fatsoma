@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,6 +19,7 @@ import {
   Search,
   Gift,
   Download,
+  ChevronDown,
 } from "lucide-react";
 
 // AlertCircle is used in error div
@@ -26,6 +27,19 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 type TabId = "active" | "resale" | "sold" | "history";
+
+type GroupedTicket = {
+  key: string;
+  representative: TicketResponse;
+  tickets: TicketResponse[];
+  quantity: number;
+};
+
+type ResaleModalState = {
+  representative: TicketResponse;
+  tickets: TicketResponse[];
+  quantity: number;
+};
 
 export default function MyTicketsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -35,7 +49,7 @@ export default function MyTicketsPage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("active");
 
-  const [resaleModal, setResaleModal] = useState<TicketResponse | null>(null);
+  const [resaleModal, setResaleModal] = useState<ResaleModalState | null>(null);
   const [resaleAcknowledge, setResaleAcknowledge] = useState(false);
   const [giftModal, setGiftModal] = useState<TicketResponse | null>(null);
   const [giftRecipientName, setGiftRecipientName] = useState("");
@@ -83,19 +97,26 @@ export default function MyTicketsPage() {
       return;
     }
 
-    const price = resaleModal.currentBatchPrice;
+    const price = resaleModal.representative.currentBatchPrice;
+    const selectedTickets = resaleModal.tickets.slice(0, resaleModal.quantity);
 
     setSubmitting(true);
     setActionError("");
     try {
       const client = createBrowserClient();
-      await client.listTicketForResale({
-        ticketId: resaleModal.id,
-        askingPrice: price,
-      });
+      for (const ticket of selectedTickets) {
+        await client.listTicketForResale({
+          ticketId: ticket.id,
+          askingPrice: price,
+        });
+      }
       setResaleModal(null);
       setResaleAcknowledge(false);
-      setSuccessMessage("Ticket listed for resale successfully!");
+      setSuccessMessage(
+        selectedTickets.length > 1
+          ? `${selectedTickets.length} tickets listed for resale successfully!`
+          : "Ticket listed for resale successfully!",
+      );
       setTimeout(() => setSuccessMessage(""), 5000);
       fetchTickets();
     } catch (err: any) {
@@ -171,6 +192,31 @@ export default function MyTicketsPage() {
         );
       })
     : displayedTickets;
+
+  const groupedActiveTickets = useMemo(() => {
+    if (activeTab !== "active") return [] as GroupedTicket[];
+
+    const groups = new Map<string, TicketResponse[]>();
+    for (const ticket of filteredTickets) {
+      const key = [
+        ticket.eventId,
+        ticket.ticketBatchName,
+        ticket.purchasePrice.toFixed(2),
+        ticket.eventDate ?? "",
+      ].join("|");
+
+      const existing = groups.get(key) ?? [];
+      existing.push(ticket);
+      groups.set(key, existing);
+    }
+
+    return Array.from(groups.entries()).map(([key, ticketsInGroup]) => ({
+      key,
+      representative: ticketsInGroup[0],
+      tickets: ticketsInGroup,
+      quantity: ticketsInGroup.length,
+    }));
+  }, [activeTab, filteredTickets]);
 
   const filteredSoldListings = normalizedQuery
     ? soldListings.filter((listing) =>
@@ -339,24 +385,44 @@ export default function MyTicketsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredTickets.map((ticket) => (
-                <TicketCard
-                  key={ticket.id}
-                  ticket={ticket}
-                  onListForResale={() => {
-                    setResaleModal(ticket);
-                    setResaleAcknowledge(false);
-                    setActionError("");
-                  }}
-                  onGiftTicket={() => {
-                    setGiftModal(ticket);
-                    setGiftRecipientName("");
-                    setGiftAcknowledge(false);
-                    setActionError("");
-                  }}
-                  onCancelListing={() => setCancelConfirm(ticket)}
-                />
-              ))}
+              {activeTab === "active"
+                ? groupedActiveTickets.map((group) => (
+                    <GroupedTicketCard
+                      key={group.key}
+                      group={group}
+                      onListManyForResale={(ticketsToList, quantityToList) => {
+                        setResaleModal({
+                          representative: group.representative,
+                          tickets: ticketsToList,
+                          quantity: quantityToList,
+                        });
+                        setResaleAcknowledge(false);
+                        setActionError("");
+                      }}
+                    />
+                  ))
+                : filteredTickets.map((ticket) => (
+                    <TicketCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      onListForResale={() => {
+                        setResaleModal({
+                          representative: ticket,
+                          tickets: [ticket],
+                          quantity: 1,
+                        });
+                        setResaleAcknowledge(false);
+                        setActionError("");
+                      }}
+                      onGiftTicket={() => {
+                        setGiftModal(ticket);
+                        setGiftRecipientName("");
+                        setGiftAcknowledge(false);
+                        setActionError("");
+                      }}
+                      onCancelListing={() => setCancelConfirm(ticket)}
+                    />
+                  ))}
             </div>
           )}
         </div>
@@ -421,13 +487,19 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm gap-4">
                 <span className="text-muted">Event</span>
                 <span className="font-medium text-right">
-                  {resaleModal.eventName}
+                  {resaleModal.representative.eventName}
                 </span>
               </div>
               <div className="flex justify-between text-sm gap-4">
                 <span className="text-muted">Tier</span>
                 <span className="font-medium capitalize text-right">
-                  {resaleModal.ticketBatchName}
+                  {resaleModal.representative.ticketBatchName}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm gap-4">
+                <span className="text-muted">Quantity</span>
+                <span className="font-medium text-right">
+                  {resaleModal.quantity}
                 </span>
               </div>
             </div>
@@ -439,7 +511,7 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Current release price</span>
                 <span className="font-medium text-cream">
-                  £{resaleModal.currentBatchPrice.toFixed(2)}
+                  £{resaleModal.representative.currentBatchPrice.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-sm gap-3">
@@ -452,7 +524,9 @@ export default function MyTicketsPage() {
                 <span className="font-medium text-cream">
                   £
                   {(
-                    Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100
+                    Math.round(
+                      resaleModal.representative.currentBatchPrice * 0.07 * 100,
+                    ) / 100
                   ).toFixed(2)}
                 </span>
               </div>
@@ -461,8 +535,11 @@ export default function MyTicketsPage() {
                 <span className="font-semibold text-cream">
                   £
                   {(
-                    resaleModal.currentBatchPrice +
-                    Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100
+                    resaleModal.representative.currentBatchPrice +
+                    Math.round(
+                      resaleModal.representative.currentBatchPrice * 0.07 * 100,
+                    ) /
+                      100
                   ).toFixed(2)}
                 </span>
               </div>
@@ -474,7 +551,8 @@ export default function MyTicketsPage() {
                 <span className="font-medium text-cream">
                   £
                   {Math.max(
-                    resaleModal.currentBatchPrice - resaleModal.purchasePrice,
+                    resaleModal.representative.currentBatchPrice -
+                      resaleModal.representative.purchasePrice,
                     0,
                   ).toFixed(2)}
                 </span>
@@ -482,13 +560,17 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Your original price back</span>
                 <span className="font-medium text-cream">
-                  £{resaleModal.purchasePrice.toFixed(2)}
+                  £{resaleModal.representative.purchasePrice.toFixed(2)}
                 </span>
               </div>
               <div className="border-t border-border pt-2.5 flex justify-between text-sm">
                 <span className="font-semibold text-gold">You receive</span>
                 <span className="font-bold text-gold">
-                  £{resaleModal.purchasePrice.toFixed(2)}
+                  £
+                  {(
+                    resaleModal.representative.purchasePrice *
+                    resaleModal.quantity
+                  ).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -496,9 +578,13 @@ export default function MyTicketsPage() {
             <p className="mb-5 text-xs leading-relaxed text-muted/80">
               Your ticket is priced at the{" "}
               <strong className="text-muted">current release price</strong> -
-              you get your original £{resaleModal.purchasePrice.toFixed(2)}{" "}
-              back. The organiser captures the rest, same as if you&apos;d
-              bought today.
+              you get your original £
+              {(
+                resaleModal.representative.purchasePrice * resaleModal.quantity
+              ).toFixed(2)}{" "}
+              back for {resaleModal.quantity} ticket
+              {resaleModal.quantity > 1 ? "s" : ""}. The organiser captures the
+              rest, same as if you&apos;d bought today.
             </p>
 
             <div className="mb-3 rounded-lg bg-void/45 p-3">
@@ -678,6 +764,169 @@ export default function MyTicketsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function GroupedTicketCard({
+  group,
+  onListManyForResale,
+}: {
+  group: GroupedTicket;
+  onListManyForResale: (tickets: TicketResponse[], quantity: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [listQuantity, setListQuantity] = useState(1);
+  const ticket = group.representative;
+  const eligibleTickets = group.tickets.filter(
+    (t) => t.allowResale && t.status === "active",
+  );
+  const maxListable = eligibleTickets.length;
+  const venue = [ticket.venueName, ticket.city].filter(Boolean).join(", ");
+  const dateStr = ticket.eventDate
+    ? new Date(ticket.eventDate).toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "";
+
+  useEffect(() => {
+    setListQuantity((current) =>
+      Math.min(Math.max(current, 1), maxListable || 1),
+    );
+  }, [maxListable]);
+
+  return (
+    <div className="relative isolate rounded-3xl">
+      <div className="pointer-events-none absolute inset-x-2 top-2 h-full rounded-3xl " />
+      <div className="pointer-events-none absolute inset-x-4 top-4 h-full rounded-3xl backdrop-blur-[1px]" />
+
+      <div className="relative rounded-3xl border border-white/20 bg-white/10 p-5 shadow-[0_20px_45px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <div
+          className="flex cursor-pointer items-start justify-between gap-3"
+          onClick={() => setExpanded((v) => !v)}
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setExpanded((v) => !v);
+            }
+          }}
+        >
+          <div className="min-w-0">
+            <p className="font-serif text-xl font-semibold text-cream">
+              {ticket.eventName}
+            </p>
+            {venue && <p className="mt-1 text-sm text-cream/70">{venue}</p>}
+            <div className="mt-2 flex flex-wrap gap-3 text-sm text-cream/70">
+              <span>{dateStr}</span>
+              <span className="capitalize">{ticket.ticketBatchName}</span>
+              <span>£{ticket.purchasePrice.toFixed(2)} each</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-gold/40 bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold">
+              x{group.quantity}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-cream/70 transition-transform ${
+                expanded ? "rotate-180" : "rotate-0"
+              }`}
+            />
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="mt-4 border-t border-white/15 pt-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-cream/60">
+              Individual Tickets
+            </p>
+
+            {maxListable > 0 && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3">
+                <div className="text-xs text-cream/75">
+                  Pass on list quantity ({maxListable} available)
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setListQuantity((v) => Math.max(1, v - 1));
+                    }}
+                    className="h-7 w-7 rounded-md border border-white/20 text-sm text-cream/80 hover:bg-white/10"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span className="min-w-8 text-center text-sm font-semibold text-gold">
+                    {listQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setListQuantity((v) => Math.min(maxListable, v + 1));
+                    }}
+                    className="h-7 w-7 rounded-md border border-white/20 text-sm text-cream/80 hover:bg-white/10"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onListManyForResale(eligibleTickets, listQuantity);
+                    }}
+                    className="rounded-lg border border-gold/35 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold transition-colors hover:bg-gold/20"
+                  >
+                    Pass {listQuantity} on list
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {group.tickets.map((t, idx) => (
+                <div
+                  key={t.id}
+                  className="rounded-2xl border border-white/12 bg-white/8 px-3 py-3 backdrop-blur-lg"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-cream">
+                        Ticket #{idx + 1}
+                      </p>
+                      <p className="truncate text-xs font-mono text-cream/55">
+                        {t.qrCode}
+                      </p>
+                    </div>
+
+                    {t.allowResale && t.status === "active" && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onListManyForResale([t], 1);
+                        }}
+                        className="shrink-0 rounded-lg border border-gold/30 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
+                      >
+                        Pass on list
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

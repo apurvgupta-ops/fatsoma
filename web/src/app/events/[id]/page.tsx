@@ -33,8 +33,7 @@ import {
   Check,
   Lock,
   RefreshCw,
-  Tag,
-  Percent,
+  ChevronDown,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
@@ -915,51 +914,27 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
       )}
 
       <div className="space-y-3">
-        {listings.map((listing) => {
-          const fee =
-            Math.round(listing.askingPrice * (RESALE_FEE_PERCENT / 100) * 100) /
-            100;
-          const tier = resaleTierLabel(listing, event);
-
-          return (
-            <div
-              key={listing.id}
-              className="flex flex-col gap-4 rounded-xl border border-white/10 bg-surface p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-cream">
-                  {tier}
-                  <span className="rounded border border-white/10 px-2 py-0.5 text-[9px] font-semibold tracking-wider text-cream/45 ml-2">
-                    Verified seller
-                  </span>
-                </p>
-                <p className="mt-2 text-xs text-cream/45">
-                  Current release: £{releasePrice.toFixed(2)} + £
-                  {releaseFee.toFixed(2)} transfer fee
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleBuyResale(listing)}
-                disabled={buyingId === listing.id}
-                className="flex w-full shrink-0 flex-col items-center justify-center rounded-lg border border-gold/70 bg-transparent text-center transition hover:bg-gold/10 disabled:opacity-60 sm:w-auto sm:min-w-auto sm:max-w-auto cursor-pointer"
-              >
-                {buyingId === listing.id ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-gold" />
-                ) : (
-                  <button className="bg-gold/10 border border-gold/30 hover:bg-gold/20 transition-colors rounded-lg px-5 py-2 whitespace-nowrap cursor-pointer w-full sm:w-auto text-center">
-                    <span className="text-gold font-semibold text-sm">
-                      £{listing.askingPrice.toFixed(2)}
-                    </span>
-                    <span className="text-[#6B665C] text-xs ml-1.5">
-                      + £{fee.toFixed(2)} listing fee
-                    </span>
-                  </button>
-                )}
-              </button>
-            </div>
-          );
-        })}
+        {Array.from(
+          listings
+            .reduce((map, listing) => {
+              const tier = resaleTierLabel(listing, event);
+              const key = `${tier}|${listing.askingPrice}`;
+              if (!map.has(key)) map.set(key, []);
+              map.get(key)!.push(listing);
+              return map;
+            }, new Map<string, ResaleListingResponse[]>())
+            .values(),
+        ).map((groupStr) => (
+          <ResaleGroupAccordion
+            key={groupStr[0].id}
+            group={groupStr}
+            event={event}
+            buyingId={buyingId}
+            onBuy={handleBuyResale}
+            releasePrice={releasePrice}
+            releaseFee={releaseFee}
+          />
+        ))}
       </div>
 
       <p className="mt-4 text-[10px] leading-relaxed text-cream/40">
@@ -967,5 +942,173 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
         their original purchase amount after sale.
       </p>
     </section>
+  );
+}
+
+function ResaleGroupAccordion({
+  group,
+  event,
+  buyingId,
+  onBuy,
+  releasePrice,
+  releaseFee,
+}: {
+  group: ResaleListingResponse[];
+  event: EventResponse;
+  buyingId: string | null;
+  onBuy: (listing: ResaleListingResponse) => void;
+  releasePrice: number;
+  releaseFee: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const representative = group[0];
+  const fee =
+    Math.round(representative.askingPrice * (RESALE_FEE_PERCENT / 100) * 100) /
+    100;
+  const tier = resaleTierLabel(representative, event);
+  const maxQuantity = Math.max(1, group.length);
+  const quantity = Math.min(selectedQuantity, maxQuantity);
+  const selectedListings = group.slice(0, quantity);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#1c1c1c]/90 px-4 py-4 backdrop-blur-md transition-colors hover:border-white/15">
+      <div
+        className="flex cursor-pointer items-start justify-between gap-4"
+        onClick={() => setExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((v) => !v);
+          }
+        }}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="truncate font-semibold text-sm text-cream">{tier}</p>
+            <span className="rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-cream/65">
+              Verified seller
+            </span>
+          </div>
+          <p className="text-xs text-cream/70">
+            Current release: £{releasePrice.toFixed(2)} + £
+            {releaseFee.toFixed(2)} transfer fee
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center justify-end gap-3 text-right">
+          <div className="rounded-xl border border-gold/40 bg-gold/10 px-4 py-2 hover:bg-gold/15 transition-colors text-right">
+            <p className="text-xs  font-semibold text-gold">
+              £{representative.askingPrice.toFixed(2)}
+              <span className="ml-1 text-xs sm:text-sm font-medium text-gold/70">
+                + £{fee.toFixed(2)} listing fee
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gold/40 text-[10px] font-bold text-gold">
+              x{group.length}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-cream/50 transition-transform ${
+                expanded ? "rotate-180" : "rotate-0"
+              }`}
+            />
+          </div>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          {/* <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-cream/40">
+              Individual Tickets
+            </p> */}
+
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/25 bg-gold/5 px-3 py-2.5">
+            <span className="text-xs font-medium text-cream/75">
+              Buy quantity ({maxQuantity} available)
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedQuantity((q) => Math.max(1, q - 1));
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10"
+              >
+                -
+              </button>
+              <span className="w-7 text-center text-sm font-semibold text-gold">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedQuantity((q) => Math.min(maxQuantity, q + 1));
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const listing = selectedListings[0];
+                  if (listing) onBuy(listing);
+                }}
+                disabled={
+                  !selectedListings.length ||
+                  Boolean(
+                    buyingId && selectedListings.some((l) => l.id === buyingId),
+                  )
+                }
+                className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold transition hover:bg-gold/20 disabled:opacity-50"
+              >
+                {buyingId && selectedListings.some((l) => l.id === buyingId)
+                  ? "Processing..."
+                  : `Buy ${quantity} ${quantity === 1 ? "ticket" : "tickets"}`}
+              </button>
+            </div>
+          </div>
+          {/* <div className="space-y-2">
+            {selectedListings.map((listing, idx) => (
+              <div
+                key={listing.id}
+                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/8 p-3 hover:bg-white/12 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-cream">
+                    Ticket #{idx + 1}
+                  </p>
+                  <p className="truncate text-xs font-mono text-cream/40">
+                    ID: {listing.id.slice(-8)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBuy(listing);
+                  }}
+                  disabled={buyingId === listing.id}
+                  className="rounded-lg border border-gold/30 bg-gold/10 px-4 py-1.5 text-xs font-semibold text-gold transition hover:bg-gold/20 disabled:opacity-50"
+                >
+                  {buyingId === listing.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Buy"
+                  )}
+                </button>
+              </div>
+            ))}
+          </div> */}
+        </div>
+      )}
+    </div>
   );
 }
