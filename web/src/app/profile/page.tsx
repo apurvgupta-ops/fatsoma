@@ -117,14 +117,14 @@ export default function ProfilePage() {
                 {paidOrders.length}
               </p>
             </div>
-            <div className="rounded-xl border border-border bg-surface/40 p-5">
+            {/* <div className="rounded-xl border border-border bg-surface/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
                 Total Spent
               </p>
               <p className="mt-1 text-2xl font-bold text-gold">
                 £{totalSpent.toFixed(2)}
               </p>
-            </div>
+            </div> */}
             <div className="rounded-xl border border-border bg-surface/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
                 Account Status
@@ -379,4 +379,3 @@ function StatusBadge({ status }: { status: string }) {
       );
   }
 }
-

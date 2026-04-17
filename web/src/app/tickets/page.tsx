@@ -248,7 +248,7 @@ export default function MyTicketsPage() {
                 ({resaleTickets.length})
               </span>
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveTab("sold")}
               className={`cursor-pointer text-sm font-medium px-4 py-2 rounded-md transition-all text-bg ${
                 activeTab === "sold"
@@ -260,7 +260,7 @@ export default function MyTicketsPage() {
               <span className="ml-1.5 text-xs text-bg/70">
                 ({soldListings.length})
               </span>
-            </button>
+            </button> */}
           </div>
 
           <div className="relative mb-5 max-w-sm">
@@ -420,7 +420,9 @@ export default function MyTicketsPage() {
             <div className="mb-5 space-y-2">
               <div className="flex justify-between text-sm gap-4">
                 <span className="text-muted">Event</span>
-                <span className="font-medium text-right">{resaleModal.eventName}</span>
+                <span className="font-medium text-right">
+                  {resaleModal.eventName}
+                </span>
               </div>
               <div className="flex justify-between text-sm gap-4">
                 <span className="text-muted">Tier</span>
@@ -442,16 +444,26 @@ export default function MyTicketsPage() {
               </div>
               <div className="flex justify-between text-sm gap-3">
                 <span className="text-muted">
-                  Listing fee <span className="text-xs text-muted/80">(paid by buyer, 7%)</span>
+                  Listing fee{" "}
+                  <span className="text-xs text-muted/80">
+                    (paid by buyer, 7%)
+                  </span>
                 </span>
                 <span className="font-medium text-cream">
-                  £{(Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100).toFixed(2)}
+                  £
+                  {(
+                    Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100
+                  ).toFixed(2)}
                 </span>
               </div>
               <div className="border-t border-border pt-2.5 flex justify-between text-sm">
                 <span className="font-medium text-muted">Buyer pays</span>
                 <span className="font-semibold text-cream">
-                  £{(resaleModal.currentBatchPrice + Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100).toFixed(2)}
+                  £
+                  {(
+                    resaleModal.currentBatchPrice +
+                    Math.round(resaleModal.currentBatchPrice * 0.07 * 100) / 100
+                  ).toFixed(2)}
                 </span>
               </div>
 
@@ -460,7 +472,11 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Organiser receives</span>
                 <span className="font-medium text-cream">
-                  £{Math.max(resaleModal.currentBatchPrice - resaleModal.purchasePrice, 0).toFixed(2)}
+                  £
+                  {Math.max(
+                    resaleModal.currentBatchPrice - resaleModal.purchasePrice,
+                    0,
+                  ).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
@@ -478,7 +494,11 @@ export default function MyTicketsPage() {
             </div>
 
             <p className="mb-5 text-xs leading-relaxed text-muted/80">
-              Your ticket is priced at the <strong className="text-muted">current release price</strong> - you get your original £{resaleModal.purchasePrice.toFixed(2)} back. The organiser captures the rest, same as if you&apos;d bought today.
+              Your ticket is priced at the{" "}
+              <strong className="text-muted">current release price</strong> -
+              you get your original £{resaleModal.purchasePrice.toFixed(2)}{" "}
+              back. The organiser captures the rest, same as if you&apos;d
+              bought today.
             </p>
 
             <div className="mb-3 rounded-lg bg-void/45 p-3">
@@ -493,7 +513,9 @@ export default function MyTicketsPage() {
                   className="mt-0.5 accent-gold"
                 />
                 <span className="text-xs text-muted">
-                  I understand that listing my ticket will invalidate my current QR code. If sold, a new QR will be issued to the buyer. I can cancel this listing at any time before it sells.
+                  I understand that listing my ticket will invalidate my current
+                  QR code. If sold, a new QR will be issued to the buyer. I can
+                  cancel this listing at any time before it sells.
                 </span>
               </label>
             </div>
@@ -559,12 +581,15 @@ export default function MyTicketsPage() {
                 <span className="text-muted">Date</span>
                 <span className="text-right font-medium text-cream">
                   {giftModal.eventDate
-                    ? new Date(giftModal.eventDate).toLocaleDateString("en-GB", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
+                    ? new Date(giftModal.eventDate).toLocaleDateString(
+                        "en-GB",
+                        {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )
                     : "-"}
                 </span>
               </div>
@@ -615,13 +640,15 @@ export default function MyTicketsPage() {
                   className="mt-0.5 accent-gold"
                 />
                 <span className="text-xs text-muted">
-                  I understand this gift is irreversible and I will no longer
-                  be able to use this ticket.
+                  I understand this gift is irreversible and I will no longer be
+                  able to use this ticket.
                 </span>
               </label>
             </div>
 
-            {actionError && <p className="mb-4 text-sm text-red-400">{actionError}</p>}
+            {actionError && (
+              <p className="mb-4 text-sm text-red-400">{actionError}</p>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -637,7 +664,11 @@ export default function MyTicketsPage() {
               </button>
               <button
                 onClick={handleGiftTicket}
-                disabled={giftSubmitting || !giftAcknowledge || !giftRecipientName.trim()}
+                disabled={
+                  giftSubmitting ||
+                  !giftAcknowledge ||
+                  !giftRecipientName.trim()
+                }
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-void transition-colors hover:bg-gold-light disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {giftSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -780,16 +811,16 @@ function TicketCard({
                   Pass it <span className="text-gold">on the list</span>
                 </button>
               )}
-              {ticket.status === "active" && (
-                <button
-                  type="button"
-                  onClick={onGiftTicket}
-                  className="border border-border text-muted text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#222222] transition-colors flex items-center gap-2"
-                >
-                  <Gift className="h-3.25 w-3.25" />
-                  Gift
-                </button>
-              )}
+              {/* {ticket.status === "active" && (
+                  <button
+                    type="button"
+                    onClick={onGiftTicket}
+                    className="border border-border text-muted text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#222222] transition-colors flex items-center gap-2"
+                  >
+                    <Gift className="h-3.25 w-3.25" />
+                    Gift
+                  </button>
+                )} */}
               {ticket.status === "listed" && (
                 <button
                   onClick={onCancelListing}
@@ -943,4 +974,3 @@ function SoldListingCard({ listing }: { listing: ResaleListingResponse }) {
     </div>
   );
 }
-

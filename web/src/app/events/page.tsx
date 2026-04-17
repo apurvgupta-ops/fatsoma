@@ -29,6 +29,7 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("date");
   const [calendarAnchor, setCalendarAnchor] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -56,25 +57,56 @@ export default function EventsPage() {
     [events],
   );
 
-  const filtered = events.filter((e) => {
-    if (selectedCategory !== "all" && e.eventCategory !== selectedCategory)
-      return false;
-    if (selectedDate) {
-      const d = new Date(e.eventDate);
-      if (d.toDateString() !== selectedDate.toDateString()) return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      if (
-        !e.eventName.toLowerCase().includes(q) &&
-        !e.venueName.toLowerCase().includes(q) &&
-        !e.eventDescription.toLowerCase().includes(q)
-      ) {
+  const filtered = useMemo(() => {
+    const base = events.filter((e) => {
+      if (selectedCategory !== "all" && e.eventCategory !== selectedCategory) {
         return false;
       }
+
+      if (selectedDate) {
+        const d = new Date(e.eventDate);
+        if (d.toDateString() !== selectedDate.toDateString()) {
+          return false;
+        }
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        if (
+          !e.eventName.toLowerCase().includes(q) &&
+          !e.venueName.toLowerCase().includes(q) &&
+          !e.eventDescription.toLowerCase().includes(q)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const minTicketPrice = (event: EventResponse) =>
+      Math.min(...event.ticketBatches.map((b) => b.basePrice));
+
+    const totalAvailability = (event: EventResponse) =>
+      event.ticketBatches.reduce(
+        (sum, batch) => sum + (batch.remaining ?? 0),
+        0,
+      );
+
+    const sorted = [...base];
+    if (sortBy === "price-asc") {
+      sorted.sort((a, b) => minTicketPrice(a) - minTicketPrice(b));
+    } else if (sortBy === "availability") {
+      sorted.sort((a, b) => totalAvailability(b) - totalAvailability(a));
+    } else {
+      sorted.sort(
+        (a, b) =>
+          new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime(),
+      );
     }
-    return true;
-  });
+
+    return sorted;
+  }, [events, selectedCategory, selectedDate, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen bg-void text-cream/90">
@@ -87,6 +119,8 @@ export default function EventsPage() {
             onSearchChange={setSearchQuery}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
             categories={categories.filter((c) => c !== "all")}
             calendarAnchor={calendarAnchor}
             setCalendarAnchor={setCalendarAnchor}
@@ -137,6 +171,8 @@ function EventsHeader({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
+  sortBy,
+  onSortChange,
   categories,
   calendarAnchor,
   setCalendarAnchor,
@@ -150,6 +186,8 @@ function EventsHeader({
   onSearchChange: (q: string) => void;
   selectedCategory: string;
   onCategoryChange: (c: string) => void;
+  sortBy: string;
+  onSortChange: (value: string) => void;
   categories: string[];
   calendarAnchor: Date;
   setCalendarAnchor: (d: Date) => void;
@@ -159,6 +197,7 @@ function EventsHeader({
   monthYear: string;
   eventDates: string[];
 }) {
+  const todayDateStr = new Date().toDateString();
   const rangeLabel = `${weekDates[0].toLocaleDateString("en-GB", { month: "short" })} - ${weekDates[6].toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
   const eventCountByDay = eventDates.reduce<Record<string, number>>(
     (acc, d) => {
@@ -240,6 +279,8 @@ function EventsHeader({
           {weekDates.map((d) => {
             const dateStr = d.toDateString();
             const isSelected = selectedDate?.toDateString() === dateStr;
+            const isToday = dateStr === todayDateStr;
+            const showTodayHighlight = !selectedDate && isToday;
             const inCurrentMonth = d.getMonth() === calendarAnchor.getMonth();
             const dayCount = eventCountByDay[dateStr] ?? 0;
             return (
@@ -247,23 +288,28 @@ function EventsHeader({
                 key={dateStr}
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : d)}
+                aria-pressed={isSelected}
                 className={`relative flex select-none flex-col items-center rounded-xl px-1 py-3 transition-all ${
                   !inCurrentMonth
                     ? "opacity-30"
                     : isSelected
-                      ? "border border-gold/40 bg-gold/10 hover:bg-gold/20"
-                      : "hover:bg-[#222222]"
+                      ? "border border-gold/40 bg-gold/10"
+                      : showTodayHighlight
+                        ? "border border-gold/30 bg-gold/5"
+                        : ""
                 }`}
               >
                 <span
                   className={`mb-1.5 text-[11px] font-medium ${
-                    isSelected ? "text-gold/70" : "text-cream/40"
+                    isSelected || showTodayHighlight
+                      ? "text-gold/70"
+                      : "text-cream/40"
                   }`}
                 >
                   {d.toLocaleDateString("en-GB", { weekday: "short" })}
                 </span>
                 <span
-                  className={`text-sm font-bold leading-none ${isSelected ? "text-gold" : "text-cream"}`}
+                  className={`text-sm font-bold leading-none ${isSelected || showTodayHighlight ? "text-gold" : "text-cream"}`}
                 >
                   {d.getDate()}
                 </span>
@@ -293,7 +339,8 @@ function EventsHeader({
         </div>
 
         <select
-          defaultValue="date"
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value)}
           className="cursor-pointer rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-muted outline-none transition-colors focus:border-gold/50"
         >
           <option value="date">Date (soonest)</option>
@@ -332,4 +379,3 @@ function EventsHeader({
     </header>
   );
 }
-

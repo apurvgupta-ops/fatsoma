@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createPublicClient, createBrowserClient } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -454,7 +460,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           </div>
         </div> */}
 
-        <div className="space-y-3">
+        <div className="space-y-3 ">
           {event.ticketBatches.map((batch) => {
             const batchRemaining = batch.remaining ?? batch.quantity;
             const soldOut = batchRemaining <= 0;
@@ -465,12 +471,32 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
             return (
               <div
                 key={batch.name}
+                role="button"
+                tabIndex={soldOut ? -1 : 0}
+                onClick={() => {
+                  if (!soldOut) {
+                    setSelectedBatch(batch);
+                    if (quantity > batchRemaining) {
+                      setQuantity(Math.max(1, batchRemaining));
+                    }
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (soldOut) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedBatch(batch);
+                    if (quantity > batchRemaining) {
+                      setQuantity(Math.max(1, batchRemaining));
+                    }
+                  }
+                }}
                 className={`rounded-xl border p-4 transition-colors ${
                   soldOut
                     ? "border-border bg-[#222222]/40 opacity-50"
                     : isSelected
-                      ? "border-gold/30 bg-[#222222]/60"
-                      : "border-border hover:border-gold/30"
+                      ? "cursor-pointer border-gold/30 bg-[#222222]/60"
+                      : "cursor-pointer border-border hover:border-gold/30"
                 }`}
               >
                 <div className="mb-2 flex items-center justify-between">
@@ -483,29 +509,19 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!soldOut) {
-                        setSelectedBatch(batch);
-                        if (quantity > batchRemaining)
-                          setQuantity(Math.max(1, batchRemaining));
-                      }
-                    }}
-                    disabled={soldOut}
-                    className={`min-w-0 flex-1 text-left ${
-                      soldOut ? "cursor-not-allowed" : "cursor-pointer"
-                    }`}
-                  >
+                  <div className="min-w-0 flex-1 text-left">
                     <p className="text-xs text-cream/40">
                       £{batch.basePrice.toFixed(2)} + £{batchFee.toFixed(2)} fee
                     </p>
-                  </button>
+                  </div>
 
                   {!soldOut && isSelected ? (
                     <button
                       type="button"
-                      onClick={handleBuyNow}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleBuyNow();
+                      }}
                       disabled={
                         buying ||
                         (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
@@ -784,6 +800,8 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
   const [loading, setLoading] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
+  const [showListInfo, setShowListInfo] = useState(false);
+  const listInfoRef = useRef<HTMLDivElement | null>(null);
 
   const { price: releasePrice, fee: releaseFee } = currentReleasePrice(event);
 
@@ -796,6 +814,25 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
       })
       .finally(() => setLoading(false));
   }, [event.id]);
+
+  useEffect(() => {
+    if (!showListInfo) return;
+
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!listInfoRef.current) return;
+      const target = event.target as Node;
+      if (!listInfoRef.current.contains(target)) {
+        setShowListInfo(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [showListInfo]);
 
   const handleBuyResale = async (listing: ResaleListingResponse) => {
     if (!user) {
@@ -841,14 +878,31 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
 
   return (
     <section>
-      <div className="group relative mb-5 inline-flex items-center">
-        <h2 className="flex cursor-help items-center gap-3 font-serif text-2xl font-extrabold text-gold">
+      <div
+        ref={listInfoRef}
+        className="group relative mb-5 inline-flex items-center"
+      >
+        <h2 className="flex items-center gap-3 font-serif text-2xl font-extrabold text-gold">
           The List
-          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white text-[10px] text-white transition group-hover:bg-white/10 group-hover:text-white">
-            !
-          </span>
         </h2>
-        <div className="pointer-events-none absolute bottom-full left-0 mb-2 w-70 rounded-xl border border-white/10 bg-surface p-3.5 text-xs leading-relaxed text-cream/80 opacity-0 shadow-2xl transition-all group-hover:pointer-events-auto group-hover:-translate-y-1 group-hover:opacity-100 z-50">
+        <button
+          type="button"
+          onClick={() => setShowListInfo((v) => !v)}
+          aria-label="About The List"
+          aria-expanded={showListInfo}
+          aria-controls="the-list-info"
+          className="ml-2 flex h-4 w-4 items-center justify-center rounded-full border border-white text-[10px] text-white transition hover:bg-white/10 hover:text-white"
+        >
+          !
+        </button>
+        <div
+          id="the-list-info"
+          className={`absolute bottom-full left-0 z-50 mb-2 w-70 rounded-xl border border-white/10 bg-surface p-3.5 text-xs leading-relaxed text-cream/80 shadow-2xl transition-all ${
+            showListInfo
+              ? "pointer-events-auto -translate-y-1 opacity-100"
+              : "pointer-events-none opacity-0 md:group-hover:pointer-events-auto md:group-hover:-translate-y-1 md:group-hover:opacity-100"
+          }`}
+        >
           Same ticket. Same price. A student can't attend — their spot is now
           yours, instantly and securely.
         </div>
@@ -893,7 +947,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
                 {buyingId === listing.id ? (
                   <Loader2 className="h-5 w-5 animate-spin text-gold" />
                 ) : (
-                  <button className="bg-gold/10 border border-gold/30 hover:bg-gold/20 transition-colors rounded-lg px-5 py-2 text-right whitespace-nowrap cursor-pointer">
+                  <button className="bg-gold/10 border border-gold/30 hover:bg-gold/20 transition-colors rounded-lg px-5 py-2 whitespace-nowrap cursor-pointer w-full sm:w-auto text-center">
                     <span className="text-gold font-semibold text-sm">
                       £{listing.askingPrice.toFixed(2)}
                     </span>
