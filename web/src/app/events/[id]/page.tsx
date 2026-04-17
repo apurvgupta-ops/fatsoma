@@ -972,9 +972,9 @@ function ResaleGroupAccordion({
   const selectedListings = group.slice(0, quantity);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1c1c1c]/90 px-4 py-4 backdrop-blur-md transition-colors hover:border-white/15">
+    <div className="rounded-xl border border-white/10 bg-[#1c1c1c]/90 px-3 py-4 backdrop-blur-md transition-colors hover:border-white/15 sm:px-4">
       <div
-        className="flex cursor-pointer items-start justify-between gap-4"
+        className="flex cursor-pointer flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
         onClick={() => setExpanded((v) => !v)}
         role="button"
         tabIndex={0}
@@ -988,7 +988,9 @@ function ResaleGroupAccordion({
       >
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="truncate font-semibold text-sm text-cream">{tier}</p>
+            <p className="max-w-full break-words font-semibold text-sm leading-tight text-cream sm:truncate">
+              {tier}
+            </p>
             <span className="rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-cream/65">
               Verified seller
             </span>
@@ -998,11 +1000,11 @@ function ResaleGroupAccordion({
             {releaseFee.toFixed(2)} transfer fee
           </p>
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-3 text-right">
-          <div className="rounded-xl border border-gold/40 bg-gold/10 px-4 py-2 hover:bg-gold/15 transition-colors text-right">
-            <p className="text-xs  font-semibold text-gold">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-3 sm:text-right">
+          <div className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-1.5 text-right transition-colors hover:bg-gold/15 sm:px-4 sm:py-2">
+            <p className="text-xs font-semibold text-gold whitespace-nowrap">
               £{representative.askingPrice.toFixed(2)}
-              <span className="ml-1 text-xs sm:text-sm font-medium text-gold/70">
+              <span className="ml-1 text-[11px] font-medium text-gold/70 sm:text-sm">
                 + £{fee.toFixed(2)} listing fee
               </span>
             </p>
@@ -1026,22 +1028,22 @@ function ResaleGroupAccordion({
               Individual Tickets
             </p> */}
 
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/25 bg-gold/5 px-3 py-2.5">
+          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-gold/25 bg-gold/5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <span className="text-xs font-medium text-cream/75">
               Buy quantity ({maxQuantity} available)
             </span>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedQuantity((q) => Math.max(1, q - 1));
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10 sm:h-7 sm:w-7"
               >
                 -
               </button>
-              <span className="w-7 text-center text-sm font-semibold text-gold">
+              <span className="w-5 shrink-0 text-center text-sm font-semibold text-gold sm:w-7">
                 {quantity}
               </span>
               <button
@@ -1050,7 +1052,7 @@ function ResaleGroupAccordion({
                   e.stopPropagation();
                   setSelectedQuantity((q) => Math.min(maxQuantity, q + 1));
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/30 text-sm text-cream transition hover:bg-white/10 sm:h-7 sm:w-7"
               >
                 +
               </button>
@@ -1067,11 +1069,16 @@ function ResaleGroupAccordion({
                     buyingId && selectedListings.some((l) => l.id === buyingId),
                   )
                 }
-                className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold transition hover:bg-gold/20 disabled:opacity-50"
+                className="ml-auto rounded-lg border border-gold/40 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold whitespace-nowrap transition hover:bg-gold/20 disabled:opacity-50 sm:px-3 sm:text-xs"
               >
-                {buyingId && selectedListings.some((l) => l.id === buyingId)
-                  ? "Processing..."
-                  : `Buy ${quantity} ${quantity === 1 ? "ticket" : "tickets"}`}
+                {buyingId && selectedListings.some((l) => l.id === buyingId) ? (
+                  <>
+                    <span className="sm:hidden">...</span>
+                    <span className="hidden sm:inline">Processing...</span>
+                  </>
+                ) : (
+                  `Buy ${quantity} ${quantity === 1 ? "ticket" : "tickets"}`
+                )}
               </button>
             </div>
           </div>

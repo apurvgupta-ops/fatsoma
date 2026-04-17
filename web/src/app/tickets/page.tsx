@@ -848,23 +848,23 @@ function GroupedTicketCard({
             </p>
 
             {maxListable > 0 && (
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3">
+              <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-cream/75">
                   Pass on list quantity ({maxListable} available)
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full min-w-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       setListQuantity((v) => Math.max(1, v - 1));
                     }}
-                    className="h-7 w-7 rounded-md border border-white/20 text-sm text-cream/80 hover:bg-white/10"
+                    className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 sm:h-7 sm:w-7"
                     aria-label="Decrease quantity"
                   >
                     -
                   </button>
-                  <span className="min-w-8 text-center text-sm font-semibold text-gold">
+                  <span className="w-5 shrink-0 text-center text-sm font-semibold text-gold sm:w-8">
                     {listQuantity}
                   </span>
                   <button
@@ -873,7 +873,7 @@ function GroupedTicketCard({
                       event.stopPropagation();
                       setListQuantity((v) => Math.min(maxListable, v + 1));
                     }}
-                    className="h-7 w-7 rounded-md border border-white/20 text-sm text-cream/80 hover:bg-white/10"
+                    className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 sm:h-7 sm:w-7"
                     aria-label="Increase quantity"
                   >
                     +
@@ -884,14 +884,14 @@ function GroupedTicketCard({
                       event.stopPropagation();
                       onListManyForResale(eligibleTickets, listQuantity);
                     }}
-                    className="rounded-lg border border-gold/35 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold transition-colors hover:bg-gold/20"
+                    className="ml-auto rounded-lg border border-gold/35 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold whitespace-nowrap transition-colors hover:bg-gold/20 sm:px-3 sm:text-xs"
                   >
                     Pass {listQuantity} on list
                   </button>
                 </div>
               </div>
             )}
-
+            {/* 
             <div className="space-y-2">
               {group.tickets.map((t, idx) => (
                 <div
@@ -923,7 +923,7 @@ function GroupedTicketCard({
                   </div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         )}
       </div>
