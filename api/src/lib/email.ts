@@ -51,14 +51,23 @@ function baseHtml(body: string) {
  */
 async function send(to: string, subject: string, html: string) {
   try {
-    await getTransporter().sendMail({ from: `"${APP_NAME}" <${FROM}>`, to, subject, html });
+    await getTransporter().sendMail({
+      from: `"${APP_NAME}" <${FROM}>`,
+      to,
+      subject,
+      html,
+    });
     console.log(`[Email] Sent "${subject}" to ${to}`);
   } catch (err: any) {
     const code = err?.code || "";
     if (code === "ESOCKET" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
-      console.warn(`[Email] SMTP unreachable (${code}) — skipped "${subject}" to ${to}`);
+      console.warn(
+        `[Email] SMTP unreachable (${code}) — skipped "${subject}" to ${to}`,
+      );
     } else {
-      console.error(`[Email] Failed to send "${subject}" to ${to}: ${err.message || err}`);
+      console.error(
+        `[Email] Failed to send "${subject}" to ${to}: ${err.message || err}`,
+      );
     }
   }
 }
@@ -67,7 +76,7 @@ export async function sendWelcomeEmail(name: string, email: string) {
   const html = baseHtml(`
     <h2 style="margin:0 0 8px;color:#f0e6d2;font-size:20px;">Welcome, ${name}!</h2>
     <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 20px;">
-      Your account has been created successfully. You're now on the list!
+      Your account has been created successfully. You're now On The List!
     </p>
     <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 20px;">
       Browse events, grab tickets, and enjoy secure no-scalping resale — all in one place.
@@ -227,7 +236,11 @@ export async function sendTicketSoldEmail(data: {
   await send(data.email, `Ticket Sold — ${data.eventName}`, html);
 }
 
-export async function sendPasswordResetEmail(name: string, email: string, resetLink: string) {
+export async function sendPasswordResetEmail(
+  name: string,
+  email: string,
+  resetLink: string,
+) {
   const html = baseHtml(`
     <h2 style="margin:0 0 8px;color:#f0e6d2;font-size:20px;">Password Reset</h2>
     <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 20px;">

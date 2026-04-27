@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { EVENT_CATEGORIES, EVENT_STATUSES, USER_ROLES } from "./constants";
 
+const optionalDateTimeString = z
+  .string()
+  .trim()
+  .optional()
+  .refine((value) => !value || !Number.isNaN(Date.parse(value)), {
+    message: "Entry window cutoff must be a valid datetime",
+  });
+
 export const ticketBatchSchema = z
   .object({
     name: z.string().min(1, "Batch name is required").trim(),
@@ -14,6 +22,7 @@ export const ticketBatchSchema = z
       .number()
       .min(0, "Maximum discount cannot be negative")
       .max(100, "Maximum discount cannot exceed 100"),
+    entryWindowCutoff: optionalDateTimeString,
   })
   .refine((b) => b.minDiscount <= b.maxDiscount, {
     message: "Minimum discount cannot exceed maximum discount",
@@ -81,6 +90,11 @@ export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100).trim(),
   email: z.string().email("Please provide a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const validateTicketScanSchema = z.object({
+  qrCode: z.string().min(1, "QR code is required").trim(),
+  eventId: z.string().trim().optional(),
 });
 
 export type CreateEventPayload = z.infer<typeof createEventSchema>;

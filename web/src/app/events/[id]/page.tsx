@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from "react";
@@ -411,6 +412,21 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
     Math.max(2, Math.round(2 + (soldPct / 100) * 3)),
   );
 
+  const formatEntryCutoff = (value?: string | null) => {
+    if (!value) return null;
+
+    const cutoff = new Date(value);
+    if (Number.isNaN(cutoff.getTime())) return null;
+
+    return cutoff.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <div className="sticky top-20">
       <div className="rounded-xl border border-border bg-surface p-6">
@@ -463,6 +479,13 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           {event.ticketBatches.map((batch) => {
             const batchRemaining = batch.remaining ?? batch.quantity;
             const soldOut = batchRemaining <= 0;
+            const cutoffDate = batch.entryWindowCutoff
+              ? new Date(batch.entryWindowCutoff)
+              : null;
+            const hasValidCutoff =
+              cutoffDate && !Number.isNaN(cutoffDate.getTime());
+            const entryClosed =
+              hasValidCutoff && Date.now() > cutoffDate.getTime();
             const batchFee =
               Math.round(batch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100) /
               100;
@@ -512,6 +535,16 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                     <p className="text-xs text-cream/40">
                       £{batch.basePrice.toFixed(2)} + £{batchFee.toFixed(2)} fee
                     </p>
+                    {hasValidCutoff ? (
+                      <p
+                        className={`mt-1 text-[11px] ${
+                          entryClosed ? "text-rose-300/90" : "text-cream/50"
+                        }`}
+                      >
+                        {entryClosed ? "Entry closed at " : "Entry cutoff: "}
+                        {formatEntryCutoff(batch.entryWindowCutoff)}
+                      </p>
+                    ) : null}
                   </div>
 
                   {!soldOut && isSelected ? (
@@ -562,7 +595,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                 setQuantity((q) =>
                   Math.min(
                     Math.min(
-                      10,
+                      6,
                       selectedBatch.remaining ?? selectedBatch.quantity,
                     ),
                     q + 1,
@@ -797,7 +830,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
   const router = useRouter();
   const [listings, setListings] = useState<ResaleListingResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [buyingIds, setBuyingIds] = useState<string[]>([]);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [showListInfo, setShowListInfo] = useState(false);
   const listInfoRef = useRef<HTMLDivElement | null>(null);
@@ -833,7 +866,18 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
     };
   }, [showListInfo]);
 
-  const handleBuyResale = async (listing: ResaleListingResponse) => {
+  const visibleListings = useMemo(
+    () =>
+      user?.id
+        ? listings.filter((listing) => listing.sellerId !== user.id)
+        : listings,
+    [listings, user?.id],
+  );
+
+  const handleBuyResale = async (selectedListings: ResaleListingResponse[]) => {
+    const firstListing = selectedListings[0];
+    if (!firstListing) return;
+
     if (!user) {
       router.push(
         `/login?redirect=${encodeURIComponent(`/events/${event.id}`)}`,
@@ -841,24 +885,26 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
       return;
     }
 
-    setBuyingId(listing.id);
+    const selectedListingIds = selectedListings.map((listing) => listing.id);
+    setBuyingIds(selectedListingIds);
     setBuyError(null);
     try {
       const client = createBrowserClient();
-      const fee = listing.askingPrice * (RESALE_FEE_PERCENT / 100);
+      const fee = firstListing.askingPrice * (RESALE_FEE_PERCENT / 100);
       const res = await client.buyResaleTicket(
-        listing.id,
+        firstListing.id,
         Math.round(fee * 100) / 100,
+        selectedListingIds,
       );
       if (res.ok && res.data?.url) {
         window.location.href = res.data.url;
       } else {
         setBuyError(res.message || "Failed to start checkout");
-        setBuyingId(null);
+        setBuyingIds([]);
       }
     } catch (err: unknown) {
       setBuyError(err instanceof Error ? err.message : "Checkout failed");
-      setBuyingId(null);
+      setBuyingIds([]);
     }
   };
 
@@ -873,7 +919,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
     );
   }
 
-  if (listings.length === 0) return null;
+  if (visibleListings.length === 0) return null;
 
   return (
     <section>
@@ -915,7 +961,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
 
       <div className="space-y-3">
         {Array.from(
-          listings
+          visibleListings
             .reduce((map, listing) => {
               const tier = resaleTierLabel(listing, event);
               const key = `${tier}|${listing.askingPrice}`;
@@ -929,7 +975,7 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
             key={groupStr[0].id}
             group={groupStr}
             event={event}
-            buyingId={buyingId}
+            buyingIds={buyingIds}
             onBuy={handleBuyResale}
             releasePrice={releasePrice}
             releaseFee={releaseFee}
@@ -948,15 +994,15 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
 function ResaleGroupAccordion({
   group,
   event,
-  buyingId,
+  buyingIds,
   onBuy,
   releasePrice,
   releaseFee,
 }: {
   group: ResaleListingResponse[];
   event: EventResponse;
-  buyingId: string | null;
-  onBuy: (listing: ResaleListingResponse) => void;
+  buyingIds: string[];
+  onBuy: (listings: ResaleListingResponse[]) => void;
   releasePrice: number;
   releaseFee: number;
 }) {
@@ -970,6 +1016,9 @@ function ResaleGroupAccordion({
   const maxQuantity = Math.max(1, group.length);
   const quantity = Math.min(selectedQuantity, maxQuantity);
   const selectedListings = group.slice(0, quantity);
+  const isProcessing =
+    buyingIds.length > 0 &&
+    selectedListings.some((listing) => buyingIds.includes(listing.id));
 
   return (
     <div className="rounded-xl border border-white/10 bg-[#1c1c1c]/90 px-3 py-4 backdrop-blur-md transition-colors hover:border-white/15 sm:px-4">
@@ -1060,18 +1109,12 @@ function ResaleGroupAccordion({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const listing = selectedListings[0];
-                  if (listing) onBuy(listing);
+                  if (selectedListings.length > 0) onBuy(selectedListings);
                 }}
-                disabled={
-                  !selectedListings.length ||
-                  Boolean(
-                    buyingId && selectedListings.some((l) => l.id === buyingId),
-                  )
-                }
+                disabled={!selectedListings.length || isProcessing}
                 className="ml-auto rounded-lg border border-gold/40 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold whitespace-nowrap transition hover:bg-gold/20 disabled:opacity-50 sm:px-3 sm:text-xs"
               >
-                {buyingId && selectedListings.some((l) => l.id === buyingId) ? (
+                {isProcessing ? (
                   <>
                     <span className="sm:hidden">...</span>
                     <span className="hidden sm:inline">Processing...</span>

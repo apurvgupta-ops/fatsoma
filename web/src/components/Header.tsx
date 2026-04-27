@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, Bell, Menu, X, ChevronLeft } from "lucide-react";
 import UserMenu from "./UserMenu";
 import { createBrowserClient } from "@/lib/api";
@@ -11,6 +11,7 @@ import type { NotificationResponse } from "@/lib/shared";
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -136,6 +137,39 @@ export default function Header() {
       minute: "2-digit",
     });
 
+  const getNotificationTarget = (notification: NotificationResponse) => {
+    const metadata = notification.metadata as Record<string, unknown> | null;
+    const eventId = metadata?.eventId;
+
+    switch (notification.type) {
+      case "order_paid":
+      case "resale_bought":
+      case "resale_sold":
+        return "/tickets";
+      case "calendar_connected":
+        return "/events";
+      default:
+        break;
+    }
+
+    if (typeof eventId === "string" && eventId.length > 0) {
+      return `/events/${eventId}`;
+    }
+
+    return "/tickets";
+  };
+
+  const onNotificationClick = (notification: NotificationResponse) => {
+    if (!notification.isRead) {
+      markOneRead(notification.id).catch(() => {
+        // noop
+      });
+    }
+    setOpen(false);
+    setMobileNotificationsOpen(false);
+    router.push(getNotificationTarget(notification));
+  };
+
   const navLink = (href: string, label: string) => {
     const isActive =
       pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -231,13 +265,7 @@ export default function Header() {
                       <button
                         key={n.id}
                         type="button"
-                        onClick={() => {
-                          if (!n.isRead) {
-                            markOneRead(n.id).catch(() => {
-                              // noop
-                            });
-                          }
-                        }}
+                        onClick={() => onNotificationClick(n)}
                         className={`w-full border-b border-border px-4 py-3 text-left transition hover:bg-surface/30 ${
                           n.isRead ? "opacity-70" : ""
                         }`}
@@ -393,13 +421,7 @@ export default function Header() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => {
-                      if (!n.isRead) {
-                        markOneRead(n.id).catch(() => {
-                          // noop
-                        });
-                      }
-                    }}
+                    onClick={() => onNotificationClick(n)}
                     className={`w-full border-b border-border px-4 py-3 text-left transition hover:bg-surface/30 ${
                       n.isRead ? "opacity-70" : ""
                     }`}

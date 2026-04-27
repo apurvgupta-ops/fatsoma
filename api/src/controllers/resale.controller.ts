@@ -12,7 +12,10 @@ export async function listForResale(req: Request, res: Response) {
 }
 
 export async function cancelListing(req: Request, res: Response) {
-  const listing = await resaleService.cancelListing(req.params.id as string, req.user!.userId);
+  const listing = await resaleService.cancelListing(
+    req.params.id as string,
+    req.user!.userId,
+  );
   sendSuccess(res, listing, "Listing cancelled");
 }
 
@@ -22,13 +25,18 @@ export async function getMyListings(req: Request, res: Response) {
 }
 
 export async function getEventListings(req: Request, res: Response) {
-  const listings = await resaleService.getListingsForEvent(req.params.eventId as string);
+  const listings = await resaleService.getListingsForEvent(
+    req.params.eventId as string,
+  );
   sendSuccess(res, listings, "Resale listings retrieved");
 }
 
 export async function buyListing(req: Request, res: Response) {
   const data = await checkoutService.createResaleCheckoutSession({
     listingId: req.params.id as string,
+    listingIds: Array.isArray(req.body.listingIds)
+      ? (req.body.listingIds as string[])
+      : undefined,
     capturedFee: req.body.capturedFee,
     userId: req.user!.userId,
   });

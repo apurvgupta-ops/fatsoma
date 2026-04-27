@@ -5,16 +5,44 @@ import { AppError } from "../utils/AppError";
 import { BOOKING_FEE_PERCENT } from "../shared";
 import type { IEvent } from "../models/Event";
 
+function normalizeTicketBatches(batches: any[] = []) {
+  return batches.map((batch) => {
+    const cutoffRaw = batch?.entryWindowCutoff;
+    const cutoffDate =
+      typeof cutoffRaw === "string" && cutoffRaw.trim().length > 0
+        ? new Date(cutoffRaw)
+        : cutoffRaw instanceof Date
+          ? cutoffRaw
+          : undefined;
+
+    return {
+      ...batch,
+      entryWindowCutoff:
+        cutoffDate && !Number.isNaN(cutoffDate.getTime())
+          ? cutoffDate
+          : undefined,
+    };
+  });
+}
+
 /** Serialize a Mongoose event doc into an API response shape. */
 function toEventDTO(event: any, soldMap?: Map<string, number>) {
   const batches = (event.ticketBatches ?? []).map((b: any) => {
     const batch = typeof b.toObject === "function" ? b.toObject() : { ...b };
     const sold = soldMap?.get(batch.name) ?? 0;
     batch.remaining = Math.max(0, batch.quantity - sold);
+    const cutoff = batch.entryWindowCutoff
+      ? new Date(batch.entryWindowCutoff)
+      : null;
+    batch.entryWindowCutoff =
+      cutoff && !Number.isNaN(cutoff.getTime()) ? cutoff.toISOString() : null;
     return batch;
   });
 
-  const totalRemaining = batches.reduce((s: number, b: any) => s + b.remaining, 0);
+  const totalRemaining = batches.reduce(
+    (s: number, b: any) => s + b.remaining,
+    0,
+  );
 
   return {
     id: event._id?.toString() ?? event.id,
@@ -49,7 +77,9 @@ function toEventDTO(event: any, soldMap?: Map<string, number>) {
  * Count sold tickets per batch for the given event IDs.
  * Returns a Map<eventId, Map<batchName, soldCount>>.
  */
-async function getSoldCountsByEvent(eventIds: string[]): Promise<Map<string, Map<string, number>>> {
+async function getSoldCountsByEvent(
+  eventIds: string[],
+): Promise<Map<string, Map<string, number>>> {
   if (eventIds.length === 0) return new Map();
 
   const pipeline = await Ticket.aggregate([
@@ -59,7 +89,12 @@ async function getSoldCountsByEvent(eventIds: string[]): Promise<Map<string, Map
         status: { $nin: ["cancelled"] },
       },
     },
-    { $group: { _id: { eventId: "$eventId", batch: "$ticketBatchName" }, count: { $sum: 1 } } },
+    {
+      $group: {
+        _id: { eventId: "$eventId", batch: "$ticketBatchName" },
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   const result = new Map<string, Map<string, number>>();
@@ -72,15 +107,22 @@ async function getSoldCountsByEvent(eventIds: string[]): Promise<Map<string, Map
 }
 
 export async function getPublishedEvents() {
-  const events = await Event.find({ status: "published" }).sort({ eventDate: 1 }).lean();
-  const soldMap = await getSoldCountsByEvent(events.map((e: any) => e._id.toString()));
+  const events = await Event.find({ status: "published" })
+    .sort({ eventDate: 1 })
+    .lean();
+  const soldMap = await getSoldCountsByEvent(
+    events.map((e: any) => e._id.toString()),
+  );
   return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
 export async function getAllEvents(userId: string, role: string) {
-  const filter = role === "admin" ? {} : { createdBy: new mongoose.Types.ObjectId(userId) };
+  const filter =
+    role === "admin" ? {} : { createdBy: new mongoose.Types.ObjectId(userId) };
   const events = await Event.find(filter).sort({ createdAt: -1 }).lean();
-  const soldMap = await getSoldCountsByEvent(events.map((e: any) => e._id.toString()));
+  const soldMap = await getSoldCountsByEvent(
+    events.map((e: any) => e._id.toString()),
+  );
   return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
@@ -95,23 +137,37 @@ export async function getEventById(id: string) {
 
 export async function createEvent(input: Record<string, any>, userId: string) {
   const { status, bookingFee: _ignored, ...data } = input;
+  const ticketBatches = normalizeTicketBatches(data.ticketBatches);
   const event = await Event.create({
     ...data,
+    ticketBatches,
     bookingFee: BOOKING_FEE_PERCENT,
     eventDate: new Date(data.eventDate),
     status,
     createdBy: userId,
   });
 
-  const message = status === "draft" ? "Event saved as draft" : "Event published successfully";
+  const message =
+    status === "draft"
+      ? "Event saved as draft"
+      : "Event published successfully";
   return { event: toEventDTO(event), message };
 }
 
 export async function updateEvent(id: string, input: Record<string, any>) {
   const { status, bookingFee: _ignored, ...data } = input;
+  const ticketBatches = data.ticketBatches
+    ? normalizeTicketBatches(data.ticketBatches)
+    : undefined;
   const updated = await Event.findByIdAndUpdate(
     id,
-    { ...data, bookingFee: BOOKING_FEE_PERCENT, eventDate: data.eventDate ? new Date(data.eventDate) : undefined, status },
+    {
+      ...data,
+      ...(ticketBatches ? { ticketBatches } : {}),
+      bookingFee: BOOKING_FEE_PERCENT,
+      eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
+      status,
+    },
     { new: true, runValidators: true },
   );
 
@@ -146,4 +202,3 @@ export async function deleteEvent(id: string) {
     throw AppError.notFound("Event not found");
   }
 }
-

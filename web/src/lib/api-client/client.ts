@@ -51,8 +51,10 @@ export interface OrderResponse {
   customerEmail: string | null;
   customerName: string | null;
   sellerPayout?: number;
+  refundedAmount?: number;
   organiserRevenue?: number;
   originalPurchasePrice?: number;
+  resaleListingCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -341,10 +343,11 @@ export class FatsomaClient {
   async buyResaleTicket(
     listingId: string,
     capturedFee: number,
+    listingIds?: string[],
   ): Promise<ApiResponse<{ sessionId: string; url: string }>> {
     return this.request(`/api/resale/${listingId}/buy`, {
       method: "POST",
-      body: JSON.stringify({ capturedFee }),
+      body: JSON.stringify({ capturedFee, listingIds }),
     });
   }
 

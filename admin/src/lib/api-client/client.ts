@@ -53,6 +53,7 @@ export interface OrderResponse {
   refundedAmount?: number;
   organiserRevenue?: number;
   originalPurchasePrice?: number;
+  resaleListingCount?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -88,27 +88,75 @@ export async function listOrders(filters: OrderFilters = {}) {
 
   const orders = await Order.find(query).sort({ createdAt: -1 }).lean();
 
-  const resaleOrderIds = orders
-    .filter((o: any) => o.type === "resale" && o.resaleListingId)
+  const resaleOrders = orders.filter((o: any) => o.type === "resale");
+  const resaleOrderIds = resaleOrders.map((o: any) => o._id);
+  const legacyListingIds = resaleOrders
+    .filter((o: any) => o.resaleListingId)
     .map((o: any) => o.resaleListingId);
 
   const resaleListings =
-    resaleOrderIds.length > 0
-      ? await ResaleListing.find({ _id: { $in: resaleOrderIds } }).lean()
+    resaleOrderIds.length > 0 || legacyListingIds.length > 0
+      ? await ResaleListing.find({
+          $or: [
+            ...(resaleOrderIds.length > 0
+              ? [{ resaleOrderId: { $in: resaleOrderIds } }]
+              : []),
+            ...(legacyListingIds.length > 0
+              ? [{ _id: { $in: legacyListingIds } }]
+              : []),
+          ],
+        }).lean()
       : [];
-  const listingMap = new Map(
-    resaleListings.map((l: any) => [l._id.toString(), l]),
-  );
+
+  const listingsByOrderId = new Map<string, any[]>();
+  const listingById = new Map<string, any>();
+
+  for (const listing of resaleListings as any[]) {
+    listingById.set(listing._id.toString(), listing);
+
+    if (listing.resaleOrderId) {
+      const orderId = listing.resaleOrderId.toString();
+      const existing = listingsByOrderId.get(orderId) ?? [];
+      existing.push(listing);
+      listingsByOrderId.set(orderId, existing);
+    }
+  }
 
   return orders.map((o: any) => {
     const dto = toOrderDTO(o);
-    if (dto.type === "resale" && dto.resaleListingId) {
-      const listing = listingMap.get(dto.resaleListingId) as any;
-      if (listing) {
-        (dto as any).sellerPayout = listing.sellerPayout;
-        (dto as any).refundedAmount = listing.sellerPayout;
-        (dto as any).organiserRevenue = listing.organiserRevenue;
-        (dto as any).originalPurchasePrice = listing.originalPurchasePrice;
+    if (dto.type === "resale") {
+      const linkedListings = listingsByOrderId.get(dto.id) ?? [];
+      const fallbackListing = dto.resaleListingId
+        ? listingById.get(dto.resaleListingId)
+        : null;
+      const listings =
+        linkedListings.length > 0
+          ? linkedListings
+          : fallbackListing
+            ? [fallbackListing]
+            : [];
+
+      if (listings.length > 0) {
+        const sellerPayout = listings.reduce(
+          (sum, listing) => sum + Number(listing.sellerPayout || 0),
+          0,
+        );
+        const organiserRevenue = listings.reduce(
+          (sum, listing) => sum + Number(listing.organiserRevenue || 0),
+          0,
+        );
+        const originalPurchasePrice = listings.reduce(
+          (sum, listing) => sum + Number(listing.originalPurchasePrice || 0),
+          0,
+        );
+
+        (dto as any).sellerPayout = Math.round(sellerPayout * 100) / 100;
+        (dto as any).refundedAmount = Math.round(sellerPayout * 100) / 100;
+        (dto as any).organiserRevenue =
+          Math.round(organiserRevenue * 100) / 100;
+        (dto as any).originalPurchasePrice =
+          Math.round(originalPurchasePrice * 100) / 100;
+        (dto as any).resaleListingCount = listings.length;
       }
     }
     return dto;

@@ -34,9 +34,20 @@ const DEFAULT_BATCH: TicketBatch = {
   basePrice: 0,
   minDiscount: 0,
   maxDiscount: 0,
+  entryWindowCutoff: "",
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
+
+function toDateTimeLocal(value?: string | null) {
+  if (!value) return "";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
 
 export default function EditEventPage() {
   const { token } = useAuth();
@@ -111,7 +122,12 @@ export default function EditEventPage() {
             platformCommission: e.platformCommission,
             status: e.status,
           });
-          setTicketBatches(e.ticketBatches);
+          setTicketBatches(
+            e.ticketBatches.map((batch) => ({
+              ...batch,
+              entryWindowCutoff: toDateTimeLocal(batch.entryWindowCutoff),
+            })),
+          );
         } else {
           setError("Event not found");
         }
@@ -456,6 +472,19 @@ export default function EditEventPage() {
                     onChange={(v) => updateBatch(i, "basePrice", v)}
                     required
                   />
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <InputField
+                      label="Entry Window Cutoff"
+                      type="datetime-local"
+                      value={batch.entryWindowCutoff ?? ""}
+                      onChange={(v) => updateBatch(i, "entryWindowCutoff", v)}
+                      placeholder="Optional"
+                    />
+                    <p className="mt-1 text-xs text-cream/55">
+                      Optional: after this datetime, entry with this tier is no
+                      longer valid.
+                    </p>
+                  </div>
                   {/* <InputField label="Min Discount %" type="number" value={String(batch.minDiscount)} onChange={(v) => updateBatch(i, "minDiscount", v)} />
                   <InputField label="Max Discount %" type="number" value={String(batch.maxDiscount)} onChange={(v) => updateBatch(i, "maxDiscount", v)} /> */}
                 </div>

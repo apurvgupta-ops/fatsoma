@@ -170,7 +170,7 @@ export default function HomePage() {
               href="/tickets"
               className="inline-flex rounded-lg bg-gold px-8 py-3 font-semibold text-void transition-colors hover:bg-gold-light"
             >
-              Pass it on the list
+              Pass it On The List
             </Link>
           </div>
         </div>
@@ -202,4 +202,3 @@ function FeatureCard({
     </div>
   );
 }
-

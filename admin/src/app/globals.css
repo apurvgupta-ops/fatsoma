@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0A0A0A;
+  --background: #0a0a0a;
   --foreground: #f5f2ec;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-void: #0A0A0A;
+  --color-void: #0a0a0a;
   --color-surface: #141414;
   --color-border: #2a2a2a;
-  --color-gold: #CEA655;
+  --color-gold: #cea655;
   --color-gold-light: #e8d5a3;
   --color-cream: #f5f2ec;
   --font-sans: var(--font-geist-sans);
@@ -23,6 +23,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 @keyframes floatGlow {
@@ -43,7 +51,8 @@ body {
 }
 
 input[type="date"],
-input[type="time"] {
+input[type="time"],
+input[type="datetime-local"] {
   color-scheme: dark;
 }
 
@@ -51,4 +60,9 @@ input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
   display: none;
   -webkit-appearance: none;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  opacity: 0.95;
+  cursor: pointer;
 }

@@ -5,11 +5,23 @@ import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 
 function toListingDTO(listing: any) {
+  const ticket = listing.ticketId;
   return {
     id: (listing._id ?? listing.id).toString(),
-    ticketId: listing.ticketId?.toString(),
+    ticketId:
+      typeof ticket === "object" && ticket !== null && "_id" in ticket
+        ? String((ticket as any)._id)
+        : listing.ticketId?.toString(),
     eventId: listing.eventId?.toString(),
     sellerId: listing.sellerId?.toString(),
+    eventName:
+      typeof ticket === "object" && ticket !== null
+        ? ((ticket as any).eventName ?? null)
+        : null,
+    ticketBatchName:
+      typeof ticket === "object" && ticket !== null
+        ? ((ticket as any).ticketBatchName ?? null)
+        : null,
     askingPrice: listing.askingPrice,
     originalPurchasePrice: listing.originalPurchasePrice,
     status: listing.status,
@@ -19,12 +31,14 @@ function toListingDTO(listing: any) {
     organiserRevenue: listing.organiserRevenue,
     sellerRefundId: listing.sellerRefundId ?? null,
     sellerRefundStatus: listing.sellerRefundStatus ?? null,
-    createdAt: listing.createdAt instanceof Date
-      ? listing.createdAt.toISOString()
-      : listing.createdAt,
-    updatedAt: listing.updatedAt instanceof Date
-      ? listing.updatedAt.toISOString()
-      : listing.updatedAt ?? null,
+    createdAt:
+      listing.createdAt instanceof Date
+        ? listing.createdAt.toISOString()
+        : listing.createdAt,
+    updatedAt:
+      listing.updatedAt instanceof Date
+        ? listing.updatedAt.toISOString()
+        : (listing.updatedAt ?? null),
   };
 }
 
@@ -47,7 +61,11 @@ export async function listForResale(input: ListForResaleInput) {
     throw AppError.forbidden("You do not own this ticket");
   }
   if (ticket.status !== "active") {
-    throw AppError.badRequest("Ticket is not available for listing (current status: " + ticket.status + ")");
+    throw AppError.badRequest(
+      "Ticket is not available for listing (current status: " +
+        ticket.status +
+        ")",
+    );
   }
 
   const event = (await Event.findById(ticket.eventId).lean()) as any;
@@ -56,14 +74,18 @@ export async function listForResale(input: ListForResaleInput) {
     throw AppError.badRequest("Resale is not allowed for this event");
   }
 
-  const batch = event.ticketBatches.find((b: any) => b.name === ticket.ticketBatchName);
+  const batch = event.ticketBatches.find(
+    (b: any) => b.name === ticket.ticketBatchName,
+  );
   const maxPrice = batch?.basePrice ?? askingPrice;
 
   if (askingPrice <= 0) {
     throw AppError.badRequest("Asking price must be greater than 0");
   }
   if (askingPrice > maxPrice) {
-    throw AppError.badRequest(`Asking price cannot exceed current ticket price (£${maxPrice.toFixed(2)})`);
+    throw AppError.badRequest(
+      `Asking price cannot exceed current ticket price (£${maxPrice.toFixed(2)})`,
+    );
   }
 
   ticket.status = "listed";
@@ -105,6 +127,7 @@ export async function cancelListing(listingId: string, userId: string) {
 
 export async function getMyListings(userId: string) {
   const listings = await ResaleListing.find({ sellerId: userId })
+    .populate({ path: "ticketId", select: "eventName ticketBatchName" })
     .sort({ updatedAt: -1 })
     .lean();
 

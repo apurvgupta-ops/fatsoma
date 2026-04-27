@@ -16,6 +16,7 @@ import { logPayment, logRefund } from "../lib/systemLogger";
 import { createNotification } from "./notification.service";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
+const MAX_TICKETS_PER_EVENT = 6;
 
 let _stripe: Stripe | null = null;
 
@@ -26,6 +27,37 @@ function getStripe(): Stripe {
     _stripe = new Stripe(key);
   }
   return _stripe;
+}
+
+function ticketWord(count: number) {
+  return count === 1 ? "ticket" : "tickets";
+}
+
+async function countUserTicketsForEvent(userId: string, eventId: string) {
+  return Ticket.countDocuments({
+    userId: new mongoose.Types.ObjectId(userId),
+    eventId: new mongoose.Types.ObjectId(eventId),
+    status: { $nin: ["cancelled", "transferred"] },
+  });
+}
+
+function enforcePerEventLimit(
+  existingCount: number,
+  requestedQuantity: number,
+) {
+  const remainingAllowance = MAX_TICKETS_PER_EVENT - existingCount;
+
+  if (remainingAllowance <= 0) {
+    throw AppError.badRequest(
+      `You already have ${existingCount} ${ticketWord(existingCount)} for this event. You cannot buy more tickets.`,
+    );
+  }
+
+  if (requestedQuantity > remainingAllowance) {
+    throw AppError.badRequest(
+      `You already have ${existingCount} ${ticketWord(existingCount)} for this event. You can buy only ${remainingAllowance} more ${ticketWord(remainingAllowance)}.`,
+    );
+  }
 }
 
 // ── Primary checkout ────────────────────────────────────
@@ -51,8 +83,10 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     throw AppError.badRequest("Invalid event ID");
   }
 
-  if (quantity < 1 || quantity > 10) {
-    throw AppError.badRequest("Quantity must be between 1 and 10");
+  if (quantity < 1 || quantity > MAX_TICKETS_PER_EVENT) {
+    throw AppError.badRequest(
+      `Quantity must be between 1 and ${MAX_TICKETS_PER_EVENT}`,
+    );
   }
 
   const event = (await Event.findById(eventId).lean()) as any;
@@ -64,6 +98,9 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   if (!batch) {
     throw AppError.badRequest(`Ticket batch "${batchName}" not found`);
   }
+
+  const existingUserTickets = await countUserTicketsForEvent(userId, eventId);
+  enforcePerEventLimit(existingUserTickets, quantity);
 
   const soldCount = await Ticket.countDocuments({
     eventId: new mongoose.Types.ObjectId(eventId),
@@ -154,6 +191,7 @@ export async function createCheckoutSession(input: CreateSessionInput) {
 
 interface CreateResaleSessionInput {
   listingId: string;
+  listingIds?: string[];
   capturedFee: number;
   userId: string;
 }
@@ -161,31 +199,87 @@ interface CreateResaleSessionInput {
 export async function createResaleCheckoutSession(
   input: CreateResaleSessionInput,
 ) {
-  const { listingId, capturedFee, userId } = input;
+  const { listingId, listingIds, capturedFee, userId } = input;
 
-  if (!mongoose.Types.ObjectId.isValid(listingId)) {
+  const requestedListingIds = Array.from(
+    new Set((listingIds?.length ? listingIds : [listingId]).filter(Boolean)),
+  );
+
+  if (requestedListingIds.length === 0) {
+    throw AppError.badRequest("At least one listing is required");
+  }
+
+  const invalidListingId = requestedListingIds.find(
+    (id) => !mongoose.Types.ObjectId.isValid(id),
+  );
+  if (invalidListingId) {
     throw AppError.badRequest("Invalid listing ID");
   }
 
-  const listing = await ResaleListing.findById(listingId);
-  if (!listing || listing.status !== "active") {
-    throw AppError.notFound("Listing not found or no longer active");
+  const listings = await ResaleListing.find({
+    _id: {
+      $in: requestedListingIds.map((id) => new mongoose.Types.ObjectId(id)),
+    },
+    status: "active",
+  });
+
+  if (listings.length !== requestedListingIds.length) {
+    throw AppError.notFound("One or more listings are no longer active");
   }
 
-  if (listing.sellerId.toString() === userId) {
+  if (listings.some((listing) => listing.sellerId.toString() === userId)) {
     throw AppError.badRequest("You cannot buy your own listing");
   }
 
-  const ticket = await Ticket.findById(listing.ticketId);
-  if (!ticket || ticket.status !== "listed") {
+  const firstListing = listings[0];
+  if (!firstListing) {
+    throw AppError.notFound("Listing not found or no longer active");
+  }
+
+  const sameEvent = listings.every(
+    (listing) => listing.eventId.toString() === firstListing.eventId.toString(),
+  );
+  const samePrice = listings.every(
+    (listing) =>
+      Math.abs(Number(listing.askingPrice) - Number(firstListing.askingPrice)) <
+      0.005,
+  );
+
+  if (!sameEvent || !samePrice) {
+    throw AppError.badRequest(
+      "Selected listings must belong to the same event and price tier",
+    );
+  }
+
+  const tickets = await Ticket.find({
+    _id: { $in: listings.map((listing) => listing.ticketId) },
+    status: "listed",
+  });
+  if (tickets.length !== listings.length) {
+    throw AppError.badRequest("One or more tickets are no longer available");
+  }
+
+  const ticketById = new Map(
+    tickets.map((ticket: any) => [ticket._id.toString(), ticket]),
+  );
+  const firstTicket = ticketById.get(firstListing.ticketId.toString());
+  if (!firstTicket) {
     throw AppError.badRequest("Ticket is no longer available");
   }
 
-  const event = (await Event.findById(listing.eventId).lean()) as any;
+  const event = (await Event.findById(firstListing.eventId).lean()) as any;
   if (!event) throw AppError.notFound("Event not found");
 
+  const existingUserTickets = await countUserTicketsForEvent(
+    userId,
+    firstListing.eventId.toString(),
+  );
+  enforcePerEventLimit(existingUserTickets, listings.length);
+
   const fee = Math.round(capturedFee * 100) / 100;
-  const unitTotal = listing.askingPrice + fee;
+  const unitTotal = firstListing.askingPrice + fee;
+  const quantity = listings.length;
+  const totalAmount = Math.round(unitTotal * quantity * 100) / 100;
 
   let session: Stripe.Checkout.Session;
   try {
@@ -196,28 +290,30 @@ export async function createResaleCheckoutSession(
           price_data: {
             currency: "gbp",
             product_data: {
-              name: `${event.eventName} — ${ticket.ticketBatchName} (Resale)`,
-              description: `Resale: £${listing.askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+              name: `${event.eventName} — ${firstTicket.ticketBatchName} (Resale)`,
+              description: `Resale: £${firstListing.askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
             },
             unit_amount: Math.round(unitTotal * 100),
           },
-          quantity: 1,
+          quantity,
         },
       ],
       metadata: {
         type: "resale",
-        listingId: listing._id.toString(),
-        eventId: listing.eventId.toString(),
-        ticketId: ticket._id.toString(),
+        listingId: firstListing._id.toString(),
+        listingIds: listings.map((listing) => listing._id.toString()).join(","),
+        quantity: String(quantity),
+        eventId: firstListing.eventId.toString(),
+        ticketId: firstTicket._id.toString(),
         eventName: event.eventName,
-        ticketBatchName: ticket.ticketBatchName,
-        basePrice: String(listing.askingPrice),
+        ticketBatchName: firstTicket.ticketBatchName,
+        basePrice: String(firstListing.askingPrice),
         capturedFee: String(fee),
-        totalAmount: String(Math.round(unitTotal * 100) / 100),
+        totalAmount: String(totalAmount),
         userId,
       },
       success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${WEB_URL}/events/${listing.eventId}`,
+      cancel_url: `${WEB_URL}/events/${firstListing.eventId}`,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -232,7 +328,10 @@ export async function createResaleCheckoutSession(
       userId,
       errorMessage: msg,
       errorCode: code,
-      metadata: { listingId: listing._id.toString() },
+      metadata: {
+        listingIds: listings.map((listing) => listing._id.toString()).join(","),
+        quantity,
+      },
     });
     throw err;
   }
@@ -243,9 +342,12 @@ export async function createResaleCheckoutSession(
     type: "resale",
     sessionId: session.id,
     userId,
-    amountGbp: Math.round(unitTotal * 100) / 100,
+    amountGbp: totalAmount,
     currency: "gbp",
-    metadata: { listingId: listing._id.toString() },
+    metadata: {
+      listingIds: listings.map((listing) => listing._id.toString()).join(","),
+      quantity,
+    },
   });
 
   return {
@@ -273,7 +375,7 @@ async function findOrCreateOrderFromSession(
     ticketBatchName: isPrimary
       ? meta.batchName
       : meta.ticketBatchName || "Unknown",
-    quantity: isPrimary ? Number(meta.quantity) || 1 : 1,
+    quantity: Number(meta.quantity) || 1,
     basePrice: Number(meta.basePrice) || 0,
     capturedBookingFee: Number(meta.capturedFee) || 0,
     totalAmount: Number(meta.totalAmount) || 0,
@@ -287,6 +389,15 @@ async function findOrCreateOrderFromSession(
   });
 
   return order;
+}
+
+function parseListingIds(meta: Record<string, string> | null | undefined) {
+  if (!meta) return [] as string[];
+  const raw = meta.listingIds || meta.listingId || "";
+  return raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0 && mongoose.Types.ObjectId.isValid(id));
 }
 
 export async function confirmSession(sessionId: string) {
@@ -351,6 +462,7 @@ export async function confirmSession(sessionId: string) {
           body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
           metadata: {
             orderId: order._id.toString(),
+            eventId: order.eventId?.toString?.() ?? String(order.eventId),
             type: order.type,
             totalAmount: order.totalAmount,
           },
@@ -369,7 +481,7 @@ export async function confirmSession(sessionId: string) {
         });
       }
     } else if (order.type === "resale") {
-      await completeResaleTransfer(order);
+      await completeResaleTransfer(order, parseListingIds(session.metadata));
       if (order.userId) {
         await createNotification({
           userId: order.userId.toString(),
@@ -378,6 +490,7 @@ export async function confirmSession(sessionId: string) {
           body: `Your resale ticket for ${order.eventName} is confirmed.`,
           metadata: {
             orderId: order._id.toString(),
+            eventId: order.eventId?.toString?.() ?? String(order.eventId),
             type: order.type,
             totalAmount: order.totalAmount,
           },
@@ -415,7 +528,14 @@ export async function confirmSession(sessionId: string) {
       metadata: { orderType: order.type },
     });
     if (order.type === "resale" && order.resaleListingId) {
-      await cancelResaleOnExpiry(order.resaleListingId);
+      const ids = parseListingIds(session.metadata);
+      if (ids.length > 0) {
+        for (const listingId of ids) {
+          await cancelResaleOnExpiry(new mongoose.Types.ObjectId(listingId));
+        }
+      } else {
+        await cancelResaleOnExpiry(order.resaleListingId);
+      }
     }
     return formatOrder(order.toObject());
   }
@@ -468,39 +588,48 @@ async function generateTickets(order: any) {
   await Ticket.insertMany(tickets);
 }
 
-async function completeResaleTransfer(order: any) {
-  if (!order.resaleListingId) return;
+async function completeResaleTransfer(order: any, listingIds: string[] = []) {
+  const ids = listingIds.length
+    ? listingIds
+    : order.resaleListingId
+      ? [String(order.resaleListingId)]
+      : [];
 
-  const listing = await ResaleListing.findById(order.resaleListingId);
-  if (!listing || listing.status === "sold") return;
+  if (!ids.length) return;
 
-  const ticket = await Ticket.findById(listing.ticketId);
-  if (!ticket) return;
+  for (const listingId of ids) {
+    const listing = await ResaleListing.findById(listingId);
+    if (!listing || listing.status === "sold") continue;
 
-  const sellerPayout = listing.originalPurchasePrice;
-  const organiserRevenue = listing.askingPrice - listing.originalPurchasePrice;
+    const ticket = await Ticket.findById(listing.ticketId);
+    if (!ticket) continue;
 
-  listing.status = "sold";
-  listing.buyerId = order.userId;
-  listing.resaleOrderId = order._id;
-  listing.platformFee = order.capturedBookingFee;
-  listing.sellerPayout = sellerPayout;
-  listing.organiserRevenue = organiserRevenue;
+    const sellerPayout = listing.originalPurchasePrice;
+    const organiserRevenue =
+      listing.askingPrice - listing.originalPurchasePrice;
 
-  const sellerPaymentIntentId = ticket.stripePaymentIntentId;
+    listing.status = "sold";
+    listing.buyerId = order.userId;
+    listing.resaleOrderId = order._id;
+    listing.platformFee = order.capturedBookingFee;
+    listing.sellerPayout = sellerPayout;
+    listing.organiserRevenue = organiserRevenue;
 
-  ticket.userId = order.userId;
-  ticket.purchasePrice = listing.askingPrice;
-  ticket.status = "active";
-  ticket.qrCode = crypto.randomUUID();
-  await ticket.save();
+    const sellerPaymentIntentId = ticket.stripePaymentIntentId;
 
-  await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
-  await listing.save();
+    ticket.userId = order.userId;
+    ticket.purchasePrice = listing.askingPrice;
+    ticket.status = "active";
+    ticket.qrCode = crypto.randomUUID();
+    await ticket.save();
 
-  notifySellerOfSale(listing, order).catch((err) =>
-    console.error("[Resale] Failed to notify seller:", err),
-  );
+    await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
+    await listing.save();
+
+    notifySellerOfSale(listing, order).catch((err) =>
+      console.error("[Resale] Failed to notify seller:", err),
+    );
+  }
 }
 
 /**
@@ -602,6 +731,7 @@ async function notifySellerOfSale(listing: any, order: any) {
     body: `${eventName} (${order.ticketBatchName || "General"}) sold for £${Number(listing.askingPrice || 0).toFixed(2)}.`,
     metadata: {
       listingId: listing._id.toString(),
+      eventId: listing.eventId?.toString?.() ?? String(listing.eventId),
       resaleOrderId: order._id.toString(),
       sellerPayout: listing.sellerPayout,
       sellerRefundStatus: listing.sellerRefundStatus,
@@ -716,6 +846,7 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
             body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
             metadata: {
               orderId: order._id.toString(),
+              eventId: order.eventId?.toString?.() ?? String(order.eventId),
               type: order.type,
               totalAmount: order.totalAmount,
             },
@@ -734,7 +865,7 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
           });
         }
       } else if (order.type === "resale") {
-        await completeResaleTransfer(order);
+        await completeResaleTransfer(order, parseListingIds(session.metadata));
         if (order.userId) {
           await createNotification({
             userId: order.userId.toString(),
@@ -743,6 +874,7 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
             body: `Your resale ticket for ${order.eventName} is confirmed.`,
             metadata: {
               orderId: order._id.toString(),
+              eventId: order.eventId?.toString?.() ?? String(order.eventId),
               type: order.type,
               totalAmount: order.totalAmount,
             },
@@ -779,7 +911,16 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
           metadata: { orderType: order.type },
         });
         if (order.type === "resale" && order.resaleListingId) {
-          await cancelResaleOnExpiry(order.resaleListingId);
+          const ids = parseListingIds(session.metadata);
+          if (ids.length > 0) {
+            for (const listingId of ids) {
+              await cancelResaleOnExpiry(
+                new mongoose.Types.ObjectId(listingId),
+              );
+            }
+          } else {
+            await cancelResaleOnExpiry(order.resaleListingId);
+          }
         }
       } else if (!order) {
         logPayment({

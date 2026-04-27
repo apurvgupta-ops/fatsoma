@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { createBrowserClient } from "@/lib/api";
 import type { OrderResponse } from "@/lib/api-client";
+import type { ResaleListingResponse } from "@/lib/shared";
 import {
   User,
   Mail,
@@ -28,6 +29,12 @@ export default function ProfilePage() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [resaleListings, setResaleListings] = useState<ResaleListingResponse[]>(
+    [],
+  );
+  const [historyTab, setHistoryTab] = useState<"purchase" | "resale">(
+    "purchase",
+  );
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -35,8 +42,13 @@ export default function ProfilePage() {
   const fetchOrders = useCallback(async () => {
     try {
       const client = createBrowserClient();
-      const res = await client.getMyOrders();
-      if (res.ok && res.data) setOrders(res.data);
+      const [ordersRes, resaleRes] = await Promise.all([
+        client.getMyOrders(),
+        client.getMyResaleListings(),
+      ]);
+
+      if (ordersRes.ok && ordersRes.data) setOrders(ordersRes.data);
+      if (resaleRes.ok && resaleRes.data) setResaleListings(resaleRes.data);
     } catch {
       // silently fail
     } finally {
@@ -108,7 +120,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          <div className="mb-10 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-surface/40 p-5">
               <p className="text-xs font-medium uppercase tracking-wider text-cream/50">
                 Total Orders
@@ -189,14 +201,48 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Purchase History */}
-          <PurchaseHistory
-            orders={orders}
-            loading={loadingOrders}
-            currentPage={currentPage}
-            pageSize={PAGE_SIZE}
-            onPageChange={setCurrentPage}
-          />
+          {/* History */}
+          <div className="mb-6">
+            <div className="mb-4 inline-flex rounded-lg border border-border bg-surface/30 p-1">
+              <button
+                type="button"
+                onClick={() => setHistoryTab("purchase")}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                  historyTab === "purchase"
+                    ? "bg-gold text-void"
+                    : "text-cream/70 hover:text-cream"
+                }`}
+              >
+                Purchase History
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryTab("resale")}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                  historyTab === "resale"
+                    ? "bg-gold text-void"
+                    : "text-cream/70 hover:text-cream"
+                }`}
+              >
+                Resale History
+              </button>
+            </div>
+
+            {historyTab === "purchase" ? (
+              <PurchaseHistory
+                orders={orders}
+                loading={loadingOrders}
+                currentPage={currentPage}
+                pageSize={PAGE_SIZE}
+                onPageChange={setCurrentPage}
+              />
+            ) : (
+              <ResaleHistory
+                listings={resaleListings}
+                loading={loadingOrders}
+              />
+            )}
+          </div>
 
           {/* Sign Out */}
           <div className="mt-8 text-center">
@@ -246,12 +292,12 @@ function PurchaseHistory({
     <div className="rounded-xl border border-border bg-surface/40 p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-cream">Purchase History</h2>
-        <Link
+        {/* <Link
           href="/tickets"
           className="cursor-pointer text-sm font-medium text-gold hover:underline"
         >
           View Tickets
-        </Link>
+        </Link> */}
       </div>
 
       {loading ? (
@@ -365,6 +411,99 @@ function StatusBadge({ status }: { status: string }) {
         </span>
       );
     case "failed":
+    case "expired":
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-red-400">
+          <XCircle className="h-3 w-3" /> {status}
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-amber-400">
+          <Clock className="h-3 w-3" /> {status}
+        </span>
+      );
+  }
+}
+
+function ResaleHistory({
+  listings,
+  loading,
+}: {
+  listings: ResaleListingResponse[];
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface/40 p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-cream">Resale History</h2>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-gold" />
+        </div>
+      ) : listings.length === 0 ? (
+        <div className="py-12 text-center">
+          <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-cream/20" />
+          <p className="text-sm text-cream/60">No resale history yet</p>
+          <Link
+            href="/tickets"
+            className="mt-4 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gold hover:underline"
+          >
+            Go to My Tickets <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {listings.map((listing) => (
+            <div
+              key={listing.id}
+              className="flex items-center gap-4 rounded-lg border border-border/50 bg-void/40 p-4"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold/10">
+                <Ticket className="h-5 w-5 text-gold" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-cream">
+                  {listing.eventName || `Event ${listing.eventId.slice(0, 8)}`}
+                </p>
+                <p className="mt-0.5 text-xs text-cream/50">
+                  {listing.ticketBatchName || "Resale listing"} ·{" "}
+                  {new Date(listing.createdAt).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-cream">
+                  £{listing.askingPrice.toFixed(2)}
+                </p>
+                <ResaleStatusBadge status={listing.status} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResaleStatusBadge({
+  status,
+}: {
+  status: ResaleListingResponse["status"];
+}) {
+  switch (status) {
+    case "sold":
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-emerald-400">
+          <CheckCircle2 className="h-3 w-3" /> Sold
+        </span>
+      );
+    case "cancelled":
     case "expired":
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-red-400">

@@ -1,16 +1,27 @@
 import { z } from "zod";
 import { EVENT_CATEGORIES, EVENT_STATUSES, USER_ROLES } from "./constants";
 
-export const ticketBatchSchema = z.object({
-  name: z.string().min(1, "Batch name is required").trim(),
-  quantity: z.number().min(0, "Quantity cannot be negative"),
-  basePrice: z.number().min(0, "Price cannot be negative"),
-  minDiscount: z.number().min(0).max(100),
-  maxDiscount: z.number().min(0).max(100),
-}).refine((b) => b.minDiscount <= b.maxDiscount, {
-  message: "Minimum discount cannot exceed maximum discount",
-  path: ["minDiscount"],
-});
+const optionalDateTimeString = z
+  .string()
+  .trim()
+  .optional()
+  .refine((value) => !value || !Number.isNaN(Date.parse(value)), {
+    message: "Entry window cutoff must be a valid datetime",
+  });
+
+export const ticketBatchSchema = z
+  .object({
+    name: z.string().min(1, "Batch name is required").trim(),
+    quantity: z.number().min(0, "Quantity cannot be negative"),
+    basePrice: z.number().min(0, "Price cannot be negative"),
+    minDiscount: z.number().min(0).max(100),
+    maxDiscount: z.number().min(0).max(100),
+    entryWindowCutoff: optionalDateTimeString,
+  })
+  .refine((b) => b.minDiscount <= b.maxDiscount, {
+    message: "Minimum discount cannot exceed maximum discount",
+    path: ["minDiscount"],
+  });
 
 export const createEventSchema = z.object({
   eventName: z.string().min(1).max(200).trim(),
@@ -28,7 +39,9 @@ export const createEventSchema = z.object({
   startTime: z.string().min(1),
   endTime: z.string().min(1),
   totalTickets: z.number().min(0),
-  ticketBatches: z.array(ticketBatchSchema).min(1, "At least one ticket batch is required"),
+  ticketBatches: z
+    .array(ticketBatchSchema)
+    .min(1, "At least one ticket batch is required"),
   dynamicPricing: z.boolean(),
   bookingFee: z.number().min(0).max(100).optional(),
   allowResale: z.boolean(),
@@ -58,4 +71,3 @@ export type CreateEventPayload = z.infer<typeof createEventSchema>;
 export type LoginPayload = z.infer<typeof loginSchema>;
 export type CreateUserPayload = z.infer<typeof createUserSchema>;
 export type RegisterPayload = z.infer<typeof registerSchema>;
-

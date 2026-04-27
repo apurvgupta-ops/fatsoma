@@ -4,6 +4,7 @@ export interface TicketBatch {
   basePrice: number;
   minDiscount: number;
   maxDiscount: number;
+  entryWindowCutoff?: string | null;
   remaining?: number;
 }
 
@@ -113,11 +114,42 @@ export interface TicketResponse {
   updatedAt: string;
 }
 
+export type TicketScanReason =
+  | "VALID"
+  | "NOT_FOUND"
+  | "WRONG_EVENT"
+  | "ENTRY_WINDOW_CLOSED"
+  | "ALREADY_USED"
+  | "TICKET_NOT_ACTIVE";
+
+export interface TicketScanValidationInput {
+  qrCode: string;
+  eventId?: string;
+}
+
+export interface TicketScanValidationResult {
+  valid: boolean;
+  reason: TicketScanReason;
+  message: string;
+  scannedAt: string;
+  ticket: {
+    id: string;
+    eventId: string;
+    eventName: string;
+    ticketBatchName: string;
+    status: "active" | "listed" | "transferred" | "used" | "cancelled";
+    purchasePrice: number;
+  } | null;
+  entryWindowCutoff: string | null;
+}
+
 export interface ResaleListingResponse {
   id: string;
   ticketId: string;
   eventId: string;
   sellerId: string;
+  eventName?: string | null;
+  ticketBatchName?: string | null;
   askingPrice: number;
   originalPurchasePrice: number;
   status: "active" | "sold" | "cancelled" | "expired";

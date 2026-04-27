@@ -35,6 +35,7 @@ const DEFAULT_BATCH: TicketBatch = {
   basePrice: 0,
   minDiscount: 0,
   maxDiscount: 0,
+  entryWindowCutoff: "",
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
@@ -367,7 +368,7 @@ export default function CreateEventPage() {
                     </button>
                   )}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <InputField
                     label="Name"
                     value={batch.name}
@@ -389,6 +390,19 @@ export default function CreateEventPage() {
                     onChange={(v) => updateBatch(i, "basePrice", v)}
                     required
                   />
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <InputField
+                      label="Entry Window Cutoff"
+                      type="datetime-local"
+                      value={batch.entryWindowCutoff ?? ""}
+                      onChange={(v) => updateBatch(i, "entryWindowCutoff", v)}
+                      placeholder="Optional"
+                    />
+                    <p className="mt-1 text-xs text-cream/55">
+                      Optional: after this datetime, entry with this tier is no
+                      longer valid.
+                    </p>
+                  </div>
                   {/* <InputField
                     label="Min Discount %"
                     type="number"
