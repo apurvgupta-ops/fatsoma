@@ -12,6 +12,7 @@ export interface ITicket {
   originalPrice: number;
   stripePaymentIntentId?: string;
   status: "active" | "listed" | "transferred" | "used" | "cancelled";
+  usedAt?: Date;
   qrCode: string;
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +34,7 @@ const TicketSchema = new Schema<ITicket>(
       default: "active",
       index: true,
     },
+    usedAt: { type: Date },
     qrCode: {
       type: String,
       required: true,

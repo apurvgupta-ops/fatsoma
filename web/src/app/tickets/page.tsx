@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext";
 import { createBrowserClient } from "@/lib/api";
 import type { TicketResponse, ResaleListingResponse } from "@/lib/shared";
@@ -199,6 +200,7 @@ export default function MyTicketsPage() {
     const groups = new Map<string, TicketResponse[]>();
     for (const ticket of filteredTickets) {
       const key = [
+        ticket.orderId,
         ticket.eventId,
         ticket.ticketBatchName,
         ticket.purchasePrice.toFixed(2),
@@ -573,7 +575,7 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Current release price</span>
                 <span className="font-medium text-cream">
-                  £{resaleModal.representative.currentBatchPrice.toFixed(2)}
+                  {formatCurrency(resaleModal.representative.currentBatchPrice)}
                 </span>
               </div>
               <div className="flex justify-between text-sm gap-3">
@@ -584,25 +586,25 @@ export default function MyTicketsPage() {
                   </span>
                 </span>
                 <span className="font-medium text-cream">
-                  £
-                  {(
+                  {formatCurrency(
                     Math.round(
                       resaleModal.representative.currentBatchPrice * 0.07 * 100,
                     ) / 100
-                  ).toFixed(2)}
+                  )}
                 </span>
               </div>
               <div className="border-t border-border pt-2.5 flex justify-between text-sm">
                 <span className="font-medium text-muted">Buyer pays</span>
                 <span className="font-semibold text-cream">
-                  £
-                  {(
+                  {formatCurrency(
                     resaleModal.representative.currentBatchPrice +
-                    Math.round(
-                      resaleModal.representative.currentBatchPrice * 0.07 * 100,
-                    ) /
-                      100
-                  ).toFixed(2)}
+                      Math.round(
+                        resaleModal.representative.currentBatchPrice *
+                          0.07 *
+                          100,
+                      ) /
+                        100,
+                  )}
                 </span>
               </div>
 
@@ -611,28 +613,28 @@ export default function MyTicketsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Organiser receives</span>
                 <span className="font-medium text-cream">
-                  £
-                  {Math.max(
-                    resaleModal.representative.currentBatchPrice -
-                      resaleModal.representative.purchasePrice,
-                    0,
-                  ).toFixed(2)}
+                  {formatCurrency(
+                    Math.max(
+                      resaleModal.representative.currentBatchPrice -
+                        resaleModal.representative.purchasePrice,
+                      0,
+                    ),
+                  )}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Your original price back</span>
                 <span className="font-medium text-cream">
-                  £{resaleModal.representative.purchasePrice.toFixed(2)}
+                  {formatCurrency(resaleModal.representative.purchasePrice)}
                 </span>
               </div>
               <div className="border-t border-border pt-2.5 flex justify-between text-sm">
                 <span className="font-semibold text-gold">You receive</span>
                 <span className="font-bold text-gold">
-                  £
-                  {(
+                  {formatCurrency(
                     resaleModal.representative.purchasePrice *
-                    resaleModal.quantity
-                  ).toFixed(2)}
+                      resaleModal.quantity,
+                  )}
                 </span>
               </div>
             </div>
@@ -640,10 +642,10 @@ export default function MyTicketsPage() {
             <p className="mb-5 text-xs leading-relaxed text-muted/80">
               Your ticket is priced at the{" "}
               <strong className="text-muted">current release price</strong> -
-              you get your original £
-              {(
-                resaleModal.representative.purchasePrice * resaleModal.quantity
-              ).toFixed(2)}{" "}
+              you get your original{" "}
+              {formatCurrency(
+                resaleModal.representative.purchasePrice * resaleModal.quantity,
+              )}{" "}
               back for {resaleModal.quantity} ticket
               {resaleModal.quantity > 1 ? "s" : ""}. The organiser captures the
               rest, same as if you&apos;d bought today.
@@ -750,7 +752,7 @@ export default function MyTicketsPage() {
               <div className="flex justify-between gap-4 text-sm">
                 <span className="text-muted">Paid</span>
                 <span className="text-right font-medium text-cream">
-                  £{giftModal.purchasePrice.toFixed(2)}
+                  {formatCurrency(giftModal.purchasePrice)}
                 </span>
               </div>
             </div>
@@ -830,6 +832,50 @@ export default function MyTicketsPage() {
   );
 }
 
+function buildBundleQrToken(ticket: TicketResponse) {
+  return [
+    "bundle",
+    "v1",
+    ticket.orderId,
+    ticket.eventId,
+    ticket.userId,
+    encodeURIComponent(ticket.ticketBatchName),
+  ].join(":");
+}
+
+function safeFilenamePart(value: string) {
+  return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "");
+}
+
+function formatCurrency(amount: number) {
+  const currency = process.env.NEXT_PUBLIC_APP_CURRENCY || "GBP";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+async function downloadQrImage(qrUrl: string, filename: string) {
+  try {
+    const res = await fetch(qrUrl);
+    if (!res.ok) throw new Error("Failed to fetch QR image");
+
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(qrUrl, "_blank", "noopener,noreferrer");
+  }
+}
+
 function GroupedTicketCard({
   group,
   onListManyForResale,
@@ -839,11 +885,20 @@ function GroupedTicketCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [listQuantity, setListQuantity] = useState(1);
+  const [showBundleQr, setShowBundleQr] = useState(false);
   const ticket = group.representative;
   const eligibleTickets = group.tickets.filter(
     (t) => t.allowResale && t.status === "active",
   );
   const maxListable = eligibleTickets.length;
+  const bundleQrCode = buildBundleQrToken(ticket);
+  const bundleQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(bundleQrCode)}`;
+  const bundleQrUrlLarge = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(bundleQrCode)}`;
+  const handleDownloadBundleQr = () =>
+    downloadQrImage(
+      bundleQrUrlLarge,
+      `ticket-bundle-${ticket.orderId.slice(-8)}-${safeFilenamePart(ticket.ticketBatchName)}.png`,
+    );
   const venue = [ticket.venueName, ticket.city].filter(Boolean).join(", ");
   const dateStr = ticket.eventDate
     ? new Date(ticket.eventDate).toLocaleDateString("en-GB", {
@@ -887,11 +942,30 @@ function GroupedTicketCard({
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-cream/70">
               <span>{dateStr}</span>
               <span className="capitalize">{ticket.ticketBatchName}</span>
-              <span>£{ticket.purchasePrice.toFixed(2)} each</span>
+              <span>{formatCurrency(ticket.purchasePrice)} each</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowBundleQr(true);
+              }}
+              className="hidden rounded-lg border border-white/15 bg-white/5 p-1.5 transition hover:border-gold/40 hover:bg-gold/10 sm:block"
+              aria-label="View bundle QR code"
+            >
+              <div className="relative h-10 w-10 overflow-hidden rounded bg-white p-0.5">
+                <Image
+                  src={bundleQrUrl}
+                  alt="Bundle QR"
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            </button>
             <span className="rounded-full border border-gold/40 bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold">
               x{group.quantity}
             </span>
@@ -905,6 +979,52 @@ function GroupedTicketCard({
 
         {expanded && (
           <div className="mt-4 border-t border-white/15 pt-4">
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/8 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowBundleQr(true)}
+                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white p-1.5 transition hover:ring-2 hover:ring-gold/40"
+                  aria-label="View bundle QR code"
+                >
+                  <Image
+                    src={bundleQrUrl}
+                    alt="Bundle QR"
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                </button>
+                <div>
+                  <p className="text-sm font-semibold text-cream">
+                    Entry QR for {group.quantity} ticket
+                    {group.quantity === 1 ? "" : "s"}
+                  </p>
+                  <p className="mt-1 text-xs text-cream/55">
+                    Scan once at the door to validate the current active tickets
+                    in this order.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 sm:shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowBundleQr(true)}
+                  className="rounded-lg border border-gold/35 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"
+                >
+                  View QR
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadBundleQr}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-cream/80 transition hover:bg-white/10"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </button>
+              </div>
+            </div>
+
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-cream/60">
               Individual Tickets
             </p>
@@ -991,6 +1111,59 @@ function GroupedTicketCard({
           </div>
         )}
       </div>
+
+      {showBundleQr &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={() => setShowBundleQr(false)}
+          >
+            <div
+              className="relative w-full max-w-sm rounded-2xl border border-border bg-void p-6 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setShowBundleQr(false)}
+                className="absolute right-4 top-4 cursor-pointer text-cream/60 hover:text-cream"
+                aria-label="Close QR modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="mb-1 text-center text-lg font-semibold text-cream">
+                Entry QR
+              </h3>
+              <p className="mb-4 text-center text-sm text-cream/60">
+                {ticket.eventName} · {group.quantity} ticket
+                {group.quantity === 1 ? "" : "s"}
+              </p>
+              <div className="mx-auto h-64 w-64 overflow-hidden rounded-xl border border-border bg-white p-2">
+                <div className="relative h-full w-full">
+                  <Image
+                    src={bundleQrUrlLarge}
+                    alt="Bundle ticket QR code"
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+              <p className="mt-3 break-all text-center font-mono text-[10px] text-cream/45">
+                {bundleQrCode}
+              </p>
+              <button
+                type="button"
+                onClick={handleDownloadBundleQr}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/10 px-4 py-2.5 text-sm font-semibold text-gold transition hover:bg-gold/20"
+              >
+                <Download className="h-4 w-4" />
+                Download QR
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -1048,7 +1221,7 @@ function GroupedResaleCard({
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-cream/70">
               <span>{dateStr}</span>
               <span className="capitalize">{ticket.ticketBatchName}</span>
-              <span>£{ticket.purchasePrice.toFixed(2)} each</span>
+              <span>{formatCurrency(ticket.purchasePrice)} each</span>
             </div>
           </div>
 
@@ -1151,23 +1324,7 @@ function TicketCard({
   const qrUrlLarge = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ticket.qrCode)}`;
   const handleDownloadQr = async () => {
     const filename = `ticket-qr-${ticket.qrCode.slice(0, 12)}.png`;
-
-    try {
-      const res = await fetch(qrUrlLarge);
-      if (!res.ok) throw new Error("Failed to fetch QR image");
-
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      window.open(qrUrlLarge, "_blank", "noopener,noreferrer");
-    }
+    await downloadQrImage(qrUrlLarge, filename);
   };
   const venue = [ticket.venueName, ticket.city].filter(Boolean).join(", ");
   const dateStr = ticket.eventDate
@@ -1243,7 +1400,7 @@ function TicketCard({
             <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted">
               <span>{dateStr}</span>
               <span className="capitalize">{ticket.ticketBatchName}</span>
-              <span>£{ticket.purchasePrice.toFixed(2)}</span>
+              <span>{formatCurrency(ticket.purchasePrice)}</span>
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4">
@@ -1314,7 +1471,7 @@ function TicketCard({
               {ticket.qrCode}
             </p>
             <p className="mt-1 text-center text-xs text-cream/40">
-              {ticket.ticketBatchName} · £{ticket.purchasePrice.toFixed(2)}
+              {ticket.ticketBatchName} - {formatCurrency(ticket.purchasePrice)}
             </p>
           </div>
         </div>
@@ -1376,19 +1533,19 @@ function SoldListingCard({ listing }: { listing: ResaleListingResponse }) {
             <div>
               <p className="text-cream/50">Sale Price</p>
               <p className="font-semibold text-cream">
-                £{listing.askingPrice.toFixed(2)}
+                {formatCurrency(listing.askingPrice)}
               </p>
             </div>
             <div>
               <p className="text-cream/50">Original Price</p>
               <p className="font-semibold text-cream">
-                £{listing.originalPurchasePrice.toFixed(2)}
+                {formatCurrency(listing.originalPurchasePrice)}
               </p>
             </div>
             <div>
               <p className="text-cream/50">Your Payout</p>
               <p className="font-semibold text-emerald-400">
-                £{listing.sellerPayout.toFixed(2)}
+                {formatCurrency(listing.sellerPayout)}
               </p>
             </div>
             <div>

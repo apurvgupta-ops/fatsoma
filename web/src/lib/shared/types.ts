@@ -120,7 +120,8 @@ export type TicketScanReason =
   | "WRONG_EVENT"
   | "ENTRY_WINDOW_CLOSED"
   | "ALREADY_USED"
-  | "TICKET_NOT_ACTIVE";
+  | "TICKET_NOT_ACTIVE"
+  | "BUNDLE_EMPTY";
 
 export interface TicketScanValidationInput {
   qrCode: string;
@@ -134,13 +135,41 @@ export interface TicketScanValidationResult {
   scannedAt: string;
   ticket: {
     id: string;
+    orderId?: string;
     eventId: string;
+    userId?: string;
     eventName: string;
     ticketBatchName: string;
     status: "active" | "listed" | "transferred" | "used" | "cancelled";
     purchasePrice: number;
+    usedAt?: string | null;
   } | null;
   entryWindowCutoff: string | null;
+  holder?: {
+    userId?: string;
+    name: string | null;
+    email: string | null;
+  };
+  order?: {
+    id?: string;
+    quantity: number;
+    totalAmount: number;
+    currency: string | null;
+  };
+  bundle?: {
+    type: "bundle";
+    orderId: string;
+    userId: string;
+    holderName: string | null;
+    holderEmail: string | null;
+    quantity: number;
+    originalQuantity: number;
+    priceEach: number;
+    totalPrice: number;
+    currency: string | null;
+    ticketIds: string[];
+    statusCounts: Record<string, number>;
+  };
 }
 
 export interface ResaleListingResponse {
