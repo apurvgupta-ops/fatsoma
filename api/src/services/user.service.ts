@@ -23,7 +23,7 @@ export async function listUsers() {
   return users.map(toUserDTO);
 }
 
-export async function createUser(name: string, email: string, password: string, role: "admin" | "user") {
+export async function createUser(name: string, email: string, password: string, role: "admin" | "staff" | "user") {
   const existing = await User.findOne({ email });
   if (existing) {
     throw AppError.conflict("User with this email already exists");
@@ -44,8 +44,8 @@ export async function updateUserStatus(id: string, isActive: boolean) {
 }
 
 export async function updateUserRole(id: string, role: string) {
-  if (!["admin", "user"].includes(role)) {
-    throw AppError.badRequest("Role must be admin or user");
+  if (!["admin", "staff", "user"].includes(role)) {
+    throw AppError.badRequest("Role must be admin, staff, or user");
   }
 
   const user = await User.findByIdAndUpdate(id, { role }, { new: true });

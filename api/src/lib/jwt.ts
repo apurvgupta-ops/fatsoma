@@ -8,7 +8,7 @@ const REFRESH_TOKEN_EXPIRY = "7d";
 
 export interface TokenPayload {
   userId: string;
-  role: "admin" | "user";
+  role: "admin" | "staff" | "user";
 }
 
 export function generateAccessToken(payload: TokenPayload): string {

@@ -33,14 +33,23 @@ function issueTokens(user: IUser) {
   };
 }
 
-export async function registerUser(name: string, email: string, password: string) {
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string,
+) {
   const existing = await User.findOne({ email });
   if (existing) {
     throw AppError.conflict("An account with this email already exists");
   }
 
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-  const user = await User.create({ name, email, password: hashed, role: "user" });
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role: "user",
+  });
   const tokens = issueTokens(user);
 
   sendWelcomeEmail(name, email);
@@ -67,6 +76,29 @@ export async function loginUser(email: string, password: string) {
   return { user: toUserDTO(user), tokens };
 }
 
+export async function loginStaffUser(email: string, password: string) {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw AppError.unauthorized("Invalid email or password");
+  }
+
+  if (!user.isActive) {
+    throw AppError.forbidden("Your account has been deactivated");
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    throw AppError.unauthorized("Invalid email or password");
+  }
+
+  if (user.role !== "staff") {
+    throw AppError.forbidden("Staff account required");
+  }
+
+  const tokens = issueTokens(user);
+  return { user: toUserDTO(user), tokens };
+}
+
 export async function refreshAccessToken(token: string) {
   if (!token) {
     throw AppError.badRequest("Refresh token required");
@@ -75,12 +107,17 @@ export async function refreshAccessToken(token: string) {
   try {
     const payload = verifyRefreshToken(token);
 
-    const user = await User.findById(payload.userId).select("isActive").lean() as IUser | null;
+    const user = (await User.findById(payload.userId)
+      .select("isActive")
+      .lean()) as IUser | null;
     if (!user || !user.isActive) {
       throw AppError.forbidden("Your account has been deactivated");
     }
 
-    const accessToken = generateAccessToken({ userId: payload.userId, role: payload.role });
+    const accessToken = generateAccessToken({
+      userId: payload.userId,
+      role: payload.role,
+    });
     return { accessToken };
   } catch (err) {
     if (err instanceof AppError) throw err;
@@ -89,7 +126,9 @@ export async function refreshAccessToken(token: string) {
 }
 
 export async function getCurrentUser(userId: string) {
-  const user = await User.findById(userId).select("-password").lean() as IUser | null;
+  const user = (await User.findById(userId)
+    .select("-password")
+    .lean()) as IUser | null;
   if (!user) {
     throw AppError.notFound("User not found");
   }

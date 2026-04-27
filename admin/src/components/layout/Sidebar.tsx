@@ -8,8 +8,9 @@ import {
   Calendar,
   Users,
   LogOut,
-  BarChart3,
   CreditCard,
+  QrCode,
+  UserCheck,
 } from "lucide-react";
 import { LogoIcon } from "../Logo";
 
@@ -17,15 +18,21 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Events", href: "/events", icon: Calendar },
-    { name: "Payments", href: "/payments", icon: CreditCard },
-    // { name: "Panel", href: "/panel", icon: BarChart3 },
-    ...(user?.role === "admin"
-      ? [{ name: "Users", href: "/users", icon: Users }]
-      : []),
-  ];
+  const navigation =
+    user?.role === "staff"
+      ? [{ name: "Scanner", href: "/scanner", icon: QrCode }]
+      : [
+          { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+          { name: "Events", href: "/events", icon: Calendar },
+          { name: "Payments", href: "/payments", icon: CreditCard },
+          // { name: "Scanner", href: "/scanner", icon: QrCode },
+          ...(user?.role === "admin"
+            ? [
+                { name: "Staff", href: "/staff", icon: UserCheck },
+                { name: "Users", href: "/users", icon: Users },
+              ]
+            : []),
+        ];
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -82,9 +89,9 @@ export default function Sidebar() {
                   {user?.email ?? ""}
                 </p>
               </div>
-              {user?.role === "admin" && (
+              {(user?.role === "admin" || user?.role === "staff") && (
                 <span className="ml-2 shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-xs text-gold">
-                  Admin
+                  {user.role === "admin" ? "Admin" : "Staff"}
                 </span>
               )}
             </div>

@@ -21,8 +21,8 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      await login(email, password);
-      router.push("/dashboard");
+      const user = await login(email, password);
+      router.push(user.role === "staff" ? "/scanner" : "/dashboard");
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
     } finally {

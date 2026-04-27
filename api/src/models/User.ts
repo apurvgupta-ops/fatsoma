@@ -5,7 +5,7 @@ export interface IUser {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "user";
+  role: "admin" | "staff" | "user";
   isActive: boolean;
   googleCalendar?: {
     connected: boolean;
@@ -50,8 +50,8 @@ const UserSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: {
-        values: ["admin", "user"],
-        message: "Role must be either admin or user",
+        values: ["admin", "staff", "user"],
+        message: "Role must be admin, staff, or user",
       },
       default: "user",
     },

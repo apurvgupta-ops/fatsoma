@@ -13,6 +13,12 @@ export async function login(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function staffLogin(req: Request, res: Response) {
+  const { email, password } = req.body;
+  const result = await authService.loginStaffUser(email, password);
+  res.json(result);
+}
+
 export async function refresh(req: Request, res: Response) {
   const { refreshToken } = req.body;
   const result = await authService.refreshAccessToken(refreshToken);
@@ -28,7 +34,11 @@ export async function forgotPassword(req: Request, res: Response) {
   const { email } = req.body;
   const webUrl = process.env.WEB_URL || "http://localhost:3000";
   await authService.forgotPassword(email, webUrl);
-  res.json({ ok: true, message: "If an account with that email exists, a reset link has been sent." });
+  res.json({
+    ok: true,
+    message:
+      "If an account with that email exists, a reset link has been sent.",
+  });
 }
 
 export async function resetPassword(req: Request, res: Response) {

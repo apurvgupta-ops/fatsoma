@@ -12,7 +12,7 @@ export const EVENT_CATEGORIES = [
 
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
-export const USER_ROLES = ["admin", "user"] as const;
+export const USER_ROLES = ["admin", "staff", "user"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const EVENT_STATUSES = ["draft", "published"] as const;

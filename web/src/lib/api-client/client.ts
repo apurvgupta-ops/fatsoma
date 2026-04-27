@@ -8,6 +8,8 @@ import type {
   UserResponse,
   CreateUserInput,
   TicketResponse,
+  TicketScanValidationInput,
+  TicketScanValidationResult,
   ResaleListingResponse,
   NotificationResponse,
 } from "../shared";
@@ -264,7 +266,7 @@ export class FatsomaClient {
 
   async updateUserRole(
     id: string,
-    role: "admin" | "user",
+    role: "admin" | "staff" | "user",
   ): Promise<ApiResponse> {
     return this.request(`/api/users/${id}/role`, {
       method: "PATCH",
@@ -311,6 +313,15 @@ export class FatsomaClient {
 
   async getTicket(id: string): Promise<ApiResponse<TicketResponse>> {
     return this.request(`/api/tickets/${id}`);
+  }
+
+  async validateTicketScan(
+    input: TicketScanValidationInput,
+  ): Promise<ApiResponse<TicketScanValidationResult>> {
+    return this.request("/api/tickets/scan/validate", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 
   // ── Resale ──────────────────────────────────────────────

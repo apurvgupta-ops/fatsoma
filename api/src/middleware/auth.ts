@@ -36,3 +36,12 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   }
   next();
 }
+
+export function requireAdminOrStaff(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.role !== "admin" && req.user?.role !== "staff") {
+    res.locals.errorMessage = "Staff access required";
+    res.status(403).json({ ok: false, message: "Staff access required" });
+    return;
+  }
+  next();
+}

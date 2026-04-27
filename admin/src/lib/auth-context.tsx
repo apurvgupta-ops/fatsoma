@@ -11,7 +11,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserResponse>;
   logout: () => void;
 }
 
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await client.login({ email, password });
     storeTokens(res.tokens.accessToken, res.tokens.refreshToken);
     setState({ user: res.user, token: res.tokens.accessToken, loading: false });
+    return res.user;
   };
 
   const logout = () => {

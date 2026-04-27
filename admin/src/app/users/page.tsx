@@ -7,6 +7,8 @@ import { ApiError } from "@/lib/api-client";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { CreateUserInput, UserResponse } from "@/lib/shared";
 
+type UserRole = UserResponse["role"];
+
 export default function UsersPage() {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -81,7 +83,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleChangeRole = async (userId: string, role: "admin" | "user") => {
+  const handleChangeRole = async (userId: string, role: UserRole) => {
     if (!token) return;
     try {
       const client = createApiClient(token);
@@ -234,13 +236,14 @@ export default function UsersPage() {
                           onChange={(e) =>
                             handleChangeRole(
                               u.id,
-                              e.target.value as "admin" | "user",
+                              e.target.value as UserRole,
                             )
                           }
                           disabled={u.id === currentUser?.id}
                           className="rounded-lg border border-border bg-surface px-3 py-1 text-sm text-cream/90 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="user">User</option>
+                          <option value="staff">Staff</option>
                           <option value="admin">Admin</option>
                         </select>
                       </td>
@@ -387,12 +390,13 @@ export default function UsersPage() {
                   onChange={(e) =>
                     setNewUser((prev) => ({
                       ...prev,
-                      role: e.target.value as "admin" | "user",
+                      role: e.target.value as UserRole,
                     }))
                   }
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none focus:border-gold/50"
                 >
                   <option value="user">User</option>
+                  <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
                 </select>
               </label>

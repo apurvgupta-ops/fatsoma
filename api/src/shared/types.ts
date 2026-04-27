@@ -47,7 +47,7 @@ export interface UserResponse {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "user";
+  role: "admin" | "staff" | "user";
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -57,7 +57,7 @@ export interface CreateUserInput {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "user";
+  role: "admin" | "staff" | "user";
 }
 
 export interface AuthTokens {
