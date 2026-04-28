@@ -97,7 +97,12 @@ export const validateTicketScanSchema = z.object({
   eventId: z.string().trim().optional(),
 });
 
+export const assignEventOwnerSchema = z.object({
+  organizerId: z.string().trim().min(1, "Organizer ID is required"),
+});
+
 export type CreateEventPayload = z.infer<typeof createEventSchema>;
 export type LoginPayload = z.infer<typeof loginSchema>;
 export type CreateUserPayload = z.infer<typeof createUserSchema>;
 export type RegisterPayload = z.infer<typeof registerSchema>;
+export type AssignEventOwnerPayload = z.infer<typeof assignEventOwnerSchema>;

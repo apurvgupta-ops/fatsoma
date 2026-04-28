@@ -13,8 +13,23 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
-    } else if (!loading && user?.role === "staff" && pathname !== "/scanner") {
-      router.replace("/scanner");
+    } else if (!loading && user) {
+      if (user.role === "user") {
+        router.replace("/login");
+        return;
+      }
+      if (user.role === "staff" && pathname !== "/scanner") {
+        router.replace("/scanner");
+        return;
+      }
+      if (
+        user.role === "organizer" &&
+        ["/users", "/staff", "/payments", "/panel"].some((prefix) =>
+          pathname.startsWith(prefix),
+        )
+      ) {
+        router.replace("/events");
+      }
     }
   }, [user, loading, pathname, router]);
 

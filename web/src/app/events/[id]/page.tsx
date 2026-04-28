@@ -326,7 +326,6 @@ export default function EventDetailPage() {
                   )}
               </div>
 
-              {event.allowResale && <ResaleListingsSection event={event} />}
             </div>
           </div>
 
@@ -350,12 +349,85 @@ export default function EventDetailPage() {
 function TicketPurchasePanel({ event }: { event: EventResponse }) {
   const { user } = useAuth();
   const router = useRouter();
+  const pickFirstPurchasableBatch = useCallback(
+    (resaleMap?: Map<string, number>) => {
+      const batches = event.ticketBatches ?? [];
+      const firstAvailable = batches.find((batch) => {
+        const primaryRemaining = batch.remaining ?? batch.quantity;
+        const resaleAvailable =
+          resaleMap?.get(batch.name) ?? batch.resaleAvailable ?? 0;
+        const totalAvailable =
+          batch.totalAvailableForPurchase ??
+          primaryRemaining + resaleAvailable;
+        return totalAvailable > 0;
+      });
+      return firstAvailable ?? batches[0];
+    },
+    [event.ticketBatches],
+  );
+
+  const [eventResaleListings, setEventResaleListings] = useState<
+    ResaleListingResponse[]
+  >([]);
   const [selectedBatch, setSelectedBatch] = useState<TicketBatch>(
-    event.ticketBatches[0],
+    () => pickFirstPurchasableBatch() ?? event.ticketBatches[0],
   );
   const [quantity, setQuantity] = useState(1);
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const client = createPublicClient();
+    client
+      .getResaleListings(event.id)
+      .then((res) => {
+        if (!cancelled && res.ok && res.data) {
+          setEventResaleListings(res.data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setEventResaleListings([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id]);
+
+  const purchasableResaleByBatch = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const listing of eventResaleListings) {
+      if (user?.id && listing.sellerId === user.id) continue;
+      const batchKey =
+        listing.targetTicketBatchName ||
+        listing.originalTicketBatchName ||
+        listing.ticketBatchName ||
+        "";
+      if (!batchKey) continue;
+      map.set(batchKey, (map.get(batchKey) ?? 0) + 1);
+    }
+    return map;
+  }, [eventResaleListings, user?.id]);
+
+  useEffect(() => {
+    const currentPrimaryRemaining =
+      selectedBatch.remaining ?? selectedBatch.quantity;
+    const currentResaleAvailable =
+      purchasableResaleByBatch.get(selectedBatch.name) ??
+      selectedBatch.resaleAvailable ??
+      0;
+    const currentTotalAvailable =
+      selectedBatch.totalAvailableForPurchase ??
+      currentPrimaryRemaining + currentResaleAvailable;
+
+    if (currentTotalAvailable > 0) return;
+
+    const fallback = pickFirstPurchasableBatch(purchasableResaleByBatch);
+    if (fallback && fallback.name !== selectedBatch.name) {
+      setSelectedBatch(fallback);
+      setQuantity(1);
+    }
+  }, [selectedBatch, purchasableResaleByBatch, pickFirstPurchasableBatch]);
 
   const feePerTicket =
     Math.round(selectedBatch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100) /
@@ -395,6 +467,13 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
       setBuying(false);
     }
   }, [event.id, selectedBatch.name, quantity, feePerTicket, user, router]);
+
+  const selectedBatchTotalAvailable =
+    selectedBatch.totalAvailableForPurchase ??
+    (selectedBatch.remaining ?? selectedBatch.quantity) +
+      (purchasableResaleByBatch.get(selectedBatch.name) ??
+        selectedBatch.resaleAvailable ??
+        0);
 
   const totalTickets = event.ticketBatches.reduce(
     (s, b) => s + (b.remaining ?? b.quantity),
@@ -477,8 +556,16 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
 
         <div className="space-y-3 ">
           {event.ticketBatches.map((batch) => {
-            const batchRemaining = batch.remaining ?? batch.quantity;
-            const soldOut = batchRemaining <= 0;
+            const batchPrimaryRemaining = batch.remaining ?? batch.quantity;
+            const batchResaleAvailable =
+              purchasableResaleByBatch.get(batch.name) ??
+              batch.resaleAvailable ??
+              0;
+            const batchTotalAvailable =
+              batch.totalAvailableForPurchase ??
+              batchPrimaryRemaining + batchResaleAvailable;
+            const soldOut = batchTotalAvailable <= 0;
+            const primarySoldOut = batchPrimaryRemaining <= 0;
             const cutoffDate = batch.entryWindowCutoff
               ? new Date(batch.entryWindowCutoff)
               : null;
@@ -498,8 +585,8 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                 onClick={() => {
                   if (!soldOut) {
                     setSelectedBatch(batch);
-                    if (quantity > batchRemaining) {
-                      setQuantity(Math.max(1, batchRemaining));
+                    if (quantity > batchTotalAvailable) {
+                      setQuantity(Math.max(1, batchTotalAvailable));
                     }
                   }
                 }}
@@ -508,8 +595,8 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     setSelectedBatch(batch);
-                    if (quantity > batchRemaining) {
-                      setQuantity(Math.max(1, batchRemaining));
+                    if (quantity > batchTotalAvailable) {
+                      setQuantity(Math.max(1, batchTotalAvailable));
                     }
                   }
                 }}
@@ -526,7 +613,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                     {batch.name}
                   </span>
                   <span className="text-xs text-cream/40">
-                    {soldOut ? "Sold out" : `${batchRemaining} left`}
+                    {soldOut ? "Sold out" : `${batchTotalAvailable} left`}
                   </span>
                 </div>
 
@@ -545,6 +632,16 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                         {formatEntryCutoff(batch.entryWindowCutoff)}
                       </p>
                     ) : null}
+                    {!soldOut && batchResaleAvailable > 0 ? (
+                      <p className="mt-1 text-[11px] text-gold/70">
+                        Includes {batchResaleAvailable} resale on The List
+                      </p>
+                    ) : null}
+                    {!soldOut && primarySoldOut ? (
+                      <p className="mt-1 text-[11px] text-cream/50">
+                        Primary sold out. Checkout fulfills resale first.
+                      </p>
+                    ) : null}
                   </div>
 
                   {!soldOut && isSelected ? (
@@ -554,10 +651,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                         event.stopPropagation();
                         handleBuyNow();
                       }}
-                      disabled={
-                        buying ||
-                        (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-                      }
+                      disabled={buying || selectedBatchTotalAvailable <= 0}
                       className="rounded-lg bg-gold px-4 py-1.5 text-xs font-semibold text-void transition-colors hover:bg-gold-light disabled:opacity-50"
                     >
                       {buying ? (
@@ -579,9 +673,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={
-                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-              }
+              disabled={selectedBatchTotalAvailable <= 0}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-cream transition hover:bg-border disabled:opacity-50"
             >
               -
@@ -593,18 +685,10 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
               type="button"
               onClick={() =>
                 setQuantity((q) =>
-                  Math.min(
-                    Math.min(
-                      6,
-                      selectedBatch.remaining ?? selectedBatch.quantity,
-                    ),
-                    q + 1,
-                  ),
+                  Math.min(selectedBatchTotalAvailable, q + 1),
                 )
               }
-              disabled={
-                (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-              }
+              disabled={selectedBatchTotalAvailable <= 0}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-cream transition hover:bg-border disabled:opacity-50"
             >
               +
@@ -639,9 +723,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         <button
           type="button"
           onClick={handleBuyNow}
-          disabled={
-            buying || (selectedBatch.remaining ?? selectedBatch.quantity) <= 0
-          }
+          disabled={buying || selectedBatchTotalAvailable <= 0}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-gold py-3.5 text-sm font-semibold text-void transition-colors hover:bg-gold-light disabled:cursor-not-allowed disabled:opacity-50"
         >
           {buying ? (
@@ -802,27 +884,46 @@ function VenueDetail({
 
 /* ── Resale Listings Section ── */
 
-function resaleTierLabel(
-  listing: ResaleListingResponse,
-  event: EventResponse,
-): string {
-  const match = event.ticketBatches.find(
-    (b) => Math.abs(b.basePrice - listing.askingPrice) < 0.005,
-  );
-  return match?.name ?? "Resale listing";
+function formatBatchCutoff(cutoff?: string | null) {
+  if (!cutoff) return null;
+  const date = new Date(cutoff);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function currentReleasePrice(event: EventResponse): {
-  price: number;
-  fee: number;
-} {
-  const available = event.ticketBatches.filter(
-    (b) => (b.remaining ?? b.quantity) > 0,
+function resaleAccessLabel(listing: ResaleListingResponse, event: EventResponse) {
+  const originalBatchName =
+    listing.originalTicketBatchName || listing.ticketBatchName || "General Admission";
+  const targetBatchName = listing.targetTicketBatchName || originalBatchName;
+  const originalPrice = Number(
+    Number.isFinite(listing.originalPurchasePrice)
+      ? listing.originalPurchasePrice
+      : listing.askingPrice,
   );
-  const batches = available.length ? available : event.ticketBatches;
-  const price = Math.min(...batches.map((b) => b.basePrice));
-  const fee = Math.round(price * (BOOKING_FEE_PERCENT / 100) * 100) / 100;
-  return { price, fee };
+
+  if (listing.reallocationType === "same_batch") {
+    return {
+      title: `${originalBatchName} access`,
+      detail: `Final access: ${originalBatchName} · £${originalPrice.toFixed(2)}`,
+    };
+  }
+
+  const targetBatch = event.ticketBatches.find(
+    (batch) => batch.name === targetBatchName,
+  );
+  const cutoffText = formatBatchCutoff(targetBatch?.entryWindowCutoff);
+  return {
+    title: `${targetBatchName} access`,
+    detail: cutoffText
+      ? `Final access: ${targetBatchName} · £${listing.askingPrice.toFixed(2)} · Entry cutoff ${cutoffText}`
+      : `Final access: ${targetBatchName} · £${listing.askingPrice.toFixed(2)}`,
+  };
 }
 
 function ResaleListingsSection({ event }: { event: EventResponse }) {
@@ -834,8 +935,6 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
   const [buyError, setBuyError] = useState<string | null>(null);
   const [showListInfo, setShowListInfo] = useState(false);
   const listInfoRef = useRef<HTMLDivElement | null>(null);
-
-  const { price: releasePrice, fee: releaseFee } = currentReleasePrice(event);
 
   useEffect(() => {
     const client = createPublicClient();
@@ -963,8 +1062,15 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
         {Array.from(
           visibleListings
             .reduce((map, listing) => {
-              const tier = resaleTierLabel(listing, event);
-              const key = `${tier}|${listing.askingPrice}`;
+              const key = [
+                listing.reallocationType,
+                listing.originalTicketBatchName || listing.ticketBatchName || "General Admission",
+                listing.targetTicketBatchName ||
+                  listing.originalTicketBatchName ||
+                  listing.ticketBatchName ||
+                  "General Admission",
+                listing.askingPrice,
+              ].join("|");
               if (!map.has(key)) map.set(key, []);
               map.get(key)!.push(listing);
               return map;
@@ -977,8 +1083,6 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
             event={event}
             buyingIds={buyingIds}
             onBuy={handleBuyResale}
-            releasePrice={releasePrice}
-            releaseFee={releaseFee}
           />
         ))}
       </div>
@@ -996,15 +1100,11 @@ function ResaleGroupAccordion({
   event,
   buyingIds,
   onBuy,
-  releasePrice,
-  releaseFee,
 }: {
   group: ResaleListingResponse[];
   event: EventResponse;
   buyingIds: string[];
   onBuy: (listings: ResaleListingResponse[]) => void;
-  releasePrice: number;
-  releaseFee: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
@@ -1012,7 +1112,7 @@ function ResaleGroupAccordion({
   const fee =
     Math.round(representative.askingPrice * (RESALE_FEE_PERCENT / 100) * 100) /
     100;
-  const tier = resaleTierLabel(representative, event);
+  const accessLabel = resaleAccessLabel(representative, event);
   const maxQuantity = Math.max(1, group.length);
   const quantity = Math.min(selectedQuantity, maxQuantity);
   const selectedListings = group.slice(0, quantity);
@@ -1037,16 +1137,15 @@ function ResaleGroupAccordion({
       >
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="max-w-full break-words font-semibold text-sm leading-tight text-cream sm:truncate">
-              {tier}
+            <p className="max-w-full wrap-break-word font-semibold text-sm leading-tight text-cream sm:truncate">
+              {accessLabel.title}
             </p>
             <span className="rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-cream/65">
               Verified seller
             </span>
           </div>
           <p className="text-xs text-cream/70">
-            Current release: £{releasePrice.toFixed(2)} + £
-            {releaseFee.toFixed(2)} transfer fee
+            {accessLabel.detail}
           </p>
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-3 sm:text-right">

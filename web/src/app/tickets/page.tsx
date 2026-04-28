@@ -91,6 +91,36 @@ export default function MyTicketsPage() {
     fetchTickets();
   }, [user, authLoading, router, fetchTickets]);
 
+  useEffect(() => {
+    if (!resaleModal) return;
+    // #region agent log
+    fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "1efd49",
+      },
+      body: JSON.stringify({
+        sessionId: "1efd49",
+        runId: "resale-modal-pricing-debug",
+        hypothesisId: "H2",
+        location: "web/src/app/tickets/page.tsx:resaleModalEffect",
+        message: "Resale modal opened with representative values",
+        data: {
+          quantity: resaleModal.quantity,
+          representativePurchasePrice: resaleModal.representative.purchasePrice,
+          representativeCurrentBatchPrice:
+            resaleModal.representative.currentBatchPrice,
+          releasePriceShown: resaleModal.representative.currentBatchPrice,
+          youReceiveShown:
+            resaleModal.representative.purchasePrice * resaleModal.quantity,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, [resaleModal]);
+
   const handleListForResale = async () => {
     if (!resaleModal) return;
     if (!resaleAcknowledge) {
@@ -100,6 +130,34 @@ export default function MyTicketsPage() {
 
     const price = resaleModal.representative.currentBatchPrice;
     const selectedTickets = resaleModal.tickets.slice(0, resaleModal.quantity);
+    // #region agent log
+    fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "1efd49",
+      },
+      body: JSON.stringify({
+        sessionId: "1efd49",
+        runId: "resale-modal-pricing-debug",
+        hypothesisId: "H1",
+        location: "web/src/app/tickets/page.tsx:handleListForResale",
+        message: "Submitting resale listing from modal",
+        data: {
+          quantity: resaleModal.quantity,
+          selectedTicketCount: selectedTickets.length,
+          representativePurchasePrice: resaleModal.representative.purchasePrice,
+          representativeCurrentBatchPrice:
+            resaleModal.representative.currentBatchPrice,
+          computedYouReceiveShown:
+            resaleModal.representative.purchasePrice * resaleModal.quantity,
+          computedCurrentReleaseTotalExpected:
+            resaleModal.representative.currentBatchPrice * resaleModal.quantity,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
 
     setSubmitting(true);
     setActionError("");
@@ -200,7 +258,6 @@ export default function MyTicketsPage() {
     const groups = new Map<string, TicketResponse[]>();
     for (const ticket of filteredTickets) {
       const key = [
-        ticket.orderId,
         ticket.eventId,
         ticket.ticketBatchName,
         ticket.purchasePrice.toFixed(2),
@@ -282,10 +339,10 @@ export default function MyTicketsPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-4 mb-8">
             <SummaryCard value={activeTickets.length} label="Upcoming" />
             <SummaryCard value={resaleTickets.length} label="On The List" />
-            <SummaryCard value={resaleTickets.length} label="Active listings" />
+            {/* <SummaryCard value={resaleTickets.length} label="Active listings" /> */}
           </div>
 
           {/* Tabs */}
@@ -417,6 +474,34 @@ export default function MyTicketsPage() {
                       key={group.key}
                       group={group}
                       onListManyForResale={(ticketsToList, quantityToList) => {
+                        // #region agent log
+                        fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            "X-Debug-Session-Id": "1efd49",
+                          },
+                          body: JSON.stringify({
+                            sessionId: "1efd49",
+                            runId: "resale-modal-pricing-debug",
+                            hypothesisId: "H3",
+                            location:
+                              "web/src/app/tickets/page.tsx:onListManyForResale(grouped)",
+                            message: "Grouped resale modal requested",
+                            data: {
+                              quantityToList,
+                              ticketsToListCount: ticketsToList.length,
+                              representativePurchasePrice:
+                                group.representative.purchasePrice,
+                              representativeCurrentBatchPrice:
+                                group.representative.currentBatchPrice,
+                              representativeBatch:
+                                group.representative.ticketBatchName,
+                            },
+                            timestamp: Date.now(),
+                          }),
+                        }).catch(() => {});
+                        // #endregion
                         setResaleModal({
                           representative: group.representative,
                           tickets: ticketsToList,
@@ -589,7 +674,7 @@ export default function MyTicketsPage() {
                   {formatCurrency(
                     Math.round(
                       resaleModal.representative.currentBatchPrice * 0.07 * 100,
-                    ) / 100
+                    ) / 100,
                   )}
                 </span>
               </div>
@@ -832,21 +917,6 @@ export default function MyTicketsPage() {
   );
 }
 
-function buildBundleQrToken(ticket: TicketResponse) {
-  return [
-    "bundle",
-    "v1",
-    ticket.orderId,
-    ticket.eventId,
-    ticket.userId,
-    encodeURIComponent(ticket.ticketBatchName),
-  ].join(":");
-}
-
-function safeFilenamePart(value: string) {
-  return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "");
-}
-
 function formatCurrency(amount: number) {
   const currency = process.env.NEXT_PUBLIC_APP_CURRENCY || "GBP";
   return new Intl.NumberFormat("en-GB", {
@@ -885,20 +955,14 @@ function GroupedTicketCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [listQuantity, setListQuantity] = useState(1);
-  const [showBundleQr, setShowBundleQr] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<TicketResponse | null>(
+    null,
+  );
   const ticket = group.representative;
   const eligibleTickets = group.tickets.filter(
     (t) => t.allowResale && t.status === "active",
   );
   const maxListable = eligibleTickets.length;
-  const bundleQrCode = buildBundleQrToken(ticket);
-  const bundleQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(bundleQrCode)}`;
-  const bundleQrUrlLarge = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(bundleQrCode)}`;
-  const handleDownloadBundleQr = () =>
-    downloadQrImage(
-      bundleQrUrlLarge,
-      `ticket-bundle-${ticket.orderId.slice(-8)}-${safeFilenamePart(ticket.ticketBatchName)}.png`,
-    );
   const venue = [ticket.venueName, ticket.city].filter(Boolean).join(", ");
   const dateStr = ticket.eventDate
     ? new Date(ticket.eventDate).toLocaleDateString("en-GB", {
@@ -947,25 +1011,6 @@ function GroupedTicketCard({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowBundleQr(true);
-              }}
-              className="hidden rounded-lg border border-white/15 bg-white/5 p-1.5 transition hover:border-gold/40 hover:bg-gold/10 sm:block"
-              aria-label="View bundle QR code"
-            >
-              <div className="relative h-10 w-10 overflow-hidden rounded bg-white p-0.5">
-                <Image
-                  src={bundleQrUrl}
-                  alt="Bundle QR"
-                  fill
-                  unoptimized
-                  className="object-contain"
-                />
-              </div>
-            </button>
             <span className="rounded-full border border-gold/40 bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold">
               x{group.quantity}
             </span>
@@ -979,50 +1024,13 @@ function GroupedTicketCard({
 
         {expanded && (
           <div className="mt-4 border-t border-white/15 pt-4">
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/8 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowBundleQr(true)}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white p-1.5 transition hover:ring-2 hover:ring-gold/40"
-                  aria-label="View bundle QR code"
-                >
-                  <Image
-                    src={bundleQrUrl}
-                    alt="Bundle QR"
-                    fill
-                    unoptimized
-                    className="object-contain"
-                  />
-                </button>
-                <div>
-                  <p className="text-sm font-semibold text-cream">
-                    Entry QR for {group.quantity} ticket
-                    {group.quantity === 1 ? "" : "s"}
-                  </p>
-                  <p className="mt-1 text-xs text-cream/55">
-                    Scan once at the door to validate the current active tickets
-                    in this order.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 sm:shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowBundleQr(true)}
-                  className="rounded-lg border border-gold/35 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"
-                >
-                  View QR
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadBundleQr}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-cream/80 transition hover:bg-white/10"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </button>
-              </div>
+            <div className="mb-4 rounded-2xl border border-white/12 bg-white/8 p-3">
+              <p className="text-sm font-semibold text-cream">
+                Each ticket has its own entry QR code.
+              </p>
+              <p className="mt-1 text-xs text-cream/55">
+                Show or download QR per ticket below.
+              </p>
             </div>
 
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-cream/60">
@@ -1075,7 +1083,6 @@ function GroupedTicketCard({
                 </div>
               </div>
             )}
-            {/* 
             <div className="space-y-2">
               {group.tickets.map((t, idx) => (
                 <div
@@ -1083,41 +1090,76 @@ function GroupedTicketCard({
                   className="rounded-2xl border border-white/12 bg-white/8 px-3 py-3 backdrop-blur-lg"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-cream">
-                        Ticket #{idx + 1}
-                      </p>
-                      <p className="truncate text-xs font-mono text-cream/55">
-                        {t.qrCode}
-                      </p>
-                    </div>
-
-                    {t.allowResale && t.status === "active" && (
+                    <div className="flex min-w-0 items-center gap-3">
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          onListManyForResale([t], 1);
+                          setSelectedTicket(t);
                         }}
-                        className="shrink-0 rounded-lg border border-gold/30 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
+                        className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-white p-1 transition hover:ring-2 hover:ring-gold/35"
+                        aria-label={`View QR code for ticket ${idx + 1}`}
                       >
-                        Pass it on The List
+                        <Image
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(t.qrCode)}`}
+                          alt={`Ticket ${idx + 1} QR`}
+                          fill
+                          unoptimized
+                          className="object-contain"
+                        />
                       </button>
-                    )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-cream">
+                          Ticket #{idx + 1}
+                        </p>
+                        <p className="truncate text-xs font-mono text-cream/55">
+                          {t.qrCode}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          downloadQrImage(
+                            `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(t.qrCode)}`,
+                            `ticket-qr-${t.qrCode.slice(0, 12)}.png`,
+                          );
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-cream/80 transition hover:bg-white/10"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Save QR
+                      </button>
+                      {t.allowResale && t.status === "active" && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onListManyForResale([t], 1);
+                          }}
+                          className="shrink-0 rounded-lg border border-gold/30 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
+                        >
+                          Pass it on The List
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
-            </div> */}
+            </div>
           </div>
         )}
       </div>
 
-      {showBundleQr &&
+      {selectedTicket &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-            onClick={() => setShowBundleQr(false)}
+            onClick={() => setSelectedTicket(null)}
           >
             <div
               className="relative w-full max-w-sm rounded-2xl border border-border bg-void p-6 shadow-2xl"
@@ -1125,36 +1167,44 @@ function GroupedTicketCard({
             >
               <button
                 type="button"
-                onClick={() => setShowBundleQr(false)}
+                onClick={() => setSelectedTicket(null)}
                 className="absolute right-4 top-4 cursor-pointer text-cream/60 hover:text-cream"
                 aria-label="Close QR modal"
               >
                 <X className="h-5 w-5" />
               </button>
               <h3 className="mb-1 text-center text-lg font-semibold text-cream">
-                Entry QR
+                Your Ticket QR Code
               </h3>
               <p className="mb-4 text-center text-sm text-cream/60">
-                {ticket.eventName} · {group.quantity} ticket
-                {group.quantity === 1 ? "" : "s"}
+                {ticket.eventName}
               </p>
               <div className="mx-auto h-64 w-64 overflow-hidden rounded-xl border border-border bg-white p-2">
                 <div className="relative h-full w-full">
                   <Image
-                    src={bundleQrUrlLarge}
-                    alt="Bundle ticket QR code"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(selectedTicket.qrCode)}`}
+                    alt="Ticket QR code"
                     fill
                     unoptimized
                     className="object-contain"
                   />
                 </div>
               </div>
-              <p className="mt-3 break-all text-center font-mono text-[10px] text-cream/45">
-                {bundleQrCode}
+              <p className="mt-3 text-center font-mono text-xs text-cream/50">
+                {selectedTicket.qrCode}
+              </p>
+              <p className="mt-1 text-center text-xs text-cream/40">
+                {selectedTicket.ticketBatchName} -{" "}
+                {formatCurrency(selectedTicket.purchasePrice)}
               </p>
               <button
                 type="button"
-                onClick={handleDownloadBundleQr}
+                onClick={() =>
+                  downloadQrImage(
+                    `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(selectedTicket.qrCode)}`,
+                    `ticket-qr-${selectedTicket.qrCode.slice(0, 12)}.png`,
+                  )
+                }
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/10 px-4 py-2.5 text-sm font-semibold text-gold transition hover:bg-gold/20"
               >
                 <Download className="h-4 w-4" />

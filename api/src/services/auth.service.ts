@@ -14,12 +14,25 @@ const SALT_ROUNDS = 10;
 
 /** Serialize a Mongoose user doc into a safe API response shape. */
 function toUserDTO(user: IUser) {
+  const stripeConnect = user.stripeConnect ?? {
+    accountId: null,
+    onboardingComplete: false,
+    chargesEnabled: false,
+    payoutsEnabled: false,
+    detailsSubmitted: false,
+  };
+
   return {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
     role: user.role,
     isActive: user.isActive,
+    stripeConnectAccountId: stripeConnect.accountId ?? null,
+    stripeConnectOnboardingComplete: Boolean(stripeConnect.onboardingComplete),
+    stripeConnectChargesEnabled: Boolean(stripeConnect.chargesEnabled),
+    stripeConnectPayoutsEnabled: Boolean(stripeConnect.payoutsEnabled),
+    stripeConnectDetailsSubmitted: Boolean(stripeConnect.detailsSubmitted),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

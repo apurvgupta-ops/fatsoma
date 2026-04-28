@@ -15,29 +15,53 @@ export async function getAll(req: Request, res: Response) {
 
 export async function getOne(req: Request, res: Response) {
   const id = paramId(req.params);
-  const event = await eventService.getEventById(id);
+  const event = await eventService.getEventById(id, req.user!.userId, req.user!.role);
   sendSuccess(res, event, "Event retrieved");
 }
 
 export async function create(req: Request, res: Response) {
-  const { event, message } = await eventService.createEvent(req.body, req.user!.userId);
+  const { event, message } = await eventService.createEvent(
+    req.body,
+    req.user!.userId,
+    req.user!.role,
+  );
   sendSuccess(res, event, message, 201);
 }
 
 export async function update(req: Request, res: Response) {
   const id = paramId(req.params);
-  const event = await eventService.updateEvent(id, req.body);
+  const event = await eventService.updateEvent(
+    id,
+    req.body,
+    req.user!.userId,
+    req.user!.role,
+  );
   sendSuccess(res, event, "Event updated");
 }
 
 export async function updateStatus(req: Request, res: Response) {
   const id = paramId(req.params);
-  const event = await eventService.updateEventStatus(id, req.body.status);
+  const event = await eventService.updateEventStatus(
+    id,
+    req.body.status,
+    req.user!.userId,
+    req.user!.role,
+  );
   sendSuccess(res, event, `Event ${req.body.status}`);
 }
 
 export async function remove(req: Request, res: Response) {
   const id = paramId(req.params);
-  await eventService.deleteEvent(id);
+  await eventService.deleteEvent(id, req.user!.userId, req.user!.role);
   res.json({ ok: true, message: "Event deleted" });
+}
+
+export async function assignOwner(req: Request, res: Response) {
+  const id = paramId(req.params);
+  const event = await eventService.assignEventOwner(
+    id,
+    req.body.organizerId,
+    req.user!.role,
+  );
+  sendSuccess(res, event, "Event organizer updated");
 }

@@ -7,21 +7,17 @@ import { ApiError } from "@/lib/api-client";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { CreateUserInput, UserResponse } from "@/lib/shared";
 
-type UserRole = UserResponse["role"];
-
 export default function UsersPage() {
-  const { token, user: currentUser } = useAuth();
-  const [users, setUsers] = useState<UserResponse[]>([]);
+  const { token } = useAuth();
+  const [organizers, setOrganizers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [creatingUser, setCreatingUser] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null);
-  const [deletingUser, setDeletingUser] = useState(false);
-  const [newUser, setNewUser] = useState<CreateUserInput>({
+  const [creatingOrganizer, setCreatingOrganizer] = useState(false);
+  const [newOrganizer, setNewOrganizer] = useState<CreateUserInput>({
     name: "",
     email: "",
     password: "",
-    role: "user",
+    role: "organizer",
   });
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -43,22 +39,25 @@ export default function UsersPage() {
     return fallback;
   };
 
-  const loadUsers = async () => {
+  const loadOrganizers = async () => {
     if (!token) return;
     setLoading(true);
     try {
       const client = createApiClient(token);
-      const res = await client.getUsers();
-      if (res.ok && res.data) setUsers(res.data);
+      const res = await client.getUsers({ role: "organizer" });
+      if (res.ok && res.data) setOrganizers(res.data);
     } catch (error) {
-      showMessage("error", getApiErrorMessage(error, "Failed to load users"));
+      showMessage(
+        "error",
+        getApiErrorMessage(error, "Failed to load organisers"),
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadOrganizers();
   }, [token]);
 
   const showMessage = (type: "success" | "error", text: string) => {
@@ -66,83 +65,38 @@ export default function UsersPage() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleToggleStatus = async (userId: string, isActive: boolean) => {
+  const handleToggleStatus = async (organizerId: string, isActive: boolean) => {
     if (!token) return;
     try {
       const client = createApiClient(token);
-      const res = await client.updateUserStatus(userId, !isActive);
+      const res = await client.updateUserStatus(organizerId, !isActive);
       if (res.ok) {
         showMessage("success", res.message);
-        loadUsers();
+        loadOrganizers();
       }
     } catch (error) {
       showMessage(
         "error",
-        getApiErrorMessage(error, "Failed to update user status"),
+        getApiErrorMessage(error, "Failed to update organiser status"),
       );
     }
   };
 
-  const handleChangeRole = async (userId: string, role: UserRole) => {
-    if (!token) return;
-    try {
-      const client = createApiClient(token);
-      const res = await client.updateUserRole(userId, role);
-      if (res.ok) {
-        showMessage("success", res.message);
-        loadUsers();
-      }
-    } catch (error) {
-      showMessage(
-        "error",
-        getApiErrorMessage(error, "Failed to update user role"),
-      );
-    }
+  const resetAddOrganizerForm = () => {
+    setNewOrganizer({ name: "", email: "", password: "", role: "organizer" });
   };
 
-  const openDeleteModal = (user: UserResponse) => {
-    if (user.id === currentUser?.id) return;
-    setDeleteTarget(user);
-  };
-
-  const closeDeleteModal = () => {
-    if (deletingUser) return;
-    setDeleteTarget(null);
-  };
-
-  const handleDelete = async () => {
-    if (!token || !deleteTarget || deletingUser) return;
-    setDeletingUser(true);
-    try {
-      const client = createApiClient(token);
-      const res = await client.deleteUser(deleteTarget.id);
-      if (res.ok) {
-        showMessage("success", res.message);
-        setDeleteTarget(null);
-        loadUsers();
-      }
-    } catch (error) {
-      showMessage("error", getApiErrorMessage(error, "Failed to delete user"));
-    } finally {
-      setDeletingUser(false);
-    }
-  };
-
-  const resetAddUserForm = () => {
-    setNewUser({ name: "", email: "", password: "", role: "user" });
-  };
-
-  const closeAddUserModal = () => {
-    resetAddUserForm();
+  const closeAddOrganizerModal = () => {
+    resetAddOrganizerForm();
     setShowAddForm(false);
   };
 
-  const handleCreateUser = async (e: FormEvent<HTMLFormElement>) => {
+  const handleCreateOrganizer = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!token || creatingUser) return;
+    if (!token || creatingOrganizer) return;
 
-    const name = newUser.name.trim();
-    const email = newUser.email.trim().toLowerCase();
+    const name = newOrganizer.name.trim();
+    const email = newOrganizer.email.trim().toLowerCase();
     if (name.length < 2) {
       showMessage("error", "Name must be at least 2 characters");
       return;
@@ -151,32 +105,50 @@ export default function UsersPage() {
       showMessage("error", "Please enter a valid email");
       return;
     }
-    if (newUser.password.length < 6) {
+    if (newOrganizer.password.length < 6) {
       showMessage("error", "Password must be at least 6 characters");
       return;
     }
 
-    setCreatingUser(true);
+    setCreatingOrganizer(true);
     try {
       const client = createApiClient(token);
       const res = await client.createUser({
         name,
         email,
-        password: newUser.password,
-        role: newUser.role,
+        password: newOrganizer.password,
+        role: "organizer",
       });
 
       if (res.ok) {
         showMessage("success", res.message);
-        resetAddUserForm();
+        resetAddOrganizerForm();
         setShowAddForm(false);
-        loadUsers();
+        loadOrganizers();
       }
     } catch (error) {
-      showMessage("error", getApiErrorMessage(error, "Failed to create user"));
+      showMessage(
+        "error",
+        getApiErrorMessage(error, "Failed to create organiser"),
+      );
     } finally {
-      setCreatingUser(false);
+      setCreatingOrganizer(false);
     }
+  };
+
+  const getConnectStatus = (organizer: UserResponse) => {
+    if (!organizer.stripeConnectAccountId) {
+      return "Not connected";
+    }
+    if (
+      organizer.stripeConnectOnboardingComplete &&
+      organizer.stripeConnectChargesEnabled &&
+      organizer.stripeConnectPayoutsEnabled &&
+      organizer.stripeConnectDetailsSubmitted
+    ) {
+      return "Ready";
+    }
+    return "Onboarding pending";
   };
 
   return (
@@ -185,17 +157,17 @@ export default function UsersPage() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-cream">
-              User Management
+              Organisers
             </h1>
             <p className="mt-1 text-sm text-cream/60">
-              Manage users and permissions
+              Create and manage organiser accounts for event ownership
             </p>
           </div>
           <button
             onClick={() => setShowAddForm(true)}
             className="rounded-lg border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold transition hover:bg-gold/20"
           >
-            Add User
+            Add Organiser
           </button>
         </header>
 
@@ -210,10 +182,13 @@ export default function UsersPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
-                      User
+                      Organiser
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
-                      Role
+                      Stripe Connect
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
+                      Owned Events
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
                       Status
@@ -224,28 +199,27 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {users.map((u) => (
+                  {organizers.map((u) => (
                     <tr key={u.id} className="transition hover:bg-surface/40">
                       <td className="px-6 py-4">
                         <p className="font-medium text-cream">{u.name}</p>
                         <p className="text-sm text-cream/60">{u.email}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <select
-                          value={u.role}
-                          onChange={(e) =>
-                            handleChangeRole(
-                              u.id,
-                              e.target.value as UserRole,
-                            )
-                          }
-                          disabled={u.id === currentUser?.id}
-                          className="rounded-lg border border-border bg-surface px-3 py-1 text-sm text-cream/90 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                            getConnectStatus(u) === "Ready"
+                              ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                              : getConnectStatus(u) === "Onboarding pending"
+                                ? "border border-amber-500/40 bg-amber-500/10 text-amber-300"
+                                : "border border-border bg-border/40 text-cream/70"
+                          }`}
                         >
-                          <option value="user">User</option>
-                          <option value="staff">Staff</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                          {getConnectStatus(u)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-cream/85">
+                        {u.ownedEventCount ?? 0}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -258,17 +232,9 @@ export default function UsersPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleToggleStatus(u.id, u.isActive)}
-                            disabled={u.id === currentUser?.id}
                             className="rounded-lg border border-border bg-surface px-3 py-1 text-xs text-cream/90 transition hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {u.isActive ? "Deactivate" : "Activate"}
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(u)}
-                            disabled={u.id === currentUser?.id}
-                            className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Delete
                           </button>
                         </div>
                       </td>
@@ -303,25 +269,25 @@ export default function UsersPage() {
       {showAddForm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
-          onClick={closeAddUserModal}
+          onClick={closeAddOrganizerModal}
         >
           <form
-            onSubmit={handleCreateUser}
+            onSubmit={handleCreateOrganizer}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-2xl rounded-2xl border border-border bg-void p-5 shadow-[0_28px_80px_rgba(0,0,0,0.6)] sm:p-6"
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-cream">
-                  Add New User
+                  Add New Organiser
                 </h2>
                 <p className="mt-1 text-sm text-cream/60">
-                  Create a user with role and login credentials
+                  Create organiser login credentials for the admin app
                 </p>
               </div>
               <button
                 type="button"
-                onClick={closeAddUserModal}
+                onClick={closeAddOrganizerModal}
                 className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-cream/80 transition hover:bg-surface/80"
               >
                 Close
@@ -334,9 +300,9 @@ export default function UsersPage() {
                   Name
                 </span>
                 <input
-                  value={newUser.name}
+                  value={newOrganizer.name}
                   onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, name: e.target.value }))
+                    setNewOrganizer((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="Full name"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"
@@ -351,9 +317,9 @@ export default function UsersPage() {
                 </span>
                 <input
                   type="email"
-                  value={newUser.email}
+                  value={newOrganizer.email}
                   onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, email: e.target.value }))
+                    setNewOrganizer((prev) => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="email@example.com"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"
@@ -367,9 +333,9 @@ export default function UsersPage() {
                 </span>
                 <input
                   type="password"
-                  value={newUser.password}
+                  value={newOrganizer.password}
                   onChange={(e) =>
-                    setNewUser((prev) => ({
+                    setNewOrganizer((prev) => ({
                       ...prev,
                       password: e.target.value,
                     }))
@@ -380,87 +346,25 @@ export default function UsersPage() {
                   minLength={6}
                 />
               </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium uppercase tracking-wider text-cream/60">
-                  Role
-                </span>
-                <select
-                  value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({
-                      ...prev,
-                      role: e.target.value as UserRole,
-                    }))
-                  }
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none focus:border-gold/50"
-                >
-                  <option value="user">User</option>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </label>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={closeAddUserModal}
+                onClick={closeAddOrganizerModal}
                 className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-cream/80 transition hover:bg-surface/80"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={creatingUser}
+                disabled={creatingOrganizer}
                 className="rounded-lg border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold transition hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {creatingUser ? "Creating..." : "Create User"}
+                {creatingOrganizer ? "Creating..." : "Create Organiser"}
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {deleteTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
-          onClick={closeDeleteModal}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl border border-border bg-void p-5 shadow-[0_28px_80px_rgba(0,0,0,0.6)] sm:p-6"
-          >
-            <h2 className="text-lg font-semibold text-cream">Delete User</h2>
-            <p className="mt-2 text-sm text-cream/70">
-              Are you sure you want to delete
-              <span className="font-medium text-cream">
-                {" "}
-                {deleteTarget.name}
-              </span>
-              ? This action cannot be undone.
-            </p>
-            <p className="mt-1 text-xs text-cream/50">{deleteTarget.email}</p>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                disabled={deletingUser}
-                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-cream/80 transition hover:bg-surface/80 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deletingUser}
-                className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {deletingUser ? "Deleting..." : "Delete User"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </AuthenticatedLayout>

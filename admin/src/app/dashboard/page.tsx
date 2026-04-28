@@ -5,20 +5,62 @@ import { useAuth } from "@/lib/auth-context";
 import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { EventResponse } from "@/lib/shared";
+import type { StripeConnectStatus } from "@/lib/api-client/client";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectingStripe, setConnectingStripe] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<StripeConnectStatus | null>(null);
 
   useEffect(() => {
     if (!token) return;
     const client = createApiClient(token);
-    client.getEvents().then((res) => {
-      if (res.ok && res.data) setEvents(res.data);
-    }).finally(() => setLoading(false));
+    Promise.all([client.getEvents(), client.getStripeConnectStatus()])
+      .then(([eventsRes, stripeRes]) => {
+        if (eventsRes.ok && eventsRes.data) setEvents(eventsRes.data);
+        if (stripeRes.ok && stripeRes.data) setStripeStatus(stripeRes.data);
+      })
+      .finally(() => setLoading(false));
   }, [token]);
+
+  const isOrganizer = user?.role === "organizer";
+  const resolvedStripeStatus = stripeStatus ?? {
+    stripeConnectAccountId: user?.stripeConnectAccountId ?? null,
+    stripeConnectOnboardingComplete: Boolean(user?.stripeConnectOnboardingComplete),
+    stripeConnectChargesEnabled: Boolean(user?.stripeConnectChargesEnabled),
+    stripeConnectPayoutsEnabled: Boolean(user?.stripeConnectPayoutsEnabled),
+    stripeConnectDetailsSubmitted: Boolean(user?.stripeConnectDetailsSubmitted),
+    requirementsCurrentlyDue: [],
+  };
+  const hasStripeAccount = Boolean(resolvedStripeStatus.stripeConnectAccountId);
+  const isStripeReady =
+    Boolean(resolvedStripeStatus.stripeConnectAccountId) &&
+    Boolean(resolvedStripeStatus.stripeConnectOnboardingComplete) &&
+    Boolean(resolvedStripeStatus.stripeConnectChargesEnabled) &&
+    Boolean(resolvedStripeStatus.stripeConnectPayoutsEnabled) &&
+    Boolean(resolvedStripeStatus.stripeConnectDetailsSubmitted);
+
+  const handleConnectStripe = async () => {
+    if (!token || connectingStripe) return;
+    setConnectingStripe(true);
+    setStripeError(null);
+    try {
+      const client = createApiClient(token);
+      const res = await client.createStripeOnboardingLink();
+      const url = res.data?.url;
+      if (!url) {
+        throw new Error("Failed to generate onboarding link");
+      }
+      window.location.href = url;
+    } catch (err: unknown) {
+      setStripeError(err instanceof Error ? err.message : "Failed to connect Stripe");
+      setConnectingStripe(false);
+    }
+  };
 
   const published = events.filter((e) => e.status === "published").length;
   const drafts = events.filter((e) => e.status === "draft").length;
@@ -39,6 +81,43 @@ export default function DashboardPage() {
             Overview of your events and platform metrics.
           </p>
         </header>
+
+        {isOrganizer && !isStripeReady && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-amber-300">Stripe Connect required</p>
+                <p className="mt-1 text-sm text-amber-200/80">
+                  {hasStripeAccount
+                    ? "Your Stripe account exists, but onboarding is not complete yet. Complete setup to publish events and accept ticket payments."
+                    : "Connect Stripe to publish events and accept ticket payments."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleConnectStripe}
+                disabled={connectingStripe}
+                className="rounded-lg border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {connectingStripe
+                  ? "Opening Stripe..."
+                  : hasStripeAccount
+                    ? "Complete Stripe setup"
+                    : "Connect Stripe"}
+              </button>
+            </div>
+            {resolvedStripeStatus.requirementsCurrentlyDue &&
+              resolvedStripeStatus.requirementsCurrentlyDue.length > 0 && (
+                <p className="mt-2 text-xs text-amber-200/70">
+                  Pending Stripe requirements:{" "}
+                  {resolvedStripeStatus.requirementsCurrentlyDue.length}
+                </p>
+              )}
+            {stripeError && (
+              <p className="mt-3 text-sm text-rose-300">{stripeError}</p>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex min-h-40 items-center justify-center">

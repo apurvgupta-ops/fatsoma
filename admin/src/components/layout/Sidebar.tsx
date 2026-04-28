@@ -24,12 +24,14 @@ export default function Sidebar() {
       : [
           { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
           { name: "Events", href: "/events", icon: Calendar },
-          { name: "Payments", href: "/payments", icon: CreditCard },
+          ...(user?.role === "admin"
+            ? [{ name: "Payments", href: "/payments", icon: CreditCard }]
+            : []),
           // { name: "Scanner", href: "/scanner", icon: QrCode },
           ...(user?.role === "admin"
             ? [
                 { name: "Staff", href: "/staff", icon: UserCheck },
-                { name: "Users", href: "/users", icon: Users },
+                { name: "Organisers", href: "/users", icon: Users },
               ]
             : []),
         ];
@@ -89,9 +91,15 @@ export default function Sidebar() {
                   {user?.email ?? ""}
                 </p>
               </div>
-              {(user?.role === "admin" || user?.role === "staff") && (
+              {(user?.role === "admin" ||
+                user?.role === "staff" ||
+                user?.role === "organizer") && (
                 <span className="ml-2 shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-xs text-gold">
-                  {user.role === "admin" ? "Admin" : "Staff"}
+                  {user.role === "admin"
+                    ? "Admin"
+                    : user.role === "staff"
+                      ? "Staff"
+                      : "Organizer"}
                 </span>
               )}
             </div>

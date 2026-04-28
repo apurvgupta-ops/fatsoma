@@ -35,6 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const client = createApiClient(token);
       const res = await client.getMe();
       if (res.ok && res.data) {
+        if (res.data.role === "user") {
+          clearTokens();
+          setState({ user: null, token: null, loading: false });
+          return;
+        }
         setState({ user: res.data, token, loading: false });
       } else {
         clearTokens();
@@ -53,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const client = createApiClient();
     const res = await client.login({ email, password });
+    if (res.user.role === "user") {
+      clearTokens();
+      throw new Error("Admin, organizer, or staff account required");
+    }
     storeTokens(res.tokens.accessToken, res.tokens.refreshToken);
     setState({ user: res.user, token: res.tokens.accessToken, loading: false });
     return res.user;

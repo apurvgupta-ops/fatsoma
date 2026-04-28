@@ -22,6 +22,10 @@ export default function LoginPage() {
 
     try {
       const user = await login(email, password);
+      if (user.role === "user") {
+        setError("Admin, organizer, or staff account required");
+        return;
+      }
       router.push(user.role === "staff" ? "/scanner" : "/dashboard");
     } catch (err: any) {
       setError(err.message || "Invalid credentials");

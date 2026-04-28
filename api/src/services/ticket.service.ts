@@ -2,6 +2,7 @@ import Ticket from "../models/Ticket";
 import Event from "../models/Event";
 import Order from "../models/Order";
 import User from "../models/User";
+import mongoose from "mongoose";
 import { AppError } from "../utils/AppError";
 import type { TicketScanValidationResult } from "../shared";
 
@@ -30,22 +31,132 @@ function toTicketDTO(ticket: any) {
   };
 }
 
+function resolveResaleTargetPrice(
+  event: any,
+  ticketBatchName: string,
+  soldByBatch: Map<string, number>,
+) {
+  const batches = Array.isArray(event?.ticketBatches) ? event.ticketBatches : [];
+  const originalIndex = batches.findIndex((b: any) => b.name === ticketBatchName);
+  if (originalIndex < 0) return 0;
+
+  const remainingByBatch = batches.map((batch: any) =>
+    Math.max(
+      0,
+      Number(batch.quantity || 0) - Number(soldByBatch.get(batch.name) || 0),
+    ),
+  );
+
+  if ((remainingByBatch[originalIndex] || 0) > 0) {
+    return Number(batches[originalIndex]?.basePrice || 0);
+  }
+
+  for (let i = originalIndex + 1; i < batches.length; i += 1) {
+    if ((remainingByBatch[i] || 0) > 0) {
+      return Number(batches[i]?.basePrice || 0);
+    }
+  }
+
+  const fallback = batches[originalIndex + 1] ?? batches[originalIndex];
+  return Number(fallback?.basePrice || 0);
+}
+
+function resolveResaleTargetBatch(
+  event: any,
+  ticketBatchName: string,
+  soldByBatch: Map<string, number>,
+) {
+  const batches = Array.isArray(event?.ticketBatches) ? event.ticketBatches : [];
+  const originalIndex = batches.findIndex((b: any) => b.name === ticketBatchName);
+  if (originalIndex < 0) return null;
+
+  const remainingByBatch = batches.map((batch: any) =>
+    Math.max(
+      0,
+      Number(batch.quantity || 0) - Number(soldByBatch.get(batch.name) || 0),
+    ),
+  );
+
+  if ((remainingByBatch[originalIndex] || 0) > 0) {
+    return {
+      name: String(batches[originalIndex]?.name || ticketBatchName),
+      price: Number(batches[originalIndex]?.basePrice || 0),
+      isOriginalBatchSoldOut: false,
+      originalBatchRemaining: remainingByBatch[originalIndex] || 0,
+    };
+  }
+
+  for (let i = originalIndex + 1; i < batches.length; i += 1) {
+    if ((remainingByBatch[i] || 0) > 0) {
+      return {
+        name: String(batches[i]?.name || ticketBatchName),
+        price: Number(batches[i]?.basePrice || 0),
+        isOriginalBatchSoldOut: true,
+        originalBatchRemaining: 0,
+      };
+    }
+  }
+
+  const fallback = batches[originalIndex + 1] ?? batches[originalIndex];
+  return {
+    name: String(fallback?.name || ticketBatchName),
+    price: Number(fallback?.basePrice || 0),
+    isOriginalBatchSoldOut: true,
+    originalBatchRemaining: 0,
+  };
+}
+
+async function getSoldCountsByEvent(eventIds: string[]) {
+  if (eventIds.length === 0) return new Map<string, Map<string, number>>();
+  const rows = await Ticket.aggregate([
+    {
+      $match: {
+        eventId: {
+          $in: eventIds.map((id) => new mongoose.Types.ObjectId(id)),
+        },
+        status: { $nin: ["cancelled"] },
+      },
+    },
+    {
+      $group: {
+        _id: { eventId: "$eventId", batch: "$ticketBatchName" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const result = new Map<string, Map<string, number>>();
+  for (const row of rows as any[]) {
+    const eventId = String(row._id.eventId);
+    if (!result.has(eventId)) result.set(eventId, new Map());
+    result.get(eventId)!.set(String(row._id.batch), Number(row.count) || 0);
+  }
+  return result;
+}
+
 export async function getMyTickets(userId: string) {
   const tickets = await Ticket.find({ userId }).sort({ createdAt: -1 }).lean();
 
   const eventIds = [...new Set(tickets.map((t) => t.eventId.toString()))];
   const events = await Event.find({ _id: { $in: eventIds } }).lean();
   const eventMap = new Map(events.map((e: any) => [e._id.toString(), e]));
+  const soldMapByEvent = await getSoldCountsByEvent(eventIds);
 
   return tickets.map((t) => {
     const event = eventMap.get(t.eventId.toString()) as any;
-    const batch = event?.ticketBatches?.find(
-      (b: any) => b.name === t.ticketBatchName,
-    );
+    const soldByBatch = soldMapByEvent.get(t.eventId.toString()) ?? new Map();
+    const targetBatch = resolveResaleTargetBatch(event, t.ticketBatchName, soldByBatch);
+    const currentBatchPrice =
+      targetBatch?.price ??
+      resolveResaleTargetPrice(event, t.ticketBatchName, soldByBatch);
     return {
       ...toTicketDTO(t),
       allowResale: event?.allowResale ?? false,
-      currentBatchPrice: batch?.basePrice ?? 0,
+      currentBatchPrice,
+      isCurrentBatchSoldOut: Boolean(targetBatch?.isOriginalBatchSoldOut),
+      currentBatchRemaining: Number(targetBatch?.originalBatchRemaining ?? 0),
+      resaleTargetBatchName: targetBatch?.name ?? t.ticketBatchName,
+      resaleTargetBatchPrice: Number(targetBatch?.price ?? currentBatchPrice),
       eventDate: event?.eventDate?.toISOString?.() ?? null,
       eventImage: event?.eventImage ?? null,
       venueName: event?.venueName ?? null,
@@ -62,14 +173,26 @@ export async function getTicketById(ticketId: string, userId: string) {
   }
 
   const event = (await Event.findById(ticket.eventId).lean()) as any;
-  const batch = event?.ticketBatches?.find(
-    (b: any) => b.name === ticket.ticketBatchName,
+  const soldMapByEvent = await getSoldCountsByEvent([ticket.eventId.toString()]);
+  const soldByBatch =
+    soldMapByEvent.get(ticket.eventId.toString()) ?? new Map<string, number>();
+  const targetBatch = resolveResaleTargetBatch(
+    event,
+    ticket.ticketBatchName,
+    soldByBatch,
   );
+  const currentBatchPrice =
+    targetBatch?.price ??
+    resolveResaleTargetPrice(event, ticket.ticketBatchName, soldByBatch);
 
   return {
     ...toTicketDTO(ticket),
     allowResale: event?.allowResale ?? false,
-    currentBatchPrice: batch?.basePrice ?? 0,
+    currentBatchPrice,
+    isCurrentBatchSoldOut: Boolean(targetBatch?.isOriginalBatchSoldOut),
+    currentBatchRemaining: Number(targetBatch?.originalBatchRemaining ?? 0),
+    resaleTargetBatchName: targetBatch?.name ?? ticket.ticketBatchName,
+    resaleTargetBatchPrice: Number(targetBatch?.price ?? currentBatchPrice),
     eventDate: event?.eventDate?.toISOString?.() ?? null,
     eventImage: event?.eventImage ?? null,
     venueName: event?.venueName ?? null,

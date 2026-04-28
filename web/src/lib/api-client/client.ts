@@ -71,6 +71,15 @@ export interface OrderStats {
   resaleRevenue: number;
 }
 
+export interface StripeConnectStatus {
+  stripeConnectAccountId: string | null;
+  stripeConnectOnboardingComplete: boolean;
+  stripeConnectChargesEnabled: boolean;
+  stripeConnectPayoutsEnabled: boolean;
+  stripeConnectDetailsSubmitted: boolean;
+  requirementsCurrentlyDue?: string[];
+}
+
 export class FatsomaClient {
   private baseUrl: string;
   private getToken: () => string | null;
@@ -199,6 +208,26 @@ export class FatsomaClient {
     });
   }
 
+  async createOrRetrieveStripeConnectAccount(): Promise<
+    ApiResponse<{ accountId: string; status: StripeConnectStatus }>
+  > {
+    return this.request("/api/connect/stripe/account", {
+      method: "POST",
+    });
+  }
+
+  async createStripeOnboardingLink(): Promise<
+    ApiResponse<{ url: string; expiresAt: number }>
+  > {
+    return this.request("/api/connect/stripe/onboarding-link", {
+      method: "POST",
+    });
+  }
+
+  async getStripeConnectStatus(): Promise<ApiResponse<StripeConnectStatus>> {
+    return this.request("/api/connect/stripe/status");
+  }
+
   // ── Events ────────────────────────────────────────────
   async getEvents(): Promise<ApiResponse<EventResponse[]>> {
     return this.request("/api/events");
@@ -246,8 +275,13 @@ export class FatsomaClient {
   }
 
   // ── Users (admin) ─────────────────────────────────────
-  async getUsers(): Promise<ApiResponse<UserResponse[]>> {
-    return this.request("/api/users");
+  async getUsers(params?: {
+    role?: "admin" | "staff" | "organizer" | "user";
+  }): Promise<ApiResponse<UserResponse[]>> {
+    const qs = new URLSearchParams();
+    if (params?.role) qs.set("role", params.role);
+    const query = qs.toString();
+    return this.request(`/api/users${query ? `?${query}` : ""}`);
   }
 
   async createUser(input: CreateUserInput): Promise<ApiResponse<UserResponse>> {
@@ -266,7 +300,7 @@ export class FatsomaClient {
 
   async updateUserRole(
     id: string,
-    role: "admin" | "staff" | "user",
+    role: "admin" | "staff" | "organizer" | "user",
   ): Promise<ApiResponse> {
     return this.request(`/api/users/${id}/role`, {
       method: "PATCH",

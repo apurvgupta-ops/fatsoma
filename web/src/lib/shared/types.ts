@@ -6,6 +6,8 @@ export interface TicketBatch {
   maxDiscount: number;
   entryWindowCutoff?: string | null;
   remaining?: number;
+  resaleAvailable?: number;
+  totalAvailableForPurchase?: number;
 }
 
 export interface EventBase {
@@ -47,8 +49,14 @@ export interface UserResponse {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "staff" | "user";
+  role: "admin" | "staff" | "organizer" | "user";
   isActive: boolean;
+  stripeConnectAccountId: string | null;
+  stripeConnectOnboardingComplete: boolean;
+  stripeConnectChargesEnabled: boolean;
+  stripeConnectPayoutsEnabled: boolean;
+  stripeConnectDetailsSubmitted: boolean;
+  ownedEventCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,7 +65,7 @@ export interface CreateUserInput {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "staff" | "user";
+  role: "admin" | "staff" | "organizer" | "user";
 }
 
 export interface AuthTokens {
@@ -106,6 +114,10 @@ export interface TicketResponse {
   qrCode: string;
   allowResale: boolean;
   currentBatchPrice: number;
+  isCurrentBatchSoldOut?: boolean;
+  currentBatchRemaining?: number;
+  resaleTargetBatchName?: string;
+  resaleTargetBatchPrice?: number;
   eventDate: string | null;
   eventImage: string | null;
   venueName: string | null;
@@ -180,7 +192,10 @@ export interface ResaleListingResponse {
   eventName?: string | null;
   ticketBatchName?: string | null;
   askingPrice: number;
+  originalTicketBatchName: string;
   originalPurchasePrice: number;
+  targetTicketBatchName: string;
+  reallocationType: "same_batch" | "upgraded_batch" | "sold_out_reallocated";
   status: "active" | "sold" | "cancelled" | "expired";
   buyerId: string | null;
   platformFee: number;

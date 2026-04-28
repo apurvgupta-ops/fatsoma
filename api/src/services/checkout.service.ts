@@ -14,9 +14,9 @@ import {
 } from "../lib/email";
 import { logPayment, logRefund } from "../lib/systemLogger";
 import { createNotification } from "./notification.service";
+import { syncConnectFromStripeAccount } from "./connect.service";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
-const MAX_TICKETS_PER_EVENT = 6;
 
 let _stripe: Stripe | null = null;
 
@@ -29,35 +29,33 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
-function ticketWord(count: number) {
-  return count === 1 ? "ticket" : "tickets";
+function isOrganizerConnectReady(user: any) {
+  if (!user || user.role !== "organizer") return true;
+  const stripeConnect = user.stripeConnect ?? {};
+  return Boolean(
+    stripeConnect.accountId &&
+      stripeConnect.onboardingComplete &&
+      stripeConnect.chargesEnabled &&
+      stripeConnect.payoutsEnabled &&
+      stripeConnect.detailsSubmitted,
+  );
 }
 
-async function countUserTicketsForEvent(userId: string, eventId: string) {
-  return Ticket.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    eventId: new mongoose.Types.ObjectId(eventId),
-    status: { $nin: ["cancelled", "transferred"] },
-  });
-}
+async function getEventDestinationAccountId(event: any) {
+  if (!event?.createdBy) return null;
 
-function enforcePerEventLimit(
-  existingCount: number,
-  requestedQuantity: number,
-) {
-  const remainingAllowance = MAX_TICKETS_PER_EVENT - existingCount;
+  const owner = (await User.findById(event.createdBy)
+    .select("role stripeConnect")
+    .lean()) as any;
+  if (!owner || owner.role !== "organizer") return null;
 
-  if (remainingAllowance <= 0) {
+  if (!isOrganizerConnectReady(owner)) {
     throw AppError.badRequest(
-      `You already have ${existingCount} ${ticketWord(existingCount)} for this event. You cannot buy more tickets.`,
+      "Ticket checkout is unavailable until the organiser completes Stripe Connect",
     );
   }
 
-  if (requestedQuantity > remainingAllowance) {
-    throw AppError.badRequest(
-      `You already have ${existingCount} ${ticketWord(existingCount)} for this event. You can buy only ${remainingAllowance} more ${ticketWord(remainingAllowance)}.`,
-    );
-  }
+  return owner.stripeConnect?.accountId ?? null;
 }
 
 // ── Primary checkout ────────────────────────────────────
@@ -83,24 +81,53 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     throw AppError.badRequest("Invalid event ID");
   }
 
-  if (quantity < 1 || quantity > MAX_TICKETS_PER_EVENT) {
-    throw AppError.badRequest(
-      `Quantity must be between 1 and ${MAX_TICKETS_PER_EVENT}`,
-    );
+  if (quantity < 1) {
+    throw AppError.badRequest("Quantity must be at least 1");
   }
 
   const event = (await Event.findById(eventId).lean()) as any;
   if (!event || event.status !== "published") {
     throw AppError.notFound("Event not found or not published");
   }
+  const destinationAccountId = await getEventDestinationAccountId(event);
 
   const batch = event.ticketBatches.find((b: any) => b.name === batchName);
   if (!batch) {
     throw AppError.badRequest(`Ticket batch "${batchName}" not found`);
   }
 
-  const existingUserTickets = await countUserTicketsForEvent(userId, eventId);
-  enforcePerEventLimit(existingUserTickets, quantity);
+  const resaleCandidates = await ResaleListing.find({
+    eventId: new mongoose.Types.ObjectId(eventId),
+    status: "active",
+    $or: [
+      { targetTicketBatchName: batchName },
+      {
+        targetTicketBatchName: { $exists: false },
+        originalTicketBatchName: batchName,
+      },
+      { targetTicketBatchName: null, originalTicketBatchName: batchName },
+    ],
+    sellerId: { $ne: new mongoose.Types.ObjectId(userId) },
+  })
+    .sort({ createdAt: 1 })
+    .limit(quantity)
+    .lean();
+
+  const listedTickets = await Ticket.find({
+    _id: { $in: resaleCandidates.map((listing: any) => listing.ticketId) },
+    status: "listed",
+  })
+    .select("_id")
+    .lean();
+  const listedTicketIds = new Set(
+    listedTickets.map((ticket: any) => ticket._id.toString()),
+  );
+  const matchedResaleListings = resaleCandidates.filter((listing: any) =>
+    listedTicketIds.has(listing.ticketId.toString()),
+  );
+  const resaleListings = matchedResaleListings.slice(0, quantity) as any[];
+  const resaleQuantity = resaleListings.length;
+  const primaryQuantity = Math.max(quantity - resaleQuantity, 0);
 
   const soldCount = await Ticket.countDocuments({
     eventId: new mongoose.Types.ObjectId(eventId),
@@ -108,47 +135,97 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     status: { $ne: "cancelled" },
   });
   const remaining = batch.quantity - soldCount;
-  if (remaining < quantity) {
+  if (remaining < primaryQuantity) {
     throw AppError.badRequest(
       remaining <= 0
         ? `"${batchName}" tickets are sold out`
-        : `Only ${remaining} "${batchName}" ticket(s) remaining`,
+        : `Only ${remaining} "${batchName}" primary ticket(s) remaining after allocating resale`,
     );
   }
 
   const basePrice = batch.basePrice;
   const fee = Math.round(capturedFee * 100) / 100;
-  const unitTotal = basePrice + fee;
-  const totalAmount = Math.round(unitTotal * quantity * 100) / 100;
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+
+  const resaleByPrice = new Map<number, number>();
+  for (const listing of resaleListings as any[]) {
+    const price = Math.round(Number(listing.askingPrice || 0) * 100) / 100;
+    resaleByPrice.set(price, (resaleByPrice.get(price) ?? 0) + 1);
+  }
+  for (const [askingPrice, count] of resaleByPrice.entries()) {
+    const unitTotal = askingPrice + fee;
+    lineItems.push({
+      price_data: {
+        currency: "gbp",
+        product_data: {
+          name: `${event.eventName} — ${batchName} (Resale)`,
+          description: `Resale: £${askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+        },
+        unit_amount: Math.round(unitTotal * 100),
+      },
+      quantity: count,
+    });
+  }
+
+  if (primaryQuantity > 0) {
+    const unitTotal = basePrice + fee;
+    lineItems.push({
+      price_data: {
+        currency: "gbp",
+        product_data: {
+          name: `${event.eventName} — ${batchName}`,
+          description: `Base: £${basePrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
+        },
+        unit_amount: Math.round(unitTotal * 100),
+      },
+      quantity: primaryQuantity,
+    });
+  }
+
+  const totalAmount = Math.round(
+    lineItems.reduce((sum, item) => {
+      const unitAmount = Number(item.price_data?.unit_amount ?? 0) / 100;
+      const qty = Number(item.quantity ?? 0);
+      return sum + unitAmount * qty;
+    }, 0) * 100,
+  ) / 100;
+  const applicationFeeAmount = Math.round(fee * quantity * 100);
 
   let session: Stripe.Checkout.Session;
   try {
     session = await getStripe().checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "gbp",
-            product_data: {
-              name: `${event.eventName} — ${batchName}`,
-              description: `Base: £${basePrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
-            },
-            unit_amount: Math.round(unitTotal * 100),
-          },
-          quantity,
-        },
-      ],
+      line_items: lineItems,
       metadata: {
         type: "primary",
         eventId,
         batchName,
         quantity: String(quantity),
+        primaryQuantity: String(primaryQuantity),
+        resaleQuantity: String(resaleQuantity),
+        listingIds: resaleListings
+          .map((listing: any) => listing._id.toString())
+          .join(","),
+        listingId:
+          resaleListings.length > 0
+            ? (resaleListings[0] as any)._id.toString()
+            : "",
         basePrice: String(basePrice),
         capturedFee: String(fee),
         totalAmount: String(totalAmount),
         eventName: event.eventName,
         userId,
       },
+      ...(destinationAccountId
+        ? {
+            payment_intent_data: {
+              application_fee_amount: applicationFeeAmount,
+              transfer_data: {
+                destination: destinationAccountId,
+              },
+            },
+          }
+        : {}),
       success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${WEB_URL}/events/${eventId}`,
     });
@@ -165,7 +242,13 @@ export async function createCheckoutSession(input: CreateSessionInput) {
       userId,
       errorMessage: msg,
       errorCode: code,
-      metadata: { eventId, batchName, quantity },
+      metadata: {
+        eventId,
+        batchName,
+        quantity: String(quantity),
+        primaryQuantity: String(primaryQuantity),
+        resaleQuantity: String(resaleQuantity),
+      },
     });
     throw err;
   }
@@ -178,7 +261,13 @@ export async function createCheckoutSession(input: CreateSessionInput) {
     userId,
     amountGbp: totalAmount,
     currency: "gbp",
-    metadata: { eventId, batchName, quantity: String(quantity) },
+    metadata: {
+      eventId,
+      batchName,
+      quantity: String(quantity),
+      primaryQuantity: String(primaryQuantity),
+      resaleQuantity: String(resaleQuantity),
+    },
   });
 
   return {
@@ -244,10 +333,14 @@ export async function createResaleCheckoutSession(
       Math.abs(Number(listing.askingPrice) - Number(firstListing.askingPrice)) <
       0.005,
   );
+  const sameTargetBatch = listings.every(
+    (listing) =>
+      listing.targetTicketBatchName === firstListing.targetTicketBatchName,
+  );
 
-  if (!sameEvent || !samePrice) {
+  if (!sameEvent || !samePrice || !sameTargetBatch) {
     throw AppError.badRequest(
-      "Selected listings must belong to the same event and price tier",
+      "Selected listings must belong to the same event, target batch, and price tier",
     );
   }
 
@@ -269,17 +362,13 @@ export async function createResaleCheckoutSession(
 
   const event = (await Event.findById(firstListing.eventId).lean()) as any;
   if (!event) throw AppError.notFound("Event not found");
-
-  const existingUserTickets = await countUserTicketsForEvent(
-    userId,
-    firstListing.eventId.toString(),
-  );
-  enforcePerEventLimit(existingUserTickets, listings.length);
+  const destinationAccountId = await getEventDestinationAccountId(event);
 
   const fee = Math.round(capturedFee * 100) / 100;
   const unitTotal = firstListing.askingPrice + fee;
   const quantity = listings.length;
   const totalAmount = Math.round(unitTotal * quantity * 100) / 100;
+  const applicationFeeAmount = Math.round(fee * quantity * 100);
 
   let session: Stripe.Checkout.Session;
   try {
@@ -290,7 +379,7 @@ export async function createResaleCheckoutSession(
           price_data: {
             currency: "gbp",
             product_data: {
-              name: `${event.eventName} — ${firstTicket.ticketBatchName} (Resale)`,
+              name: `${event.eventName} — ${firstListing.targetTicketBatchName} (Resale)`,
               description: `Resale: £${firstListing.askingPrice.toFixed(2)} + Booking Fee: £${fee.toFixed(2)}`,
             },
             unit_amount: Math.round(unitTotal * 100),
@@ -306,12 +395,22 @@ export async function createResaleCheckoutSession(
         eventId: firstListing.eventId.toString(),
         ticketId: firstTicket._id.toString(),
         eventName: event.eventName,
-        ticketBatchName: firstTicket.ticketBatchName,
+        ticketBatchName: firstListing.targetTicketBatchName,
         basePrice: String(firstListing.askingPrice),
         capturedFee: String(fee),
         totalAmount: String(totalAmount),
         userId,
       },
+      ...(destinationAccountId
+        ? {
+            payment_intent_data: {
+              application_fee_amount: applicationFeeAmount,
+              transfer_data: {
+                destination: destinationAccountId,
+              },
+            },
+          }
+        : {}),
       success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${WEB_URL}/events/${firstListing.eventId}`,
     });
@@ -400,6 +499,16 @@ function parseListingIds(meta: Record<string, string> | null | undefined) {
     .filter((id) => id.length > 0 && mongoose.Types.ObjectId.isValid(id));
 }
 
+function parsePrimaryQuantity(
+  meta: Record<string, string> | null | undefined,
+  fallbackQuantity: number,
+) {
+  if (!meta?.primaryQuantity) return fallbackQuantity;
+  const parsed = Number(meta.primaryQuantity);
+  if (!Number.isFinite(parsed)) return fallbackQuantity;
+  return Math.max(0, Math.floor(parsed));
+}
+
 export async function confirmSession(sessionId: string) {
   const existingOrder = await Order.findOne({ stripeSessionId: sessionId });
   if (existingOrder?.status === "paid") {
@@ -453,7 +562,13 @@ export async function confirmSession(sessionId: string) {
     });
 
     if (order.type === "primary") {
-      await generateTickets(order);
+      const listingIds = parseListingIds(session.metadata);
+      const primaryQuantity = parsePrimaryQuantity(session.metadata, order.quantity);
+
+      if (listingIds.length > 0) {
+        await completeResaleTransfer(order, listingIds);
+      }
+      await generateTickets(order, primaryQuantity);
       if (order.userId) {
         await createNotification({
           userId: order.userId.toString(),
@@ -566,12 +681,22 @@ export async function confirmSession(sessionId: string) {
   throw AppError.badRequest("Payment session is still open or was cancelled");
 }
 
-async function generateTickets(order: any) {
+async function generateTickets(order: any, quantityOverride?: number) {
+  const quantity = Math.max(
+    0,
+    Math.floor(
+      Number.isFinite(quantityOverride as number)
+        ? Number(quantityOverride)
+        : Number(order.quantity),
+    ),
+  );
+  if (quantity <= 0) return;
+
   const existingCount = await Ticket.countDocuments({ orderId: order._id });
   if (existingCount > 0) return;
 
   const tickets = [];
-  for (let i = 0; i < order.quantity; i++) {
+  for (let i = 0; i < quantity; i++) {
     tickets.push({
       orderId: order._id,
       eventId: order.eventId,
@@ -604,9 +729,10 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     const ticket = await Ticket.findById(listing.ticketId);
     if (!ticket) continue;
 
-    const sellerPayout = listing.originalPurchasePrice;
-    const organiserRevenue =
-      listing.askingPrice - listing.originalPurchasePrice;
+    const sellerPayout = Math.round(Number(listing.originalPurchasePrice) * 100) / 100;
+    const organiserRevenue = Math.round(
+      Math.max(Number(listing.askingPrice) - Number(listing.originalPurchasePrice), 0) * 100,
+    ) / 100;
 
     listing.status = "sold";
     listing.buyerId = order.userId;
@@ -617,7 +743,12 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
 
     const sellerPaymentIntentId = ticket.stripePaymentIntentId;
 
+    const previousTicketId = ticket._id.toString();
+    const previousQrCode = ticket.qrCode;
+    const previousBatch = ticket.ticketBatchName;
+
     ticket.userId = order.userId;
+    ticket.ticketBatchName = listing.targetTicketBatchName;
     ticket.purchasePrice = listing.askingPrice;
     ticket.status = "active";
     ticket.qrCode = crypto.randomUUID();
@@ -625,6 +756,35 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
 
     await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
     await listing.save();
+
+    logPayment({
+      event: "resale_transfer_completed",
+      outcome: "success",
+      type: "resale",
+      orderId: order._id.toString(),
+      paymentIntentId: order.stripePaymentIntentId ?? undefined,
+      userId:
+        order.userId && typeof order.userId.toString === "function"
+          ? order.userId.toString()
+          : undefined,
+      amountGbp: Number(listing.askingPrice),
+      metadata: {
+        listingId: listing._id.toString(),
+        oldTicketId: previousTicketId,
+        newTicketId: ticket._id.toString(),
+        oldQrCode: previousQrCode,
+        newQrCode: ticket.qrCode,
+        originalBatch: listing.originalTicketBatchName,
+        targetBatch: listing.targetTicketBatchName,
+        previousBatch,
+        reallocationType: listing.reallocationType,
+        sellerPayout,
+        organiserRevenue,
+        sellerRefundId: listing.sellerRefundId ?? undefined,
+        sellerRefundStatus: listing.sellerRefundStatus ?? undefined,
+        sellerPaymentIntentId: sellerPaymentIntentId ?? undefined,
+      },
+    });
 
     notifySellerOfSale(listing, order).catch((err) =>
       console.error("[Resale] Failed to notify seller:", err),
@@ -837,7 +997,16 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
       });
 
       if (order.type === "primary") {
-        await generateTickets(order);
+        const listingIds = parseListingIds(session.metadata);
+        const primaryQuantity = parsePrimaryQuantity(
+          session.metadata,
+          order.quantity,
+        );
+
+        if (listingIds.length > 0) {
+          await completeResaleTransfer(order, listingIds);
+        }
+        await generateTickets(order, primaryQuantity);
         if (order.userId) {
           await createNotification({
             userId: order.userId.toString(),
@@ -931,6 +1100,23 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
           reason: "No matching order in database for expired session",
         });
       }
+      break;
+    }
+
+    case "account.updated": {
+      const account = stripeEvent.data.object as Stripe.Account;
+      await syncConnectFromStripeAccount(account);
+      logPayment({
+        event: "webhook_account_updated",
+        outcome: "success",
+        type: "webhook",
+        metadata: {
+          accountId: account.id,
+          chargesEnabled: String(account.charges_enabled),
+          payoutsEnabled: String(account.payouts_enabled),
+          detailsSubmitted: String(account.details_submitted),
+        },
+      });
       break;
     }
 

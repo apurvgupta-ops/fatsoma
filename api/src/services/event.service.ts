@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Event from "../models/Event";
 import Ticket from "../models/Ticket";
+import User from "../models/User";
+import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import { BOOKING_FEE_PERCENT } from "../shared";
 import type { IEvent } from "../models/Event";
@@ -26,11 +28,17 @@ function normalizeTicketBatches(batches: any[] = []) {
 }
 
 /** Serialize a Mongoose event doc into an API response shape. */
-function toEventDTO(event: any, soldMap?: Map<string, number>) {
+function toEventDTO(
+  event: any,
+  soldMap?: Map<string, number>,
+  resaleMap?: Map<string, number>,
+) {
   const batches = (event.ticketBatches ?? []).map((b: any) => {
     const batch = typeof b.toObject === "function" ? b.toObject() : { ...b };
     const sold = soldMap?.get(batch.name) ?? 0;
     batch.remaining = Math.max(0, batch.quantity - sold);
+    batch.resaleAvailable = resaleMap?.get(batch.name) ?? 0;
+    batch.totalAvailableForPurchase = batch.remaining + batch.resaleAvailable;
     const cutoff = batch.entryWindowCutoff
       ? new Date(batch.entryWindowCutoff)
       : null;
@@ -40,7 +48,7 @@ function toEventDTO(event: any, soldMap?: Map<string, number>) {
   });
 
   const totalRemaining = batches.reduce(
-    (s: number, b: any) => s + b.remaining,
+    (s: number, b: any) => s + b.totalAvailableForPurchase,
     0,
   );
 
@@ -106,38 +114,149 @@ async function getSoldCountsByEvent(
   return result;
 }
 
+async function getActiveResaleCountsByEvent(
+  eventIds: string[],
+): Promise<Map<string, Map<string, number>>> {
+  if (eventIds.length === 0) return new Map();
+
+  const pipeline = await ResaleListing.aggregate([
+    {
+      $match: {
+        eventId: { $in: eventIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        batchForAvailability: {
+          $ifNull: ["$targetTicketBatchName", "$originalTicketBatchName"],
+        },
+      },
+    },
+    {
+      $match: {
+        batchForAvailability: { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: { eventId: "$eventId", batch: "$batchForAvailability" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const result = new Map<string, Map<string, number>>();
+  for (const row of pipeline) {
+    const eid = row._id.eventId.toString();
+    if (!result.has(eid)) result.set(eid, new Map());
+    result.get(eid)!.set(row._id.batch, row.count);
+  }
+  return result;
+}
+
 export async function getPublishedEvents() {
   const events = await Event.find({ status: "published" })
     .sort({ eventDate: 1 })
     .lean();
-  const soldMap = await getSoldCountsByEvent(
-    events.map((e: any) => e._id.toString()),
+  const eventIds = events.map((e: any) => e._id.toString());
+  const [soldMap, resaleMap] = await Promise.all([
+    getSoldCountsByEvent(eventIds),
+    getActiveResaleCountsByEvent(eventIds),
+  ]);
+  return events.map((e: any) =>
+    toEventDTO(
+      e,
+      soldMap.get(e._id.toString()),
+      resaleMap.get(e._id.toString()),
+    ),
   );
-  return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
 export async function getAllEvents(userId: string, role: string) {
+  if (role !== "admin" && role !== "organizer") {
+    throw AppError.forbidden("Organizer access required");
+  }
+
   const filter =
     role === "admin" ? {} : { createdBy: new mongoose.Types.ObjectId(userId) };
   const events = await Event.find(filter).sort({ createdAt: -1 }).lean();
-  const soldMap = await getSoldCountsByEvent(
-    events.map((e: any) => e._id.toString()),
+  const eventIds = events.map((e: any) => e._id.toString());
+  const [soldMap, resaleMap] = await Promise.all([
+    getSoldCountsByEvent(eventIds),
+    getActiveResaleCountsByEvent(eventIds),
+  ]);
+  return events.map((e: any) =>
+    toEventDTO(
+      e,
+      soldMap.get(e._id.toString()),
+      resaleMap.get(e._id.toString()),
+    ),
   );
-  return events.map((e: any) => toEventDTO(e, soldMap.get(e._id.toString())));
 }
 
-export async function getEventById(id: string) {
+function ensureCanManageEvent(event: any, userId: string, role: string) {
+  if (role === "admin") return;
+  if (role !== "organizer") {
+    throw AppError.forbidden("Organizer access required");
+  }
+
+  const ownerId = event.createdBy?.toString?.() ?? String(event.createdBy ?? "");
+  if (!ownerId || ownerId !== userId) {
+    throw AppError.forbidden("You can only manage your own events");
+  }
+}
+
+async function assertEventOwnerConnectReady(event: any) {
+  if (!event?.createdBy) return;
+  const owner = (await User.findById(event.createdBy)
+    .select("role stripeConnect")
+    .lean()) as any;
+  if (!owner || owner.role !== "organizer") return;
+
+  const stripeConnect = owner.stripeConnect ?? {};
+  const isReady = Boolean(
+    stripeConnect.accountId &&
+      stripeConnect.onboardingComplete &&
+      stripeConnect.chargesEnabled &&
+      stripeConnect.payoutsEnabled &&
+      stripeConnect.detailsSubmitted,
+  );
+
+  if (!isReady) {
+    throw AppError.badRequest(
+      "Publishing is blocked until the event organiser completes Stripe Connect onboarding",
+    );
+  }
+}
+
+export async function getEventById(id: string, userId: string, role: string) {
   const event = await Event.findById(id).lean();
   if (!event) {
     throw AppError.notFound("Event not found");
   }
-  const soldMap = await getSoldCountsByEvent([id]);
-  return toEventDTO(event, soldMap.get(id));
+  ensureCanManageEvent(event, userId, role);
+  const [soldMap, resaleMap] = await Promise.all([
+    getSoldCountsByEvent([id]),
+    getActiveResaleCountsByEvent([id]),
+  ]);
+  return toEventDTO(event, soldMap.get(id), resaleMap.get(id));
 }
 
-export async function createEvent(input: Record<string, any>, userId: string) {
+export async function createEvent(
+  input: Record<string, any>,
+  userId: string,
+  role: string,
+) {
+  if (role !== "admin" && role !== "organizer") {
+    throw AppError.forbidden("Organizer access required");
+  }
+
   const { status, bookingFee: _ignored, ...data } = input;
   const ticketBatches = normalizeTicketBatches(data.ticketBatches);
+  if (status === "published") {
+    await assertEventOwnerConnectReady({ createdBy: userId });
+  }
   const event = await Event.create({
     ...data,
     ticketBatches,
@@ -154,8 +273,22 @@ export async function createEvent(input: Record<string, any>, userId: string) {
   return { event: toEventDTO(event), message };
 }
 
-export async function updateEvent(id: string, input: Record<string, any>) {
+export async function updateEvent(
+  id: string,
+  input: Record<string, any>,
+  userId: string,
+  role: string,
+) {
+  const existing = await Event.findById(id).lean();
+  if (!existing) {
+    throw AppError.notFound("Event not found");
+  }
+  ensureCanManageEvent(existing, userId, role);
+
   const { status, bookingFee: _ignored, ...data } = input;
+  if (status === "published") {
+    await assertEventOwnerConnectReady(existing);
+  }
   const ticketBatches = data.ticketBatches
     ? normalizeTicketBatches(data.ticketBatches)
     : undefined;
@@ -178,9 +311,23 @@ export async function updateEvent(id: string, input: Record<string, any>) {
   return toEventDTO(updated);
 }
 
-export async function updateEventStatus(id: string, status: string) {
+export async function updateEventStatus(
+  id: string,
+  status: string,
+  userId: string,
+  role: string,
+) {
   if (!["draft", "published"].includes(status)) {
     throw AppError.badRequest("Status must be draft or published");
+  }
+
+  const existing = await Event.findById(id).lean();
+  if (!existing) {
+    throw AppError.notFound("Event not found");
+  }
+  ensureCanManageEvent(existing, userId, role);
+  if (status === "published") {
+    await assertEventOwnerConnectReady(existing);
   }
 
   const updated = await Event.findByIdAndUpdate(
@@ -196,9 +343,46 @@ export async function updateEventStatus(id: string, status: string) {
   return toEventDTO(updated);
 }
 
-export async function deleteEvent(id: string) {
+export async function deleteEvent(id: string, userId: string, role: string) {
+  const existing = await Event.findById(id).lean();
+  if (!existing) {
+    throw AppError.notFound("Event not found");
+  }
+  ensureCanManageEvent(existing, userId, role);
+
   const deleted = await Event.findByIdAndDelete(id);
   if (!deleted) {
     throw AppError.notFound("Event not found");
   }
+}
+
+export async function assignEventOwner(
+  id: string,
+  organizerId: string,
+  requesterRole: string,
+) {
+  if (requesterRole !== "admin") {
+    throw AppError.forbidden("Admin access required");
+  }
+  if (!mongoose.Types.ObjectId.isValid(organizerId)) {
+    throw AppError.badRequest("Invalid organizer ID");
+  }
+
+  const organizer = (await User.findById(organizerId).lean()) as any;
+  if (!organizer || organizer.role !== "organizer") {
+    throw AppError.badRequest("Organizer account not found");
+  }
+
+  const updated = await Event.findByIdAndUpdate(
+    id,
+    { createdBy: organizer._id },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!updated) {
+    throw AppError.notFound("Event not found");
+  }
+
+  const soldMap = await getSoldCountsByEvent([id]);
+  const resaleMap = await getActiveResaleCountsByEvent([id]);
+  return toEventDTO(updated, soldMap.get(id), resaleMap.get(id));
 }

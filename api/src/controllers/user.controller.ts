@@ -4,7 +4,12 @@ import { paramId } from "../utils/paramId";
 import { sendSuccess, sendMessage } from "../utils/response";
 
 export async function list(_req: Request, res: Response) {
-  const users = await userService.listUsers();
+  const roleQuery = _req.query.role;
+  const role =
+    typeof roleQuery === "string"
+      ? (roleQuery as "admin" | "staff" | "organizer" | "user")
+      : undefined;
+  const users = await userService.listUsers(role);
   sendSuccess(res, users, "Users retrieved");
 }
 

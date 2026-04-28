@@ -45,3 +45,16 @@ export function requireAdminOrStaff(req: Request, res: Response, next: NextFunct
   }
   next();
 }
+
+export function requireAdminOrOrganizer(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (req.user?.role !== "admin" && req.user?.role !== "organizer") {
+    res.locals.errorMessage = "Organizer access required";
+    res.status(403).json({ ok: false, message: "Organizer access required" });
+    return;
+  }
+  next();
+}

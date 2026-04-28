@@ -50,7 +50,7 @@ function toDateTimeLocal(value?: string | null) {
 }
 
 export default function EditEventPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const eventId = params.id as string;
@@ -62,6 +62,9 @@ export default function EditEventPage() {
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [organizers, setOrganizers] = useState<UserOption[]>([]);
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState("");
+  const [assigningOrganizer, setAssigningOrganizer] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -92,6 +95,8 @@ export default function EditEventPage() {
   });
 
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
+
+  type UserOption = { id: string; name: string; email: string };
 
   useEffect(() => {
     if (!token || !eventId) return;
@@ -128,6 +133,7 @@ export default function EditEventPage() {
               entryWindowCutoff: toDateTimeLocal(batch.entryWindowCutoff),
             })),
           );
+          setSelectedOrganizerId(e.createdBy ?? "");
         } else {
           setError("Event not found");
         }
@@ -135,6 +141,26 @@ export default function EditEventPage() {
       .catch(() => setError("Failed to load event"))
       .finally(() => setLoading(false));
   }, [token, eventId]);
+
+  useEffect(() => {
+    if (!token || user?.role !== "admin") return;
+    const client = createApiClient(token);
+    client
+      .getUsers({ role: "organizer" })
+      .then((res) => {
+        const data = res.data ?? [];
+        setOrganizers(
+          data.map((organizer) => ({
+            id: organizer.id,
+            name: organizer.name,
+            email: organizer.email,
+          })),
+        );
+      })
+      .catch(() => {
+        setError("Failed to load organisers");
+      });
+  }, [token, user?.role]);
 
   const updateField = (field: string, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -228,6 +254,22 @@ export default function EditEventPage() {
     }
   };
 
+  const handleAssignOrganizer = async () => {
+    if (!token || !eventId || !selectedOrganizerId || assigningOrganizer) return;
+    setAssigningOrganizer(true);
+    setError(null);
+    try {
+      const client = createApiClient(token);
+      await client.assignEventOrganizer(eventId, selectedOrganizerId);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to assign event organiser",
+      );
+    } finally {
+      setAssigningOrganizer(false);
+    }
+  };
+
   const imageUrl = form.eventImage
     ? form.eventImage.startsWith("placeholder-")
       ? null
@@ -287,6 +329,35 @@ export default function EditEventPage() {
 
         {/* Event Details */}
         <Section title="Event Details" icon={<Calendar className="h-5 w-5" />}>
+          {user?.role === "admin" && (
+            <div className="mb-5 rounded-xl border border-border bg-surface/40 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-cream/60">
+                Event organiser
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <select
+                  value={selectedOrganizerId}
+                  onChange={(event) => setSelectedOrganizerId(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none focus:border-gold/50 sm:max-w-sm"
+                >
+                  <option value="">Select organiser</option>
+                  {organizers.map((organizer) => (
+                    <option key={organizer.id} value={organizer.id}>
+                      {organizer.name} ({organizer.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAssignOrganizer}
+                  disabled={!selectedOrganizerId || assigningOrganizer}
+                  className="rounded-lg border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold transition hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {assigningOrganizer ? "Saving..." : "Assign organiser"}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="grid gap-5 md:grid-cols-2">
             <InputField
               label="Event Name"

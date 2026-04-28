@@ -6,7 +6,10 @@ export interface IResaleListing {
   eventId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
   askingPrice: number;
+  originalTicketBatchName: string;
   originalPurchasePrice: number;
+  targetTicketBatchName: string;
+  reallocationType: "same_batch" | "upgraded_batch" | "sold_out_reallocated";
   status: "active" | "sold" | "cancelled" | "expired";
   buyerId?: mongoose.Types.ObjectId;
   resaleOrderId?: mongoose.Types.ObjectId;
@@ -25,7 +28,15 @@ const ResaleListingSchema = new Schema<IResaleListing>(
     eventId: { type: Schema.Types.ObjectId, ref: "Event", required: true, index: true },
     sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     askingPrice: { type: Number, required: true, min: 0 },
+    originalTicketBatchName: { type: String, required: true, trim: true },
     originalPurchasePrice: { type: Number, required: true, min: 0 },
+    targetTicketBatchName: { type: String, required: true, trim: true },
+    reallocationType: {
+      type: String,
+      enum: ["same_batch", "upgraded_batch", "sold_out_reallocated"],
+      required: true,
+      index: true,
+    },
     status: {
       type: String,
       enum: ["active", "sold", "cancelled", "expired"],
