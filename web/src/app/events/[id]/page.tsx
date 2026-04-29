@@ -325,7 +325,6 @@ export default function EventDetailPage() {
                     </button>
                   )}
               </div>
-
             </div>
           </div>
 
@@ -357,8 +356,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
         const resaleAvailable =
           resaleMap?.get(batch.name) ?? batch.resaleAvailable ?? 0;
         const totalAvailable =
-          batch.totalAvailableForPurchase ??
-          primaryRemaining + resaleAvailable;
+          batch.totalAvailableForPurchase ?? primaryRemaining + resaleAvailable;
         return totalAvailable > 0;
       });
       return firstAvailable ?? batches[0];
@@ -613,7 +611,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
                     {batch.name}
                   </span>
                   <span className="text-xs text-cream/40">
-                    {soldOut ? "Sold out" : `${batchTotalAvailable} left`}
+                    {soldOut ?? "Sold out"}
                   </span>
                 </div>
 
@@ -684,9 +682,7 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
             <button
               type="button"
               onClick={() =>
-                setQuantity((q) =>
-                  Math.min(selectedBatchTotalAvailable, q + 1),
-                )
+                setQuantity((q) => Math.min(selectedBatchTotalAvailable, q + 1))
               }
               disabled={selectedBatchTotalAvailable <= 0}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-cream transition hover:bg-border disabled:opacity-50"
@@ -897,9 +893,14 @@ function formatBatchCutoff(cutoff?: string | null) {
   });
 }
 
-function resaleAccessLabel(listing: ResaleListingResponse, event: EventResponse) {
+function resaleAccessLabel(
+  listing: ResaleListingResponse,
+  event: EventResponse,
+) {
   const originalBatchName =
-    listing.originalTicketBatchName || listing.ticketBatchName || "General Admission";
+    listing.originalTicketBatchName ||
+    listing.ticketBatchName ||
+    "General Admission";
   const targetBatchName = listing.targetTicketBatchName || originalBatchName;
   const originalPrice = Number(
     Number.isFinite(listing.originalPurchasePrice)
@@ -1064,7 +1065,9 @@ function ResaleListingsSection({ event }: { event: EventResponse }) {
             .reduce((map, listing) => {
               const key = [
                 listing.reallocationType,
-                listing.originalTicketBatchName || listing.ticketBatchName || "General Admission",
+                listing.originalTicketBatchName ||
+                  listing.ticketBatchName ||
+                  "General Admission",
                 listing.targetTicketBatchName ||
                   listing.originalTicketBatchName ||
                   listing.ticketBatchName ||
@@ -1144,9 +1147,7 @@ function ResaleGroupAccordion({
               Verified seller
             </span>
           </div>
-          <p className="text-xs text-cream/70">
-            {accessLabel.detail}
-          </p>
+          <p className="text-xs text-cream/70">{accessLabel.detail}</p>
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-3 sm:text-right">
           <div className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-1.5 text-right transition-colors hover:bg-gold/15 sm:px-4 sm:py-2">
