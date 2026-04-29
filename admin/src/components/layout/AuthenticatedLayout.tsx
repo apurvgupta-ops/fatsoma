@@ -24,7 +24,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       }
       if (
         user.role === "organizer" &&
-        ["/users", "/staff", "/payments", "/panel"].some((prefix) =>
+        ["/users", "/staff", "/panel"].some((prefix) =>
           pathname.startsWith(prefix),
         )
       ) {

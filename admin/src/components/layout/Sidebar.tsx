@@ -24,7 +24,7 @@ export default function Sidebar() {
       : [
           { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
           { name: "Events", href: "/events", icon: Calendar },
-          ...(user?.role === "admin"
+          ...(user?.role === "admin" || user?.role === "organizer"
             ? [{ name: "Payments", href: "/payments", icon: CreditCard }]
             : []),
           // { name: "Scanner", href: "/scanner", icon: QrCode },
@@ -47,7 +47,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-3 border-b border-border px-6 py-5">
           <LogoIcon className="h-10 w-auto text-gold" />
           <div>
-            <h2 className="text-xl font-serif italic tracking-[0.1em] text-cream">
+            <h2 className="text-xl font-serif italic tracking-widest text-cream">
               On The List
             </h2>
             <p className="text-xs text-cream/60">Admin Panel</p>

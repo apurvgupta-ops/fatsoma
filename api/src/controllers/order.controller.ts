@@ -10,7 +10,7 @@ export async function list(req: Request, res: Response) {
     type: type as string | undefined,
     eventId: eventId as string | undefined,
     search: search as string | undefined,
-  });
+  }, req.user!.userId, req.user!.role);
 
   sendSuccess(res, orders, "Orders retrieved");
 }
@@ -20,7 +20,12 @@ export async function myOrders(req: Request, res: Response) {
   sendSuccess(res, orders, "Orders retrieved");
 }
 
-export async function stats(_req: Request, res: Response) {
-  const data = await orderService.getOrderStats();
+export async function stats(req: Request, res: Response) {
+  const { eventId } = req.query;
+  const data = await orderService.getOrderStats(
+    req.user!.userId,
+    req.user!.role,
+    eventId as string | undefined,
+  );
   sendSuccess(res, data, "Order stats retrieved");
 }

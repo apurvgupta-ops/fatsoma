@@ -189,7 +189,28 @@ export async function createCheckoutSession(input: CreateSessionInput) {
       return sum + unitAmount * qty;
     }, 0) * 100,
   ) / 100;
-  const applicationFeeAmount = Math.round(fee * quantity * 100);
+  const totalChargePence = Math.round(totalAmount * 100);
+  const resaleOrganiserRevenue = Math.round(
+    resaleListings.reduce(
+      (sum, listing: any) =>
+        sum +
+        Math.max(
+          Number(listing.organiserRevenue ?? 0),
+          Number(listing.askingPrice || 0) -
+            Number(listing.originalPurchasePrice || 0),
+          0,
+        ),
+      0,
+    ) * 100,
+  ) / 100;
+  const primaryOrganiserRevenue = Math.round(basePrice * primaryQuantity * 100) / 100;
+  const organiserTransferAmount = Math.round(
+    (primaryOrganiserRevenue + resaleOrganiserRevenue) * 100,
+  );
+  const platformApplicationFeePence = Math.max(
+    0,
+    totalChargePence - organiserTransferAmount,
+  );
 
   let session: Stripe.Checkout.Session;
   try {
@@ -219,10 +240,8 @@ export async function createCheckoutSession(input: CreateSessionInput) {
       ...(destinationAccountId
         ? {
             payment_intent_data: {
-              application_fee_amount: applicationFeeAmount,
-              transfer_data: {
-                destination: destinationAccountId,
-              },
+              application_fee_amount: platformApplicationFeePence,
+              transfer_data: { destination: destinationAccountId },
             },
           }
         : {}),
@@ -248,6 +267,9 @@ export async function createCheckoutSession(input: CreateSessionInput) {
         quantity: String(quantity),
         primaryQuantity: String(primaryQuantity),
         resaleQuantity: String(resaleQuantity),
+        organiserTransferAmount: String(organiserTransferAmount / 100),
+        primaryOrganiserRevenue: String(primaryOrganiserRevenue),
+        resaleOrganiserRevenue: String(resaleOrganiserRevenue),
       },
     });
     throw err;
@@ -267,6 +289,9 @@ export async function createCheckoutSession(input: CreateSessionInput) {
       quantity: String(quantity),
       primaryQuantity: String(primaryQuantity),
       resaleQuantity: String(resaleQuantity),
+      organiserTransferAmount: String(organiserTransferAmount / 100),
+      primaryOrganiserRevenue: String(primaryOrganiserRevenue),
+      resaleOrganiserRevenue: String(resaleOrganiserRevenue),
     },
   });
 
@@ -368,7 +393,25 @@ export async function createResaleCheckoutSession(
   const unitTotal = firstListing.askingPrice + fee;
   const quantity = listings.length;
   const totalAmount = Math.round(unitTotal * quantity * 100) / 100;
-  const applicationFeeAmount = Math.round(fee * quantity * 100);
+  const totalChargePence = Math.round(totalAmount * 100);
+  const organiserRevenueTotal = Math.round(
+    listings.reduce(
+      (sum, listing: any) =>
+        sum +
+        Math.max(
+          Number(listing.organiserRevenue ?? 0),
+          Number(listing.askingPrice || 0) -
+            Number(listing.originalPurchasePrice || 0),
+          0,
+        ),
+      0,
+    ) * 100,
+  ) / 100;
+  const organiserTransferAmount = Math.round(organiserRevenueTotal * 100);
+  const platformApplicationFeePence = Math.max(
+    0,
+    totalChargePence - organiserTransferAmount,
+  );
 
   let session: Stripe.Checkout.Session;
   try {
@@ -404,10 +447,8 @@ export async function createResaleCheckoutSession(
       ...(destinationAccountId
         ? {
             payment_intent_data: {
-              application_fee_amount: applicationFeeAmount,
-              transfer_data: {
-                destination: destinationAccountId,
-              },
+              application_fee_amount: platformApplicationFeePence,
+              transfer_data: { destination: destinationAccountId },
             },
           }
         : {}),
@@ -430,6 +471,8 @@ export async function createResaleCheckoutSession(
       metadata: {
         listingIds: listings.map((listing) => listing._id.toString()).join(","),
         quantity,
+        organiserTransferAmount: String(organiserTransferAmount / 100),
+        organiserRevenueTotal: String(organiserRevenueTotal),
       },
     });
     throw err;
@@ -446,6 +489,8 @@ export async function createResaleCheckoutSession(
     metadata: {
       listingIds: listings.map((listing) => listing._id.toString()).join(","),
       quantity,
+      organiserTransferAmount: String(organiserTransferAmount / 100),
+      organiserRevenueTotal: String(organiserRevenueTotal),
     },
   });
 

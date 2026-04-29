@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { OrderResponse, OrderStats } from "@/lib/api-client";
+import type { EventResponse } from "@/lib/shared";
 import {
   CreditCard,
   Search,
@@ -54,9 +55,11 @@ export default function PaymentsPage() {
   const { token } = useAuth();
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
+  const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,7 +74,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, typeFilter]);
+  }, [statusFilter, typeFilter, eventFilter]);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -82,19 +85,25 @@ export default function PaymentsPage() {
         client.getOrders({
           status: statusFilter !== "all" ? statusFilter : undefined,
           type: typeFilter !== "all" ? typeFilter : undefined,
+          eventId: eventFilter !== "all" ? eventFilter : undefined,
           search: debouncedSearch || undefined,
         }),
-        client.getOrderStats(),
+        client.getOrderStats({
+          eventId: eventFilter !== "all" ? eventFilter : undefined,
+        }),
       ]);
+
+      const eventsRes = await client.getEvents();
 
       if (ordersRes.ok && ordersRes.data) setOrders(ordersRes.data);
       if (statsRes.ok && statsRes.data) setStats(statsRes.data);
+      if (eventsRes.ok && eventsRes.data) setEvents(eventsRes.data);
     } catch {
       // keep existing data on error
     } finally {
       setLoading(false);
     }
-  }, [token, statusFilter, typeFilter, debouncedSearch]);
+  }, [token, statusFilter, typeFilter, eventFilter, debouncedSearch]);
 
   useEffect(() => {
     setLoading(true);
@@ -217,6 +226,21 @@ export default function PaymentsPage() {
 
             <div className="mx-1 w-px bg-border" />
 
+            <select
+              value={eventFilter}
+              onChange={(e) => setEventFilter(e.target.value)}
+              className="rounded-lg border border-border bg-surface/40 px-3 py-1.5 text-xs font-medium text-cream/80 outline-none transition hover:bg-surface/60"
+            >
+              <option value="all">All Events</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.eventName}
+                </option>
+              ))}
+            </select>
+
+            <div className="mx-1 w-px bg-border" />
+
             {/* Status filter */}
             {["all", "paid", "pending", "failed", "expired"].map((s) => (
               <button
@@ -249,7 +273,8 @@ export default function PaymentsPage() {
               <p className="mt-2 text-sm text-cream/60">
                 {debouncedSearch ||
                 statusFilter !== "all" ||
-                typeFilter !== "all"
+                typeFilter !== "all" ||
+                eventFilter !== "all"
                   ? "Try adjusting your filters or search query."
                   : "Payments will appear here once users purchase tickets."}
               </p>

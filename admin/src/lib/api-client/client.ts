@@ -424,8 +424,13 @@ export class FatsomaClient {
     return this.request(`/api/orders${query ? `?${query}` : ""}`);
   }
 
-  async getOrderStats(): Promise<ApiResponse<OrderStats>> {
-    return this.request("/api/orders/stats");
+  async getOrderStats(params?: {
+    eventId?: string;
+  }): Promise<ApiResponse<OrderStats>> {
+    const qs = new URLSearchParams();
+    if (params?.eventId) qs.set("eventId", params.eventId);
+    const query = qs.toString();
+    return this.request(`/api/orders/stats${query ? `?${query}` : ""}`);
   }
 
   // ── Upload ────────────────────────────────────────────
