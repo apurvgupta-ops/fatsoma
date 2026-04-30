@@ -475,32 +475,35 @@ export default function MyTicketsPage() {
                       group={group}
                       onListManyForResale={(ticketsToList, quantityToList) => {
                         // #region agent log
-                        fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "X-Debug-Session-Id": "1efd49",
-                          },
-                          body: JSON.stringify({
-                            sessionId: "1efd49",
-                            runId: "resale-modal-pricing-debug",
-                            hypothesisId: "H3",
-                            location:
-                              "web/src/app/tickets/page.tsx:onListManyForResale(grouped)",
-                            message: "Grouped resale modal requested",
-                            data: {
-                              quantityToList,
-                              ticketsToListCount: ticketsToList.length,
-                              representativePurchasePrice:
-                                group.representative.purchasePrice,
-                              representativeCurrentBatchPrice:
-                                group.representative.currentBatchPrice,
-                              representativeBatch:
-                                group.representative.ticketBatchName,
+                        fetch(
+                          "http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              "X-Debug-Session-Id": "1efd49",
                             },
-                            timestamp: Date.now(),
-                          }),
-                        }).catch(() => {});
+                            body: JSON.stringify({
+                              sessionId: "1efd49",
+                              runId: "resale-modal-pricing-debug",
+                              hypothesisId: "H3",
+                              location:
+                                "web/src/app/tickets/page.tsx:onListManyForResale(grouped)",
+                              message: "Grouped resale modal requested",
+                              data: {
+                                quantityToList,
+                                ticketsToListCount: ticketsToList.length,
+                                representativePurchasePrice:
+                                  group.representative.purchasePrice,
+                                representativeCurrentBatchPrice:
+                                  group.representative.currentBatchPrice,
+                                representativeBatch:
+                                  group.representative.ticketBatchName,
+                              },
+                              timestamp: Date.now(),
+                            }),
+                          },
+                        ).catch(() => {});
                         // #endregion
                         setResaleModal({
                           representative: group.representative,
@@ -617,7 +620,7 @@ export default function MyTicketsPage() {
           <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="font-serif text-xl font-semibold text-cream">
-                Pass it <span className="text-gold">On The List</span>
+                Pass It <span className="text-gold">On The List</span>
               </h3>
               <button
                 onClick={() => {
@@ -776,7 +779,7 @@ export default function MyTicketsPage() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-void transition-colors hover:bg-gold-light disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Pass it On The List
+                Pass It On The List
               </button>
             </div>
           </div>
@@ -1040,7 +1043,7 @@ function GroupedTicketCard({
             {maxListable > 0 && (
               <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-cream/75">
-                  Pass it{" "}
+                  Pass It{" "}
                   <span className="font-semibold text-gold">On The List</span> (
                   {maxListable} available)
                 </div>
@@ -1078,7 +1081,7 @@ function GroupedTicketCard({
                     }}
                     className="ml-auto rounded-lg border border-gold/35 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold whitespace-nowrap transition-colors hover:bg-gold/20 sm:px-3 sm:text-xs"
                   >
-                    Pass it on The List
+                    Pass It On The List
                   </button>
                 </div>
               </div>
@@ -1142,7 +1145,7 @@ function GroupedTicketCard({
                           }}
                           className="shrink-0 rounded-lg border border-gold/30 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
                         >
-                          Pass it on The List
+                          Pass It On The List
                         </button>
                       )}
                     </div>
@@ -1459,7 +1462,7 @@ function TicketCard({
                   onClick={onListForResale}
                   className="border border-gold/30 text-muted text-sm font-medium px-4 py-2 rounded-lg hover:bg-gold/10 transition-colors"
                 >
-                  Pass it <span className="text-gold">On The List</span>
+                  Pass It <span className="text-gold">On The List</span>
                 </button>
               )}
               {/* {ticket.status === "active" && (

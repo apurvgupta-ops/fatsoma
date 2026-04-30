@@ -1,13 +1,11 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import type { ITicketBatch, ITicketGroup } from "../domain/eventTickets";
+import {
+  ensureTicketGroups,
+  flattenTicketBatchesFromEvent,
+} from "../domain/eventTickets";
 
-export interface ITicketBatch {
-  name: string;
-  quantity: number;
-  basePrice: number;
-  minDiscount: number;
-  maxDiscount: number;
-  entryWindowCutoff?: Date;
-}
+export type { ITicketBatch, ITicketGroup } from "../domain/eventTickets";
 
 export interface IEvent extends Document {
   _id: mongoose.Types.ObjectId;
@@ -26,7 +24,10 @@ export interface IEvent extends Document {
   startTime: string;
   endTime: string;
   totalTickets: number;
-  ticketBatches: ITicketBatch[];
+  /** Nested ticket tiers (e.g. General admission → 11pm, 12am slots). */
+  ticketGroups?: ITicketGroup[];
+  /** @deprecated Legacy flat list; migrated to ticketGroups on save. */
+  ticketBatches?: ITicketBatch[];
   dynamicPricing: boolean;
   bookingFee: number;
   allowResale: boolean;
@@ -67,6 +68,26 @@ const TicketBatchSchema = new Schema<ITicketBatch>(
       max: [100, "Discount cannot exceed 100%"],
     },
     entryWindowCutoff: { type: Date, required: false },
+  },
+  { _id: false },
+);
+
+const TicketGroupSchema = new Schema<ITicketGroup>(
+  {
+    title: {
+      type: String,
+      required: [true, "Ticket group title is required"],
+      trim: true,
+    },
+    sortOrder: { type: Number, default: 0 },
+    batches: {
+      type: [TicketBatchSchema],
+      required: [true, "Each ticket group must contain at least one slot"],
+      validate: {
+        validator: (batches: ITicketBatch[]) => Array.isArray(batches) && batches.length > 0,
+        message: "Each ticket group must contain at least one slot",
+      },
+    },
   },
   { _id: false },
 );
@@ -142,13 +163,14 @@ const EventSchema = new Schema<IEvent>(
       required: [true, "Total tickets is required"],
       min: [0, "Total tickets cannot be negative"],
     },
+    ticketGroups: {
+      type: [TicketGroupSchema],
+      default: undefined,
+    },
     ticketBatches: {
       type: [TicketBatchSchema],
-      required: [true, "At least one ticket batch is required"],
-      validate: {
-        validator: (batches: ITicketBatch[]) => batches.length > 0,
-        message: "At least one ticket batch is required",
-      },
+      required: false,
+      default: undefined,
     },
     dynamicPricing: { type: Boolean, default: true },
     bookingFee: {
@@ -191,25 +213,40 @@ EventSchema.index({ eventCategory: 1, status: 1 });
 EventSchema.index({ createdAt: -1 });
 
 EventSchema.virtual("totalTicketsFromBatches").get(function () {
-  return this.ticketBatches.reduce((sum, batch) => sum + batch.quantity, 0);
+  const flat = flattenTicketBatchesFromEvent(this);
+  return flat.reduce((sum, batch) => sum + batch.quantity, 0);
 });
 
 EventSchema.pre("save", function (next) {
   if (this.isNew && this.eventDate < new Date()) {
     next(new Error("Event date must be in the future"));
+    return;
   }
-  for (const batch of this.ticketBatches) {
+
+  const plain = this.toObject() as IEvent;
+  const groups = ensureTicketGroups(plain);
+  if (groups.length === 0) {
+    next(new Error("At least one ticket group with at least one slot is required"));
+    return;
+  }
+
+  (this as unknown as { ticketGroups: ITicketGroup[] }).ticketGroups = groups;
+  this.set("ticketBatches", undefined);
+
+  for (const batch of flattenTicketBatchesFromEvent({ ticketGroups: groups })) {
     if (batch.minDiscount > batch.maxDiscount) {
       next(
         new Error(
-          `Batch "${batch.name}": minimum discount cannot exceed maximum discount`,
+          `Slot "${batch.name}": minimum discount cannot exceed maximum discount`,
         ),
       );
+      return;
     }
     if (batch.basePrice <= 0) {
       next(
-        new Error(`Batch "${batch.name}": base price must be greater than 0`),
+        new Error(`Slot "${batch.name}": base price must be greater than 0`),
       );
+      return;
     }
   }
   next();

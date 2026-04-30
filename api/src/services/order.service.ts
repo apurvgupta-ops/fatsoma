@@ -269,12 +269,14 @@ export async function getOrderStats(
     await Promise.all([
       Order.countDocuments({
         ...eventMatch,
-        status: { $in: ["paid", "failed", "expired"] },
+        status: {
+          $in: ["paid", "failed", "expired", "settlement_pending"],
+        },
       }),
       Order.countDocuments({ ...eventMatch, status: "paid" }),
       Order.countDocuments({
         ...eventMatch,
-        status: { $in: ["failed", "expired"] },
+        status: { $in: ["failed", "expired", "settlement_pending"] },
       }),
       Order.aggregate([
         { $match: { ...eventMatch, status: "paid" } },

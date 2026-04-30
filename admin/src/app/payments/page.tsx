@@ -49,6 +49,11 @@ const STATUS_CONFIG: Record<
     color: "bg-border/40 text-cream/60 border-border",
     icon: AlertCircle,
   },
+  settlement_pending: {
+    label: "Settlement pending",
+    color: "bg-amber-500/10 text-amber-200 border-amber-500/40",
+    icon: RefreshCw,
+  },
 };
 
 export default function PaymentsPage() {
@@ -162,7 +167,7 @@ export default function PaymentsPage() {
             />
             <StatCard
               icon={<Clock className="h-5 w-5" />}
-              label="Failed / Expired"
+              label="Failed / Expired / Settlement"
               value={stats.pendingOrders.toString()}
               color="text-gold-light"
             />
@@ -242,17 +247,26 @@ export default function PaymentsPage() {
             <div className="mx-1 w-px bg-border" />
 
             {/* Status filter */}
-            {["all", "paid", "pending", "failed", "expired"].map((s) => (
+            {(
+              [
+                { value: "all", label: "All" },
+                { value: "paid", label: "Paid" },
+                { value: "pending", label: "Pending" },
+                { value: "settlement_pending", label: "Settlement" },
+                { value: "failed", label: "Failed" },
+                { value: "expired", label: "Expired" },
+              ] as const
+            ).map(({ value, label }) => (
               <button
-                key={`status-${s}`}
-                onClick={() => setStatusFilter(s)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
-                  statusFilter === s
+                key={`status-${value}`}
+                onClick={() => setStatusFilter(value)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  statusFilter === value
                     ? "bg-gold/20 text-gold border border-gold/40"
                     : "border border-border bg-surface/40 text-cream/60 hover:bg-surface/60 hover:text-cream/90"
                 }`}
               >
-                {s}
+                {label}
               </button>
             ))}
           </div>

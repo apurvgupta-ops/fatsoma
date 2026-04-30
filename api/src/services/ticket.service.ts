@@ -5,6 +5,10 @@ import User from "../models/User";
 import mongoose from "mongoose";
 import { AppError } from "../utils/AppError";
 import type { TicketScanValidationResult } from "../shared";
+import {
+  computeResaleTargetBatchInGroup,
+  flattenTicketBatchesFromEvent,
+} from "../domain/eventTickets";
 
 function toTicketDTO(ticket: any) {
   return {
@@ -36,29 +40,12 @@ function resolveResaleTargetPrice(
   ticketBatchName: string,
   soldByBatch: Map<string, number>,
 ) {
-  const batches = Array.isArray(event?.ticketBatches) ? event.ticketBatches : [];
-  const originalIndex = batches.findIndex((b: any) => b.name === ticketBatchName);
-  if (originalIndex < 0) return 0;
-
-  const remainingByBatch = batches.map((batch: any) =>
-    Math.max(
-      0,
-      Number(batch.quantity || 0) - Number(soldByBatch.get(batch.name) || 0),
-    ),
+  const d = computeResaleTargetBatchInGroup(
+    event ?? {},
+    ticketBatchName,
+    soldByBatch,
   );
-
-  if ((remainingByBatch[originalIndex] || 0) > 0) {
-    return Number(batches[originalIndex]?.basePrice || 0);
-  }
-
-  for (let i = originalIndex + 1; i < batches.length; i += 1) {
-    if ((remainingByBatch[i] || 0) > 0) {
-      return Number(batches[i]?.basePrice || 0);
-    }
-  }
-
-  const fallback = batches[originalIndex + 1] ?? batches[originalIndex];
-  return Number(fallback?.basePrice || 0);
+  return d ? d.targetBasePrice : 0;
 }
 
 function resolveResaleTargetBatch(
@@ -66,41 +53,25 @@ function resolveResaleTargetBatch(
   ticketBatchName: string,
   soldByBatch: Map<string, number>,
 ) {
-  const batches = Array.isArray(event?.ticketBatches) ? event.ticketBatches : [];
-  const originalIndex = batches.findIndex((b: any) => b.name === ticketBatchName);
-  if (originalIndex < 0) return null;
-
-  const remainingByBatch = batches.map((batch: any) =>
-    Math.max(
-      0,
-      Number(batch.quantity || 0) - Number(soldByBatch.get(batch.name) || 0),
-    ),
+  const d = computeResaleTargetBatchInGroup(
+    event ?? {},
+    ticketBatchName,
+    soldByBatch,
   );
+  if (!d) return null;
 
-  if ((remainingByBatch[originalIndex] || 0) > 0) {
+  if (d.reallocationType === "same_batch") {
     return {
-      name: String(batches[originalIndex]?.name || ticketBatchName),
-      price: Number(batches[originalIndex]?.basePrice || 0),
+      name: d.targetTicketBatchName,
+      price: d.targetBasePrice,
       isOriginalBatchSoldOut: false,
-      originalBatchRemaining: remainingByBatch[originalIndex] || 0,
+      originalBatchRemaining: d.originalTierPrimaryRemaining,
     };
   }
 
-  for (let i = originalIndex + 1; i < batches.length; i += 1) {
-    if ((remainingByBatch[i] || 0) > 0) {
-      return {
-        name: String(batches[i]?.name || ticketBatchName),
-        price: Number(batches[i]?.basePrice || 0),
-        isOriginalBatchSoldOut: true,
-        originalBatchRemaining: 0,
-      };
-    }
-  }
-
-  const fallback = batches[originalIndex + 1] ?? batches[originalIndex];
   return {
-    name: String(fallback?.name || ticketBatchName),
-    price: Number(fallback?.basePrice || 0),
+    name: d.targetTicketBatchName,
+    price: d.targetBasePrice,
     isOriginalBatchSoldOut: true,
     originalBatchRemaining: 0,
   };
@@ -119,7 +90,12 @@ async function getSoldCountsByEvent(eventIds: string[]) {
     },
     {
       $group: {
-        _id: { eventId: "$eventId", batch: "$ticketBatchName" },
+        _id: {
+          eventId: "$eventId",
+          batch: {
+            $ifNull: ["$primaryInventoryBatchName", "$ticketBatchName"],
+          },
+        },
         count: { $sum: 1 },
       },
     },
@@ -263,12 +239,12 @@ function parseBundleQr(qrCode: string) {
 
 async function getEntryWindowCutoff(eventId: any, ticketBatchName: string) {
   const event = (await Event.findById(eventId)
-    .select("ticketBatches")
+    .select("ticketGroups ticketBatches")
     .lean()) as any;
 
   if (!event) return { event: null, entryWindowCutoff: null as string | null };
 
-  const batch = event.ticketBatches?.find(
+  const batch = flattenTicketBatchesFromEvent(event).find(
     (b: any) => b.name === ticketBatchName,
   );
   const cutoffDate = batch?.entryWindowCutoff

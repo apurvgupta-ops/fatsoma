@@ -10,6 +10,13 @@ export interface TicketBatch {
   totalAvailableForPurchase?: number;
 }
 
+/** Ticket tier heading (e.g. General admission) with one or more slots inside. */
+export interface TicketGroup {
+  title: string;
+  sortOrder: number;
+  batches: TicketBatch[];
+}
+
 export interface EventBase {
   eventName: string;
   eventDescription: string;
@@ -26,6 +33,8 @@ export interface EventBase {
   startTime: string;
   endTime: string;
   totalTickets: number;
+  ticketGroups: TicketGroup[];
+  /** All slots flattened in tier order (for checkout, resale tiering, and simple UIs). */
   ticketBatches: TicketBatch[];
   dynamicPricing: boolean;
   bookingFee?: number;
@@ -41,8 +50,12 @@ export interface EventResponse extends EventBase {
   updatedAt: string;
 }
 
-export interface CreateEventInput extends EventBase {
+export interface CreateEventInput
+  extends Omit<EventBase, "ticketGroups" | "ticketBatches"> {
   status: "draft" | "published";
+  ticketGroups: TicketGroup[];
+  /** @deprecated Wrapped into a single implicit group server-side. */
+  ticketBatches?: TicketBatch[];
 }
 
 export interface UserResponse {

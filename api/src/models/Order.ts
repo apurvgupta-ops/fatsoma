@@ -16,7 +16,14 @@ export interface IOrder {
   stripePaymentIntentId?: string;
   type: "primary" | "resale";
   resaleListingId?: mongoose.Types.ObjectId;
-  status: "pending" | "paid" | "failed" | "expired" | "refunded" | "partially_refunded";
+  status:
+    | "pending"
+    | "paid"
+    | "settlement_pending"
+    | "failed"
+    | "expired"
+    | "refunded"
+    | "partially_refunded";
   customerEmail?: string;
   customerName?: string;
   createdAt: Date;
@@ -41,7 +48,15 @@ const OrderSchema = new Schema<IOrder>(
     resaleListingId: { type: Schema.Types.ObjectId, ref: "ResaleListing" },
     status: {
       type: String,
-      enum: ["pending", "paid", "failed", "expired", "refunded", "partially_refunded"],
+      enum: [
+        "pending",
+        "paid",
+        "settlement_pending",
+        "failed",
+        "expired",
+        "refunded",
+        "partially_refunded",
+      ],
       default: "pending",
       index: true,
     },

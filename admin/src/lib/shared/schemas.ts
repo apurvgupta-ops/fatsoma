@@ -13,9 +13,15 @@ export const ticketBatchSchema = z
   .object({
     name: z.string().min(1, "Batch name is required").trim(),
     quantity: z.number().min(0, "Quantity cannot be negative"),
-    basePrice: z.number().min(0, "Price cannot be negative"),
-    minDiscount: z.number().min(0).max(100),
-    maxDiscount: z.number().min(0).max(100),
+    basePrice: z.number().gt(0, "Price must be greater than 0"),
+    minDiscount: z
+      .number()
+      .min(0, "Minimum discount cannot be negative")
+      .max(100, "Minimum discount cannot exceed 100"),
+    maxDiscount: z
+      .number()
+      .min(0, "Maximum discount cannot be negative")
+      .max(100, "Maximum discount cannot exceed 100"),
     entryWindowCutoff: optionalDateTimeString,
   })
   .refine((b) => b.minDiscount <= b.maxDiscount, {
@@ -23,31 +29,49 @@ export const ticketBatchSchema = z
     path: ["minDiscount"],
   });
 
-export const createEventSchema = z.object({
-  eventName: z.string().min(1).max(200).trim(),
-  eventDescription: z.string().min(1).max(5000).trim(),
-  eventCategory: z.enum(EVENT_CATEGORIES),
-  eventImage: z.string().min(1),
-  eventBanner: z.string().optional(),
-  venueName: z.string().min(1).trim(),
-  addressLine: z.string().min(1).trim(),
-  city: z.string().min(1).trim(),
-  postcode: z.string().min(1).trim(),
-  country: z.string().min(1).trim(),
-  mapsLink: z.string().optional(),
-  eventDate: z.string().min(1),
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
-  totalTickets: z.number().min(0),
-  ticketBatches: z
+export const ticketGroupSchema = z.object({
+  title: z.string().min(1, "Group title is required").max(200).trim(),
+  sortOrder: z.number().optional(),
+  batches: z
     .array(ticketBatchSchema)
-    .min(1, "At least one ticket batch is required"),
-  dynamicPricing: z.boolean(),
-  bookingFee: z.number().min(0).max(100).optional(),
-  allowResale: z.boolean(),
-  platformCommission: z.number().min(0).max(100),
-  status: z.enum(EVENT_STATUSES),
+    .min(1, "Each group must contain at least one ticket slot"),
 });
+
+export const createEventSchema = z
+  .object({
+    eventName: z.string().min(1).max(200).trim(),
+    eventDescription: z.string().min(1).max(5000).trim(),
+    eventCategory: z.enum(EVENT_CATEGORIES),
+    eventImage: z.string().min(1),
+    eventBanner: z.string().optional(),
+    venueName: z.string().min(1).trim(),
+    addressLine: z.string().min(1).trim(),
+    city: z.string().min(1).trim(),
+    postcode: z.string().min(1).trim(),
+    country: z.string().min(1).trim(),
+    mapsLink: z.string().optional(),
+    eventDate: z.string().min(1),
+    startTime: z.string().min(1),
+    endTime: z.string().min(1),
+    totalTickets: z.number().min(1, "Total tickets must be greater than 0"),
+    ticketGroups: z.array(ticketGroupSchema).optional(),
+    ticketBatches: z.array(ticketBatchSchema).optional(),
+    dynamicPricing: z.boolean(),
+    bookingFee: z.number().min(0).max(100).optional(),
+    allowResale: z.boolean(),
+    platformCommission: z.number().min(0).max(100),
+    status: z.enum(EVENT_STATUSES),
+  })
+  .refine(
+    (d) =>
+      (d.ticketGroups && d.ticketGroups.length > 0) ||
+      (d.ticketBatches && d.ticketBatches.length > 0),
+    {
+      message:
+        "Add at least one ticket group with slots (or legacy flat batches)",
+      path: ["ticketGroups"],
+    },
+  );
 
 export const loginSchema = z.object({
   email: z.string().email("Please provide a valid email"),

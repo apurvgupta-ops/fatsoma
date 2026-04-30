@@ -5,7 +5,13 @@ import User from "../models/User";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import { BOOKING_FEE_PERCENT } from "../shared";
-import type { IEvent } from "../models/Event";
+import {
+  assertValidTicketGroups,
+  ensureTicketGroups,
+  normalizeTicketGroups,
+  ticketGroupsFromLegacyBatches,
+  totalQuantityFromGroups,
+} from "../domain/eventTickets";
 
 function normalizeTicketBatches(batches: any[] = []) {
   return batches.map((batch) => {
@@ -27,27 +33,38 @@ function normalizeTicketBatches(batches: any[] = []) {
   });
 }
 
+function enrichBatchForDto(
+  batch: any,
+  soldMap?: Map<string, number>,
+  resaleMap?: Map<string, number>,
+) {
+  const b = typeof batch.toObject === "function" ? batch.toObject() : { ...batch };
+  const sold = soldMap?.get(b.name) ?? 0;
+  b.remaining = Math.max(0, b.quantity - sold);
+  b.resaleAvailable = resaleMap?.get(b.name) ?? 0;
+  b.totalAvailableForPurchase = b.remaining + b.resaleAvailable;
+  const cutoff = b.entryWindowCutoff ? new Date(b.entryWindowCutoff) : null;
+  b.entryWindowCutoff =
+    cutoff && !Number.isNaN(cutoff.getTime()) ? cutoff.toISOString() : null;
+  return b;
+}
+
 /** Serialize a Mongoose event doc into an API response shape. */
 function toEventDTO(
   event: any,
   soldMap?: Map<string, number>,
   resaleMap?: Map<string, number>,
 ) {
-  const batches = (event.ticketBatches ?? []).map((b: any) => {
-    const batch = typeof b.toObject === "function" ? b.toObject() : { ...b };
-    const sold = soldMap?.get(batch.name) ?? 0;
-    batch.remaining = Math.max(0, batch.quantity - sold);
-    batch.resaleAvailable = resaleMap?.get(batch.name) ?? 0;
-    batch.totalAvailableForPurchase = batch.remaining + batch.resaleAvailable;
-    const cutoff = batch.entryWindowCutoff
-      ? new Date(batch.entryWindowCutoff)
-      : null;
-    batch.entryWindowCutoff =
-      cutoff && !Number.isNaN(cutoff.getTime()) ? cutoff.toISOString() : null;
-    return batch;
-  });
-
-  const totalRemaining = batches.reduce(
+  const groupsPlain = ensureTicketGroups(event);
+  const ticketGroups = groupsPlain.map((g) => ({
+    title: g.title,
+    sortOrder: g.sortOrder,
+    batches: g.batches.map((batch) =>
+      enrichBatchForDto(batch, soldMap, resaleMap),
+    ),
+  }));
+  const ticketBatches = ticketGroups.flatMap((g) => g.batches);
+  const totalRemaining = ticketBatches.reduce(
     (s: number, b: any) => s + b.totalAvailableForPurchase,
     0,
   );
@@ -69,7 +86,8 @@ function toEventDTO(
     startTime: event.startTime,
     endTime: event.endTime,
     totalTickets: totalRemaining,
-    ticketBatches: batches,
+    ticketGroups,
+    ticketBatches,
     dynamicPricing: event.dynamicPricing,
     bookingFee: event.bookingFee,
     allowResale: event.allowResale,
@@ -99,7 +117,12 @@ async function getSoldCountsByEvent(
     },
     {
       $group: {
-        _id: { eventId: "$eventId", batch: "$ticketBatchName" },
+        _id: {
+          eventId: "$eventId",
+          batch: {
+            $ifNull: ["$primaryInventoryBatchName", "$ticketBatchName"],
+          },
+        },
         count: { $sum: 1 },
       },
     },
@@ -252,14 +275,34 @@ export async function createEvent(
     throw AppError.forbidden("Organizer access required");
   }
 
-  const { status, bookingFee: _ignored, ...data } = input;
-  const ticketBatches = normalizeTicketBatches(data.ticketBatches);
+  const {
+    status,
+    bookingFee: _ignored,
+    ticketBatches: legacyBatches,
+    ticketGroups: incomingGroups,
+    ...data
+  } = input;
+
+  let groups = normalizeTicketGroups(incomingGroups);
+  if (groups.length === 0 && Array.isArray(legacyBatches) && legacyBatches.length > 0) {
+    groups = ticketGroupsFromLegacyBatches(normalizeTicketBatches(legacyBatches));
+  }
+  try {
+    assertValidTicketGroups(groups);
+  } catch (e) {
+    throw AppError.badRequest(
+      e instanceof Error ? e.message : "Invalid ticket configuration",
+    );
+  }
+
   if (status === "published") {
     await assertEventOwnerConnectReady({ createdBy: userId });
   }
+  const totalTickets = totalQuantityFromGroups(groups);
   const event = await Event.create({
     ...data,
-    ticketBatches,
+    ticketGroups: groups,
+    totalTickets,
     bookingFee: BOOKING_FEE_PERCENT,
     eventDate: new Date(data.eventDate),
     status,
@@ -285,24 +328,58 @@ export async function updateEvent(
   }
   ensureCanManageEvent(existing, userId, role);
 
-  const { status, bookingFee: _ignored, ...data } = input;
+  const {
+    status,
+    bookingFee: _ignored,
+    ticketBatches: legacyBatches,
+    ticketGroups: incomingGroups,
+    ...rest
+  } = input;
   if (status === "published") {
     await assertEventOwnerConnectReady(existing);
   }
-  const ticketBatches = data.ticketBatches
-    ? normalizeTicketBatches(data.ticketBatches)
-    : undefined;
-  const updated = await Event.findByIdAndUpdate(
-    id,
-    {
-      ...data,
-      ...(ticketBatches ? { ticketBatches } : {}),
-      bookingFee: BOOKING_FEE_PERCENT,
-      eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
-      status,
-    },
-    { new: true, runValidators: true },
-  );
+
+  const updateBody: Record<string, unknown> = {
+    ...rest,
+    bookingFee: BOOKING_FEE_PERCENT,
+    eventDate: input.eventDate ? new Date(input.eventDate) : undefined,
+    status,
+  };
+
+  const isTicketPayloadUpdate =
+    incomingGroups !== undefined || legacyBatches !== undefined;
+
+  if (isTicketPayloadUpdate) {
+    let groups = normalizeTicketGroups(incomingGroups);
+    if (
+      groups.length === 0 &&
+      Array.isArray(legacyBatches) &&
+      legacyBatches.length > 0
+    ) {
+      groups = ticketGroupsFromLegacyBatches(
+        normalizeTicketBatches(legacyBatches),
+      );
+    }
+    try {
+      assertValidTicketGroups(groups);
+    } catch (e) {
+      throw AppError.badRequest(
+        e instanceof Error ? e.message : "Invalid ticket configuration",
+      );
+    }
+    updateBody.ticketGroups = groups;
+    updateBody.totalTickets = totalQuantityFromGroups(groups);
+  }
+
+  const mongoUpdate =
+    isTicketPayloadUpdate
+      ? { ...updateBody, $unset: { ticketBatches: "" } }
+      : updateBody;
+
+  const updated = await Event.findByIdAndUpdate(id, mongoUpdate, {
+    new: true,
+    runValidators: true,
+  });
 
   if (!updated) {
     throw AppError.notFound("Event not found");

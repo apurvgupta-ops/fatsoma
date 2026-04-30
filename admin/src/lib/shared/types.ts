@@ -10,6 +10,12 @@ export interface TicketBatch {
   totalAvailableForPurchase?: number;
 }
 
+export interface TicketGroup {
+  title: string;
+  sortOrder: number;
+  batches: TicketBatch[];
+}
+
 export interface EventBase {
   eventName: string;
   eventDescription: string;
@@ -26,6 +32,7 @@ export interface EventBase {
   startTime: string;
   endTime: string;
   totalTickets: number;
+  ticketGroups: TicketGroup[];
   ticketBatches: TicketBatch[];
   dynamicPricing: boolean;
   bookingFee?: number;
@@ -41,8 +48,11 @@ export interface EventResponse extends EventBase {
   updatedAt: string;
 }
 
-export interface CreateEventInput extends EventBase {
+export interface CreateEventInput
+  extends Omit<EventBase, "ticketGroups" | "ticketBatches"> {
   status: "draft" | "published";
+  ticketGroups: TicketGroup[];
+  ticketBatches?: TicketBatch[];
 }
 
 export interface UserResponse {

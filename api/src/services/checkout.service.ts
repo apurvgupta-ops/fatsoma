@@ -15,8 +15,15 @@ import {
 import { logPayment, logRefund } from "../lib/systemLogger";
 import { createNotification } from "./notification.service";
 import { syncConnectFromStripeAccount } from "./connect.service";
+import { flattenTicketBatchesFromEvent } from "../domain/eventTickets";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 let _stripe: Stripe | null = null;
 
@@ -91,7 +98,9 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   }
   const destinationAccountId = await getEventDestinationAccountId(event);
 
-  const batch = event.ticketBatches.find((b: any) => b.name === batchName);
+  const batch = flattenTicketBatchesFromEvent(event).find(
+    (b: any) => b.name === batchName,
+  );
   if (!batch) {
     throw AppError.badRequest(`Ticket batch "${batchName}" not found`);
   }
@@ -131,8 +140,13 @@ export async function createCheckoutSession(input: CreateSessionInput) {
 
   const soldCount = await Ticket.countDocuments({
     eventId: new mongoose.Types.ObjectId(eventId),
-    ticketBatchName: batchName,
     status: { $ne: "cancelled" },
+    $expr: {
+      $eq: [
+        { $ifNull: ["$primaryInventoryBatchName", "$ticketBatchName"] },
+        batchName,
+      ],
+    },
   });
   const remaining = batch.quantity - soldCount;
   if (remaining < primaryQuantity) {
@@ -544,6 +558,22 @@ function parseListingIds(meta: Record<string, string> | null | undefined) {
     .filter((id) => id.length > 0 && mongoose.Types.ObjectId.isValid(id));
 }
 
+function listingIdsForCheckoutOrder(
+  order: { type?: string; resaleListingId?: unknown },
+  meta: Record<string, string> | null | undefined,
+) {
+  const parsed = parseListingIds(meta);
+  if (parsed.length) return parsed;
+  if (order.type === "resale" && order.resaleListingId) {
+    return [String(order.resaleListingId)];
+  }
+  return [] as string[];
+}
+
+function isSettlementRetryable(err: unknown) {
+  return err instanceof AppError && err.statusCode === 503;
+}
+
 function parsePrimaryQuantity(
   meta: Record<string, string> | null | undefined,
   fallbackQuantity: number,
@@ -586,13 +616,24 @@ export async function confirmSession(sessionId: string) {
 
   if (session.payment_status === "paid") {
     const order = await findOrCreateOrderFromSession(session, "paid");
-    if (order.status !== "paid") {
+
+    const listingIdsForTransfer = listingIdsForCheckoutOrder(
+      order,
+      session.metadata as Record<string, string> | undefined,
+    );
+    const needsResaleSettlement = listingIdsForTransfer.length > 0;
+
+    order.stripePaymentIntentId =
+      (session.payment_intent as string) || order.stripePaymentIntentId;
+    order.customerEmail =
+      session.customer_details?.email ?? order.customerEmail;
+    order.customerName =
+      session.customer_details?.name ?? order.customerName;
+
+    if (!needsResaleSettlement && order.status !== "paid") {
       order.status = "paid";
-      order.stripePaymentIntentId = session.payment_intent as string;
-      order.customerEmail = session.customer_details?.email ?? undefined;
-      order.customerName = session.customer_details?.name ?? undefined;
-      await order.save();
     }
+    await order.save();
 
     logPayment({
       event: "payment_confirmed",
@@ -606,67 +647,82 @@ export async function confirmSession(sessionId: string) {
       metadata: { orderType: order.type },
     });
 
-    if (order.type === "primary") {
-      const listingIds = parseListingIds(session.metadata);
-      const primaryQuantity = parsePrimaryQuantity(session.metadata, order.quantity);
+    try {
+      if (order.type === "primary") {
+        const primaryQuantity = parsePrimaryQuantity(
+          session.metadata,
+          order.quantity,
+        );
 
-      if (listingIds.length > 0) {
-        await completeResaleTransfer(order, listingIds);
-      }
-      await generateTickets(order, primaryQuantity);
-      if (order.userId) {
-        await createNotification({
-          userId: order.userId.toString(),
-          type: "order_paid",
-          title: "Booking Confirmed",
-          body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
-          metadata: {
-            orderId: order._id.toString(),
-            eventId: order.eventId?.toString?.() ?? String(order.eventId),
-            type: order.type,
+        if (needsResaleSettlement) {
+          await completeResaleTransfer(order, listingIdsForTransfer);
+        }
+        await generateTickets(order, primaryQuantity);
+        if (order.userId) {
+          await createNotification({
+            userId: order.userId.toString(),
+            type: "order_paid",
+            title: "Booking Confirmed",
+            body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
+            metadata: {
+              orderId: order._id.toString(),
+              eventId: order.eventId?.toString?.() ?? String(order.eventId),
+              type: order.type,
+              totalAmount: order.totalAmount,
+            },
+            dedupeKey: `order_paid:${order._id.toString()}`,
+          });
+        }
+        if (order.customerEmail) {
+          sendBookingConfirmationEmail({
+            email: order.customerEmail,
+            customerName: order.customerName || "",
+            eventName: order.eventName,
+            ticketBatchName: order.ticketBatchName,
+            quantity: order.quantity,
             totalAmount: order.totalAmount,
-          },
-          dedupeKey: `order_paid:${order._id.toString()}`,
-        });
-      }
-      if (order.customerEmail) {
-        sendBookingConfirmationEmail({
-          email: order.customerEmail,
-          customerName: order.customerName || "",
-          eventName: order.eventName,
-          ticketBatchName: order.ticketBatchName,
-          quantity: order.quantity,
-          totalAmount: order.totalAmount,
-          orderId: order._id.toString(),
-        });
-      }
-    } else if (order.type === "resale") {
-      await completeResaleTransfer(order, parseListingIds(session.metadata));
-      if (order.userId) {
-        await createNotification({
-          userId: order.userId.toString(),
-          type: "resale_bought",
-          title: "Resale Ticket Purchased",
-          body: `Your resale ticket for ${order.eventName} is confirmed.`,
-          metadata: {
             orderId: order._id.toString(),
-            eventId: order.eventId?.toString?.() ?? String(order.eventId),
-            type: order.type,
+          });
+        }
+      } else if (order.type === "resale") {
+        await completeResaleTransfer(order, listingIdsForTransfer);
+        if (order.userId) {
+          await createNotification({
+            userId: order.userId.toString(),
+            type: "resale_bought",
+            title: "Resale Ticket Purchased",
+            body: `Your resale ticket for ${order.eventName} is confirmed.`,
+            metadata: {
+              orderId: order._id.toString(),
+              eventId: order.eventId?.toString?.() ?? String(order.eventId),
+              type: order.type,
+              totalAmount: order.totalAmount,
+            },
+            dedupeKey: `resale_bought:${order._id.toString()}`,
+          });
+        }
+        if (order.customerEmail) {
+          sendResaleBookingEmail({
+            email: order.customerEmail,
+            customerName: order.customerName || "",
+            eventName: order.eventName,
+            ticketBatchName: order.ticketBatchName,
             totalAmount: order.totalAmount,
-          },
-          dedupeKey: `resale_bought:${order._id.toString()}`,
-        });
+            orderId: order._id.toString(),
+          });
+        }
       }
-      if (order.customerEmail) {
-        sendResaleBookingEmail({
-          email: order.customerEmail,
-          customerName: order.customerName || "",
-          eventName: order.eventName,
-          ticketBatchName: order.ticketBatchName,
-          totalAmount: order.totalAmount,
-          orderId: order._id.toString(),
-        });
+    } catch (err) {
+      if (needsResaleSettlement && isSettlementRetryable(err)) {
+        order.status = "settlement_pending";
+        await order.save();
       }
+      throw err;
+    }
+
+    if (order.status === "settlement_pending") {
+      order.status = "paid";
+      await order.save();
     }
 
     return formatOrder(order.toObject());
@@ -748,6 +804,7 @@ async function generateTickets(order: any, quantityOverride?: number) {
       userId: order.userId,
       eventName: order.eventName,
       ticketBatchName: order.ticketBatchName,
+      primaryInventoryBatchName: order.ticketBatchName,
       purchasePrice: order.basePrice,
       originalPrice: order.basePrice,
       stripePaymentIntentId: order.stripePaymentIntentId || undefined,
@@ -756,6 +813,164 @@ async function generateTickets(order: any, quantityOverride?: number) {
     });
   }
   await Ticket.insertMany(tickets);
+}
+
+type SellerRefundOutcome = "succeeded" | "pending" | "failed" | "skipped";
+
+type SellerRefundResult = {
+  outcome: SellerRefundOutcome;
+  refundId?: string;
+  message?: string;
+};
+
+type StripeRefund = Awaited<ReturnType<Stripe["refunds"]["retrieve"]>>;
+
+async function pollRefundUntilTerminal(
+  stripe: Stripe,
+  refundId: string,
+  maxAttempts = 15,
+  delayMs = 400,
+): Promise<StripeRefund> {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const refund = await stripe.refunds.retrieve(refundId);
+    if (
+      refund.status === "succeeded" ||
+      refund.status === "failed" ||
+      refund.status === "canceled"
+    ) {
+      return refund;
+    }
+    await sleep(delayMs);
+  }
+  return stripe.refunds.retrieve(refundId);
+}
+
+/**
+ * Refunds the original buyer (seller) on their purchase PI. Must succeed before
+ * transferring the ticket to the new buyer when sellerPayout > 0.
+ */
+async function resolveSellerRefundForListing(
+  listing: any,
+  paymentIntentId: string | undefined,
+  amountGbp: number,
+): Promise<SellerRefundResult> {
+  const listingId = listing._id.toString();
+  const stripe = getStripe();
+
+  if (amountGbp <= 0) {
+    return { outcome: "skipped" };
+  }
+
+  if (!paymentIntentId) {
+    listing.sellerRefundStatus = "failed";
+    logRefund({
+      event: "seller_refund_skipped",
+      outcome: "skipped",
+      listingId,
+      amountGbp: amountGbp,
+      reason: "No stripePaymentIntentId on original ticket",
+    });
+    return {
+      outcome: "failed",
+      message: "Original ticket has no payment reference for refund",
+    };
+  }
+
+  if (listing.sellerRefundId && listing.sellerRefundStatus === "succeeded") {
+    return { outcome: "succeeded", refundId: listing.sellerRefundId };
+  }
+
+  if (listing.sellerRefundId && listing.sellerRefundStatus === "pending") {
+    const terminal = await pollRefundUntilTerminal(stripe, listing.sellerRefundId);
+    if (terminal.status === "succeeded") {
+      listing.sellerRefundStatus = "succeeded";
+      return { outcome: "succeeded", refundId: listing.sellerRefundId };
+    }
+    listing.sellerRefundStatus =
+      terminal.status === "pending" ? "pending" : "failed";
+    return {
+      outcome: terminal.status === "pending" ? "pending" : "failed",
+      refundId: listing.sellerRefundId,
+      message: `Refund status: ${terminal.status}`,
+    };
+  }
+
+  try {
+    const refund = await stripe.refunds.create(
+      {
+        payment_intent: paymentIntentId,
+        amount: Math.round(amountGbp * 100),
+        reason: "requested_by_customer",
+        metadata: {
+          type: "resale_seller_payout",
+          listingId,
+          sellerId: listing.sellerId.toString(),
+        },
+      },
+      { idempotencyKey: `resale_seller_refund_${listingId}` },
+    );
+
+    listing.sellerRefundId = refund.id;
+    let final = refund;
+    if (refund.status === "pending") {
+      final = await pollRefundUntilTerminal(stripe, refund.id);
+    }
+
+    listing.sellerRefundStatus =
+      final.status === "succeeded"
+        ? "succeeded"
+        : final.status === "pending"
+          ? "pending"
+          : "failed";
+
+    logRefund({
+      event: "seller_refund_created",
+      outcome:
+        final.status === "succeeded"
+          ? "success"
+          : final.status === "pending"
+            ? "pending"
+            : "failure",
+      refundId: refund.id,
+      listingId,
+      paymentIntentId,
+      amountGbp: amountGbp,
+      ...(final.status ? { stripeStatus: final.status } : {}),
+    });
+
+    if (final.status === "succeeded") {
+      return { outcome: "succeeded", refundId: refund.id };
+    }
+    if (final.status === "pending") {
+      return {
+        outcome: "pending",
+        refundId: refund.id,
+        message: "Seller refund still pending after wait window",
+      };
+    }
+    return {
+      outcome: "failed",
+      refundId: refund.id,
+      message: `Refund status: ${final.status}`,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code?: string }).code)
+        : undefined;
+    listing.sellerRefundStatus = "failed";
+    logRefund({
+      event: "seller_refund_failed",
+      outcome: "failure",
+      listingId,
+      paymentIntentId,
+      amountGbp: amountGbp,
+      errorMessage: msg,
+      errorCode: code,
+    });
+    return { outcome: "failed", message: msg };
+  }
 }
 
 async function completeResaleTransfer(order: any, listingIds: string[] = []) {
@@ -767,6 +982,16 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
 
   if (!ids.length) return;
 
+  type Prepared = {
+    listing: any;
+    ticket: any;
+    sellerPayout: number;
+    organiserRevenue: number;
+    sellerPaymentIntentId: string | undefined;
+  };
+
+  const prepared: Prepared[] = [];
+
   for (const listingId of ids) {
     const listing = await ResaleListing.findById(listingId);
     if (!listing || listing.status === "sold") continue;
@@ -774,10 +999,57 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     const ticket = await Ticket.findById(listing.ticketId);
     if (!ticket) continue;
 
-    const sellerPayout = Math.round(Number(listing.originalPurchasePrice) * 100) / 100;
-    const organiserRevenue = Math.round(
-      Math.max(Number(listing.askingPrice) - Number(listing.originalPurchasePrice), 0) * 100,
-    ) / 100;
+    const sellerPayout =
+      Math.round(Number(listing.originalPurchasePrice) * 100) / 100;
+    const organiserRevenue =
+      Math.round(
+        Math.max(
+          Number(listing.askingPrice) - Number(listing.originalPurchasePrice),
+          0,
+        ) * 100,
+      ) / 100;
+
+    prepared.push({
+      listing,
+      ticket,
+      sellerPayout,
+      organiserRevenue,
+      sellerPaymentIntentId: ticket.stripePaymentIntentId,
+    });
+  }
+
+  if (!prepared.length) return;
+
+  for (const item of prepared) {
+    const refundResult = await resolveSellerRefundForListing(
+      item.listing,
+      item.sellerPaymentIntentId,
+      item.sellerPayout,
+    );
+
+    if (item.sellerPayout > 0 && refundResult.outcome !== "succeeded") {
+      logPayment({
+        event: "resale_settlement_blocked",
+        outcome: "failure",
+        type: "resale",
+        orderId: order._id.toString(),
+        metadata: {
+          listingId: item.listing._id.toString(),
+          refundOutcome: refundResult.outcome,
+          message: refundResult.message ?? "",
+        },
+      });
+      throw AppError.serviceUnavailable(
+        refundResult.outcome === "pending"
+          ? "Seller refund is still processing. Settlement will retry automatically."
+          : refundResult.message ||
+              "Could not refund the original buyer; resale not finalized.",
+      );
+    }
+  }
+
+  for (const item of prepared) {
+    const { listing, ticket, sellerPayout, organiserRevenue } = item;
 
     listing.status = "sold";
     listing.buyerId = order.userId;
@@ -786,11 +1058,16 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     listing.sellerPayout = sellerPayout;
     listing.organiserRevenue = organiserRevenue;
 
-    const sellerPaymentIntentId = ticket.stripePaymentIntentId;
+    const sellerPaymentIntentId = item.sellerPaymentIntentId;
 
     const previousTicketId = ticket._id.toString();
     const previousQrCode = ticket.qrCode;
     const previousBatch = ticket.ticketBatchName;
+
+    if (!ticket.primaryInventoryBatchName) {
+      ticket.primaryInventoryBatchName =
+        listing.originalTicketBatchName || ticket.ticketBatchName;
+    }
 
     ticket.userId = order.userId;
     ticket.ticketBatchName = listing.targetTicketBatchName;
@@ -798,8 +1075,6 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     ticket.status = "active";
     ticket.qrCode = crypto.randomUUID();
     await ticket.save();
-
-    await issueSellerRefund(listing, sellerPaymentIntentId, sellerPayout);
     await listing.save();
 
     logPayment({
@@ -834,81 +1109,6 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     notifySellerOfSale(listing, order).catch((err) =>
       console.error("[Resale] Failed to notify seller:", err),
     );
-  }
-}
-
-/**
- * Issues a partial refund to the seller's original payment method.
- * Falls back gracefully if the original payment intent is unavailable.
- */
-async function issueSellerRefund(
-  listing: any,
-  paymentIntentId: string | undefined,
-  amount: number,
-) {
-  const listingId = listing._id.toString();
-
-  if (!paymentIntentId || amount <= 0) {
-    listing.sellerRefundStatus = "failed";
-    logRefund({
-      event: "seller_refund_skipped",
-      outcome: "skipped",
-      listingId,
-      ...(paymentIntentId ? { paymentIntentId } : {}),
-      amountGbp: amount,
-      reason: !paymentIntentId
-        ? "No stripePaymentIntentId on original ticket"
-        : "Refund amount is zero or negative",
-    });
-    return;
-  }
-
-  try {
-    const stripe = getStripe();
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: Math.round(amount * 100),
-      reason: "requested_by_customer",
-      metadata: {
-        type: "resale_seller_payout",
-        listingId,
-        sellerId: listing.sellerId.toString(),
-      },
-    });
-
-    listing.sellerRefundId = refund.id;
-    listing.sellerRefundStatus =
-      refund.status === "succeeded" ? "succeeded" : "pending";
-    logRefund({
-      event: "seller_refund_created",
-      outcome:
-        refund.status === "succeeded"
-          ? "success"
-          : refund.status === "pending"
-            ? "pending"
-            : "failure",
-      refundId: refund.id,
-      listingId,
-      paymentIntentId,
-      amountGbp: amount,
-      ...(refund.status ? { stripeStatus: refund.status } : {}),
-    });
-  } catch (err: unknown) {
-    listing.sellerRefundStatus = "failed";
-    const msg = err instanceof Error ? err.message : String(err);
-    const code =
-      err && typeof err === "object" && "code" in err
-        ? String((err as { code?: string }).code)
-        : undefined;
-    logRefund({
-      event: "seller_refund_failed",
-      outcome: "failure",
-      listingId,
-      paymentIntentId,
-      amountGbp: amount,
-      errorMessage: msg,
-      errorCode: code,
-    });
   }
 }
 
@@ -1021,13 +1221,23 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
       const order = await findOrCreateOrderFromSession(session, "paid");
 
-      if (order.status !== "paid") {
+      const listingIdsForTransfer = listingIdsForCheckoutOrder(
+        order,
+        session.metadata as Record<string, string> | undefined,
+      );
+      const needsResaleSettlement = listingIdsForTransfer.length > 0;
+
+      order.stripePaymentIntentId =
+        (session.payment_intent as string) || order.stripePaymentIntentId;
+      order.customerEmail =
+        session.customer_details?.email ?? order.customerEmail;
+      order.customerName =
+        session.customer_details?.name ?? order.customerName;
+
+      if (!needsResaleSettlement && order.status !== "paid") {
         order.status = "paid";
-        order.stripePaymentIntentId = session.payment_intent as string;
-        order.customerEmail = session.customer_details?.email ?? undefined;
-        order.customerName = session.customer_details?.name ?? undefined;
-        await order.save();
       }
+      await order.save();
 
       logPayment({
         event: "webhook_checkout_completed",
@@ -1041,70 +1251,82 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
         metadata: { orderType: order.type },
       });
 
-      if (order.type === "primary") {
-        const listingIds = parseListingIds(session.metadata);
-        const primaryQuantity = parsePrimaryQuantity(
-          session.metadata,
-          order.quantity,
-        );
+      try {
+        if (order.type === "primary") {
+          const primaryQuantity = parsePrimaryQuantity(
+            session.metadata,
+            order.quantity,
+          );
 
-        if (listingIds.length > 0) {
-          await completeResaleTransfer(order, listingIds);
-        }
-        await generateTickets(order, primaryQuantity);
-        if (order.userId) {
-          await createNotification({
-            userId: order.userId.toString(),
-            type: "order_paid",
-            title: "Booking Confirmed",
-            body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
-            metadata: {
-              orderId: order._id.toString(),
-              eventId: order.eventId?.toString?.() ?? String(order.eventId),
-              type: order.type,
+          if (needsResaleSettlement) {
+            await completeResaleTransfer(order, listingIdsForTransfer);
+          }
+          await generateTickets(order, primaryQuantity);
+          if (order.userId) {
+            await createNotification({
+              userId: order.userId.toString(),
+              type: "order_paid",
+              title: "Booking Confirmed",
+              body: `${order.quantity} × ${order.ticketBatchName} for ${order.eventName} has been confirmed.`,
+              metadata: {
+                orderId: order._id.toString(),
+                eventId: order.eventId?.toString?.() ?? String(order.eventId),
+                type: order.type,
+                totalAmount: order.totalAmount,
+              },
+              dedupeKey: `order_paid:${order._id.toString()}`,
+            });
+          }
+          if (order.customerEmail) {
+            sendBookingConfirmationEmail({
+              email: order.customerEmail,
+              customerName: order.customerName || "",
+              eventName: order.eventName,
+              ticketBatchName: order.ticketBatchName,
+              quantity: order.quantity,
               totalAmount: order.totalAmount,
-            },
-            dedupeKey: `order_paid:${order._id.toString()}`,
-          });
-        }
-        if (order.customerEmail) {
-          sendBookingConfirmationEmail({
-            email: order.customerEmail,
-            customerName: order.customerName || "",
-            eventName: order.eventName,
-            ticketBatchName: order.ticketBatchName,
-            quantity: order.quantity,
-            totalAmount: order.totalAmount,
-            orderId: order._id.toString(),
-          });
-        }
-      } else if (order.type === "resale") {
-        await completeResaleTransfer(order, parseListingIds(session.metadata));
-        if (order.userId) {
-          await createNotification({
-            userId: order.userId.toString(),
-            type: "resale_bought",
-            title: "Resale Ticket Purchased",
-            body: `Your resale ticket for ${order.eventName} is confirmed.`,
-            metadata: {
               orderId: order._id.toString(),
-              eventId: order.eventId?.toString?.() ?? String(order.eventId),
-              type: order.type,
+            });
+          }
+        } else if (order.type === "resale") {
+          await completeResaleTransfer(order, listingIdsForTransfer);
+          if (order.userId) {
+            await createNotification({
+              userId: order.userId.toString(),
+              type: "resale_bought",
+              title: "Resale Ticket Purchased",
+              body: `Your resale ticket for ${order.eventName} is confirmed.`,
+              metadata: {
+                orderId: order._id.toString(),
+                eventId: order.eventId?.toString?.() ?? String(order.eventId),
+                type: order.type,
+                totalAmount: order.totalAmount,
+              },
+              dedupeKey: `resale_bought:${order._id.toString()}`,
+            });
+          }
+          if (order.customerEmail) {
+            sendResaleBookingEmail({
+              email: order.customerEmail,
+              customerName: order.customerName || "",
+              eventName: order.eventName,
+              ticketBatchName: order.ticketBatchName,
               totalAmount: order.totalAmount,
-            },
-            dedupeKey: `resale_bought:${order._id.toString()}`,
-          });
+              orderId: order._id.toString(),
+            });
+          }
         }
-        if (order.customerEmail) {
-          sendResaleBookingEmail({
-            email: order.customerEmail,
-            customerName: order.customerName || "",
-            eventName: order.eventName,
-            ticketBatchName: order.ticketBatchName,
-            totalAmount: order.totalAmount,
-            orderId: order._id.toString(),
-          });
+      } catch (err) {
+        if (needsResaleSettlement && isSettlementRetryable(err)) {
+          order.status = "settlement_pending";
+          await order.save();
         }
+        throw err;
+      }
+
+      if (order.status === "settlement_pending") {
+        order.status = "paid";
+        await order.save();
       }
       break;
     }

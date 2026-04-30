@@ -407,6 +407,45 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
     return map;
   }, [eventResaleListings, user?.id]);
 
+  const sortedTicketGroups = useMemo(
+    () =>
+      event.ticketGroups?.length
+        ? [...event.ticketGroups].sort((a, b) => a.sortOrder - b.sortOrder)
+        : [{ title: "", sortOrder: 0, batches: event.ticketBatches ?? [] }],
+    [event.ticketGroups, event.ticketBatches],
+  );
+
+  const useTicketGroupAccordion = sortedTicketGroups.length > 1;
+
+  const batchTotalAvailable = useCallback(
+    (batch: TicketBatch) => {
+      const primaryRemaining = batch.remaining ?? batch.quantity;
+      const resaleAvailable =
+        purchasableResaleByBatch.get(batch.name) ?? batch.resaleAvailable ?? 0;
+      return (
+        batch.totalAvailableForPurchase ?? primaryRemaining + resaleAvailable
+      );
+    },
+    [purchasableResaleByBatch],
+  );
+
+  const [openTicketGroupId, setOpenTicketGroupId] = useState("tg-0");
+
+  useEffect(() => {
+    if (!useTicketGroupAccordion) return;
+    setOpenTicketGroupId((prev) => {
+      const prevIdx = Number.parseInt(prev.replace(/^tg-/, ""), 10);
+      const prevGroup = sortedTicketGroups[Number.isNaN(prevIdx) ? 0 : prevIdx];
+      if (prevGroup?.batches.some((b) => b.name === selectedBatch.name)) {
+        return prev;
+      }
+      const idx = sortedTicketGroups.findIndex((g) =>
+        g.batches.some((b) => b.name === selectedBatch.name),
+      );
+      return idx >= 0 ? `tg-${idx}` : prev;
+    });
+  }, [selectedBatch.name, useTicketGroupAccordion, sortedTicketGroups]);
+
   useEffect(() => {
     const currentPrimaryRemaining =
       selectedBatch.remaining ?? selectedBatch.quantity;
@@ -552,113 +591,188 @@ function TicketPurchasePanel({ event }: { event: EventResponse }) {
           </div>
         </div> */}
 
-        <div className="space-y-3 ">
-          {event.ticketBatches.map((batch) => {
-            const batchPrimaryRemaining = batch.remaining ?? batch.quantity;
-            const batchResaleAvailable =
-              purchasableResaleByBatch.get(batch.name) ??
-              batch.resaleAvailable ??
-              0;
-            const batchTotalAvailable =
-              batch.totalAvailableForPurchase ??
-              batchPrimaryRemaining + batchResaleAvailable;
-            const soldOut = batchTotalAvailable <= 0;
-            const primarySoldOut = batchPrimaryRemaining <= 0;
-            const cutoffDate = batch.entryWindowCutoff
-              ? new Date(batch.entryWindowCutoff)
-              : null;
-            const hasValidCutoff =
-              cutoffDate && !Number.isNaN(cutoffDate.getTime());
-            const entryClosed =
-              hasValidCutoff && Date.now() > cutoffDate.getTime();
-            const batchFee =
-              Math.round(batch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100) /
-              100;
-            const isSelected = selectedBatch.name === batch.name;
+        <div className="space-y-2">
+          {sortedTicketGroups.map((group, gi) => {
+            const groupKey = `tg-${gi}`;
+            const isOpen =
+              !useTicketGroupAccordion || openTicketGroupId === groupKey;
+            const groupLabel =
+              group.title?.trim() ||
+              (useTicketGroupAccordion ? `Group ${gi + 1}` : "");
+            const purchasableCount = group.batches.filter(
+              (b) => batchTotalAvailable(b) > 0,
+            ).length;
+
             return (
               <div
-                key={batch.name}
-                role="button"
-                tabIndex={soldOut ? -1 : 0}
-                onClick={() => {
-                  if (!soldOut) {
-                    setSelectedBatch(batch);
-                    if (quantity > batchTotalAvailable) {
-                      setQuantity(Math.max(1, batchTotalAvailable));
-                    }
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (soldOut) return;
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setSelectedBatch(batch);
-                    if (quantity > batchTotalAvailable) {
-                      setQuantity(Math.max(1, batchTotalAvailable));
-                    }
-                  }
-                }}
-                className={`rounded-xl border p-4 transition-colors ${
-                  soldOut
-                    ? "border-border bg-[#222222]/40 opacity-50"
-                    : isSelected
-                      ? "cursor-pointer border-gold/30 bg-[#222222]/60"
-                      : "cursor-pointer border-border hover:border-gold/30"
-                }`}
+                key={`tier-${gi}-${group.title || "default"}`}
+                className="overflow-hidden rounded-xl border border-border bg-surface/40"
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium text-cream">
-                    {batch.name}
-                  </span>
-                  <span className="text-xs text-cream/40">
-                    {soldOut ?? "Sold out"}
-                  </span>
-                </div>
+                {useTicketGroupAccordion ? (
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    id={`${groupKey}-heading`}
+                    onClick={() => setOpenTicketGroupId(groupKey)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/4"
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-gold/70 transition-transform ${
+                        isOpen ? "rotate-180" : "rotate-0"
+                      }`}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gold/80">
+                        {groupLabel}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-cream/45">
+                        {group.batches.length} price tier
+                        {group.batches.length === 1 ? "" : "s"}
+                        {purchasableCount > 0
+                          ? ` · ${purchasableCount} with availability`
+                          : " · sold out"}
+                      </p>
+                    </div>
+                  </button>
+                ) : group.title ? (
+                  <p className="px-4 pb-2 pt-3 text-xs font-semibold uppercase tracking-wider text-gold/80">
+                    {group.title}
+                  </p>
+                ) : null}
 
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-xs text-cream/40">
-                      £{batch.basePrice.toFixed(2)} + £{batchFee.toFixed(2)} fee
-                    </p>
-                    {hasValidCutoff ? (
-                      <p
-                        className={`mt-1 text-[11px] ${
-                          entryClosed ? "text-rose-300/90" : "text-cream/50"
+                <div
+                  role={useTicketGroupAccordion ? "region" : undefined}
+                  aria-labelledby={
+                    useTicketGroupAccordion ? `${groupKey}-heading` : undefined
+                  }
+                  className={
+                    useTicketGroupAccordion
+                      ? isOpen
+                        ? "space-y-3 border-t border-border/60 px-3 pb-3 pt-3"
+                        : "hidden"
+                      : "space-y-3 px-1"
+                  }
+                >
+                  {group.batches.map((batch) => {
+                    const batchPrimaryRemaining =
+                      batch.remaining ?? batch.quantity;
+                    const batchResaleAvailable =
+                      purchasableResaleByBatch.get(batch.name) ??
+                      batch.resaleAvailable ??
+                      0;
+                    const batchAvail = batchTotalAvailable(batch);
+                    const soldOut = batchAvail <= 0;
+                    const primarySoldOut = batchPrimaryRemaining <= 0;
+                    const cutoffDate = batch.entryWindowCutoff
+                      ? new Date(batch.entryWindowCutoff)
+                      : null;
+                    const hasValidCutoff =
+                      cutoffDate && !Number.isNaN(cutoffDate.getTime());
+                    const entryClosed =
+                      hasValidCutoff && Date.now() > cutoffDate.getTime();
+                    const batchFee =
+                      Math.round(
+                        batch.basePrice * (BOOKING_FEE_PERCENT / 100) * 100,
+                      ) / 100;
+                    const isSelected = selectedBatch.name === batch.name;
+                    return (
+                      <div
+                        key={batch.name}
+                        role="button"
+                        tabIndex={soldOut ? -1 : 0}
+                        onClick={() => {
+                          if (!soldOut) {
+                            setSelectedBatch(batch);
+                            if (quantity > batchAvail) {
+                              setQuantity(Math.max(1, batchAvail));
+                            }
+                          }
+                        }}
+                        onKeyDown={(ev) => {
+                          if (soldOut) return;
+                          if (ev.key === "Enter" || ev.key === " ") {
+                            ev.preventDefault();
+                            setSelectedBatch(batch);
+                            if (quantity > batchAvail) {
+                              setQuantity(Math.max(1, batchAvail));
+                            }
+                          }
+                        }}
+                        className={`rounded-xl border p-4 transition-colors ${
+                          soldOut
+                            ? "border-border bg-[#222222]/40 opacity-50"
+                            : isSelected
+                              ? "cursor-pointer border-gold/30 bg-[#222222]/60"
+                              : "cursor-pointer border-border hover:border-gold/30"
                         }`}
                       >
-                        {entryClosed ? "Entry closed at " : "Entry cutoff: "}
-                        {formatEntryCutoff(batch.entryWindowCutoff)}
-                      </p>
-                    ) : null}
-                    {!soldOut && batchResaleAvailable > 0 ? (
-                      <p className="mt-1 text-[11px] text-gold/70">
-                        Includes {batchResaleAvailable} resale on The List
-                      </p>
-                    ) : null}
-                    {!soldOut && primarySoldOut ? (
-                      <p className="mt-1 text-[11px] text-cream/50">
-                        Primary sold out. Checkout fulfills resale first.
-                      </p>
-                    ) : null}
-                  </div>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-medium text-cream">
+                            {batch.name}
+                          </span>
+                          <span className="text-xs text-cream/40">
+                            {soldOut ? "Sold out" : ""}
+                          </span>
+                        </div>
 
-                  {!soldOut && isSelected ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleBuyNow();
-                      }}
-                      disabled={buying || selectedBatchTotalAvailable <= 0}
-                      className="rounded-lg bg-gold px-4 py-1.5 text-xs font-semibold text-void transition-colors hover:bg-gold-light disabled:opacity-50"
-                    >
-                      {buying ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        "Buy"
-                      )}
-                    </button>
-                  ) : null}
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1 text-left">
+                            <p className="text-xs text-cream/40">
+                              £{batch.basePrice.toFixed(2)} + £
+                              {batchFee.toFixed(2)} fee
+                            </p>
+                            {hasValidCutoff ? (
+                              <p
+                                className={`mt-1 text-[11px] ${
+                                  entryClosed
+                                    ? "text-rose-300/90"
+                                    : "text-cream/50"
+                                }`}
+                              >
+                                {entryClosed
+                                  ? "Entry closed at "
+                                  : "Entry cutoff: "}
+                                {formatEntryCutoff(batch.entryWindowCutoff)}
+                              </p>
+                            ) : null}
+                            {/* {!soldOut && batchResaleAvailable > 0 ? (
+                              <p className="mt-1 text-[11px] text-gold/70">
+                                Includes {batchResaleAvailable} resale on The
+                                List
+                              </p>
+                            ) : null}
+                            {!soldOut && primarySoldOut ? (
+                              <p className="mt-1 text-[11px] text-cream/50">
+                                Primary sold out. Checkout fulfills resale
+                                first.
+                              </p>
+                            ) : null} */}
+                          </div>
+
+                          {!soldOut && isSelected ? (
+                            <button
+                              type="button"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleBuyNow();
+                              }}
+                              disabled={
+                                buying || selectedBatchTotalAvailable <= 0
+                              }
+                              className="rounded-lg bg-gold px-4 py-1.5 text-xs font-semibold text-void transition-colors hover:bg-gold-light disabled:opacity-50"
+                            >
+                              {buying ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                "Buy"
+                              )}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

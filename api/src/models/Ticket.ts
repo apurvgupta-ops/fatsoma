@@ -8,6 +8,8 @@ export interface ITicket {
   userId: mongoose.Types.ObjectId;
   eventName: string;
   ticketBatchName: string;
+  /** Tier whose primary `quantity` was consumed when this ticket was first issued (unchanged on resale relabel). */
+  primaryInventoryBatchName?: string;
   purchasePrice: number;
   originalPrice: number;
   stripePaymentIntentId?: string;
@@ -25,6 +27,7 @@ const TicketSchema = new Schema<ITicket>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     eventName: { type: String, required: true },
     ticketBatchName: { type: String, required: true },
+    primaryInventoryBatchName: { type: String, trim: true, index: true },
     purchasePrice: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, required: true, min: 0 },
     stripePaymentIntentId: { type: String },

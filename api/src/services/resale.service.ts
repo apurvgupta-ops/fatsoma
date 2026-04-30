@@ -4,17 +4,7 @@ import Event from "../models/Event";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import { logPayment } from "../lib/systemLogger";
-
-type ReallocationType =
-  | "same_batch"
-  | "upgraded_batch"
-  | "sold_out_reallocated";
-
-type TargetBatchDecision = {
-  targetTicketBatchName: string;
-  reallocationType: ReallocationType;
-  targetBasePrice: number;
-};
+import { computeResaleTargetBatchInGroup } from "../domain/eventTickets";
 
 function toListingDTO(listing: any) {
   const ticket = listing.ticketId;
@@ -75,7 +65,9 @@ async function getPrimarySoldCounts(eventId: string) {
     },
     {
       $group: {
-        _id: "$ticketBatchName",
+        _id: {
+          $ifNull: ["$primaryInventoryBatchName", "$ticketBatchName"],
+        },
         count: { $sum: 1 },
       },
     },
@@ -88,53 +80,6 @@ async function getPrimarySoldCounts(eventId: string) {
   return soldByBatch;
 }
 
-function resolveTargetBatch(
-  event: any,
-  originalTicketBatchName: string,
-  soldByBatch: Map<string, number>,
-): TargetBatchDecision {
-  const batches = Array.isArray(event.ticketBatches) ? event.ticketBatches : [];
-  const originalIndex = batches.findIndex(
-    (batch: any) => batch.name === originalTicketBatchName,
-  );
-
-  if (originalIndex < 0) {
-    throw AppError.badRequest("Ticket batch no longer exists on this event");
-  }
-
-  const remainingByBatch = batches.map((batch: any) =>
-    Math.max(0, Number(batch.quantity || 0) - Number(soldByBatch.get(batch.name) || 0)),
-  );
-
-  const originalBatch = batches[originalIndex];
-  const originalRemaining = remainingByBatch[originalIndex] || 0;
-  if (originalRemaining > 0) {
-    return {
-      targetTicketBatchName: originalBatch.name,
-      reallocationType: "same_batch",
-      targetBasePrice: Number(originalBatch.basePrice || 0),
-    };
-  }
-
-  for (let i = originalIndex + 1; i < batches.length; i += 1) {
-    if ((remainingByBatch[i] || 0) > 0) {
-      const batch = batches[i];
-      return {
-        targetTicketBatchName: batch.name,
-        reallocationType: "upgraded_batch",
-        targetBasePrice: Number(batch.basePrice || 0),
-      };
-    }
-  }
-
-  const fallback = batches[originalIndex + 1] ?? originalBatch;
-  return {
-    targetTicketBatchName: fallback.name,
-    reallocationType: "sold_out_reallocated",
-    targetBasePrice: Number(fallback.basePrice || 0),
-  };
-}
-
 interface ListForResaleInput {
   ticketId: string;
   askingPrice?: number;
@@ -143,24 +88,6 @@ interface ListForResaleInput {
 
 export async function listForResale(input: ListForResaleInput) {
   const { ticketId, askingPrice, userId } = input;
-  // #region agent log
-  fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "1efd49",
-    },
-    body: JSON.stringify({
-      sessionId: "1efd49",
-      runId: "resale-pricing-debug",
-      hypothesisId: "H4",
-      location: "api/src/services/resale.service.ts:listForResale:start",
-      message: "listForResale called",
-      data: { ticketId, hasAskingPrice: typeof askingPrice === "number" },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
     throw AppError.badRequest("Invalid ticket ID");
@@ -186,61 +113,14 @@ export async function listForResale(input: ListForResaleInput) {
   }
 
   const soldByBatch = await getPrimarySoldCounts(ticket.eventId.toString());
-  // #region agent log
-  fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "1efd49",
-    },
-    body: JSON.stringify({
-      sessionId: "1efd49",
-      runId: "resale-pricing-debug",
-      hypothesisId: "H1",
-      location: "api/src/services/resale.service.ts:listForResale:soldCounts",
-      message: "sold counts and event batches",
-      data: {
-        eventId: ticket.eventId.toString(),
-        originalBatch: ticket.ticketBatchName,
-        batches: (event.ticketBatches ?? []).map((b: any) => ({
-          name: b.name,
-          quantity: b.quantity,
-          basePrice: b.basePrice,
-          sold: Number(soldByBatch.get(b.name) || 0),
-        })),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-  const targetDecision = resolveTargetBatch(
+  const targetDecision = computeResaleTargetBatchInGroup(
     event,
     ticket.ticketBatchName,
     soldByBatch,
   );
-  // #region agent log
-  fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "1efd49",
-    },
-    body: JSON.stringify({
-      sessionId: "1efd49",
-      runId: "resale-pricing-debug",
-      hypothesisId: "H2",
-      location: "api/src/services/resale.service.ts:listForResale:targetDecision",
-      message: "target decision resolved",
-      data: {
-        originalBatch: ticket.ticketBatchName,
-        targetBatch: targetDecision.targetTicketBatchName,
-        reallocationType: targetDecision.reallocationType,
-        targetBasePrice: targetDecision.targetBasePrice,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  if (!targetDecision) {
+    throw AppError.badRequest("Ticket batch no longer exists on this event");
+  }
 
   const minAskingPrice =
     targetDecision.reallocationType === "same_batch"
@@ -263,31 +143,6 @@ export async function listForResale(input: ListForResaleInput) {
   const organiserRevenue = toMoney(
     Math.max(resolvedAskingPrice - sellerPayout, 0),
   );
-  // #region agent log
-  fetch("http://127.0.0.1:7700/ingest/56289bd8-e06d-452d-bf09-b795b7b75da3", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "1efd49",
-    },
-    body: JSON.stringify({
-      sessionId: "1efd49",
-      runId: "resale-pricing-debug",
-      hypothesisId: "H3",
-      location: "api/src/services/resale.service.ts:listForResale:pricing",
-      message: "listing pricing computed",
-      data: {
-        originalPurchasePrice: Number(ticket.purchasePrice),
-        requestedAskingPrice:
-          typeof askingPrice === "number" ? askingPrice : null,
-        resolvedAskingPrice,
-        sellerPayout,
-        organiserRevenue,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   ticket.status = "listed";
   await ticket.save();

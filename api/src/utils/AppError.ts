@@ -32,4 +32,9 @@ export class AppError extends Error {
   static conflict(message: string) {
     return new AppError(message, 409);
   }
+
+  /** Transient / downstream dependency failure (e.g. Stripe retry). */
+  static serviceUnavailable(message: string) {
+    return new AppError(message, 503);
+  }
 }
