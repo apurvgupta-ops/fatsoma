@@ -213,6 +213,7 @@ export interface ResaleListingResponse {
   organiserRevenue: number;
   sellerRefundId: string | null;
   sellerRefundStatus: "pending" | "succeeded" | "failed" | null;
+  sellerPaymentIntentIdAtListing: string | null;
   createdAt: string;
   updatedAt: string | null;
 }

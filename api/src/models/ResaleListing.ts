@@ -18,6 +18,7 @@ export interface IResaleListing {
   organiserRevenue: number;
   sellerRefundId?: string;
   sellerRefundStatus?: "pending" | "succeeded" | "failed";
+  sellerPaymentIntentIdAtListing?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +54,7 @@ const ResaleListingSchema = new Schema<IResaleListing>(
       type: String,
       enum: ["pending", "succeeded", "failed"],
     },
+    sellerPaymentIntentIdAtListing: { type: String },
   },
   { timestamps: true },
 );

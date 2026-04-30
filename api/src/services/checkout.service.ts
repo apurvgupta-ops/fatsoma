@@ -824,6 +824,38 @@ type SellerRefundResult = {
 };
 
 type StripeRefund = Awaited<ReturnType<Stripe["refunds"]["retrieve"]>>;
+type StripePaymentIntent = Awaited<
+  ReturnType<Stripe["paymentIntents"]["retrieve"]>
+>;
+
+function refundablePenceFromCharge(charge: Stripe.Charge | null | undefined) {
+  if (!charge) return 0;
+  const captured = Number(charge.amount_captured ?? charge.amount ?? 0);
+  const refunded = Number(charge.amount_refunded ?? 0);
+  return Math.max(0, captured - refunded);
+}
+
+async function getPaymentIntentRefundablePence(
+  stripe: Stripe,
+  paymentIntentId: string,
+) {
+  const pi = (await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ["latest_charge"],
+  })) as StripePaymentIntent;
+
+  let latestCharge: Stripe.Charge | null = null;
+  if (
+    pi.latest_charge &&
+    typeof pi.latest_charge === "object" &&
+    "id" in pi.latest_charge
+  ) {
+    latestCharge = pi.latest_charge as Stripe.Charge;
+  } else if (typeof pi.latest_charge === "string") {
+    latestCharge = await stripe.charges.retrieve(pi.latest_charge);
+  }
+
+  return refundablePenceFromCharge(latestCharge);
+}
 
 async function pollRefundUntilTerminal(
   stripe: Stripe,
@@ -896,10 +928,31 @@ async function resolveSellerRefundForListing(
   }
 
   try {
+    const requestedPence = Math.round(amountGbp * 100);
+    const refundablePence = await getPaymentIntentRefundablePence(
+      stripe,
+      paymentIntentId,
+    );
+    if (requestedPence > refundablePence) {
+      listing.sellerRefundStatus = "failed";
+      logRefund({
+        event: "seller_refund_insufficient_headroom",
+        outcome: "failure",
+        listingId,
+        paymentIntentId,
+        amountGbp,
+        reason: `Requested ${requestedPence}p but only ${refundablePence}p remains refundable`,
+      });
+      return {
+        outcome: "failed",
+        message: `Refund amount (£${amountGbp.toFixed(2)}) exceeds remaining refundable amount (£${(refundablePence / 100).toFixed(2)}) on source payment.`,
+      };
+    }
+
     const refund = await stripe.refunds.create(
       {
         payment_intent: paymentIntentId,
-        amount: Math.round(amountGbp * 100),
+        amount: requestedPence,
         reason: "requested_by_customer",
         metadata: {
           type: "resale_seller_payout",
@@ -1014,7 +1067,9 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
       ticket,
       sellerPayout,
       organiserRevenue,
-      sellerPaymentIntentId: ticket.stripePaymentIntentId,
+      sellerPaymentIntentId:
+        listing.sellerPaymentIntentIdAtListing ||
+        ticket.stripePaymentIntentId,
     });
   }
 
@@ -1072,6 +1127,9 @@ async function completeResaleTransfer(order: any, listingIds: string[] = []) {
     ticket.userId = order.userId;
     ticket.ticketBatchName = listing.targetTicketBatchName;
     ticket.purchasePrice = listing.askingPrice;
+    ticket.stripePaymentIntentId =
+      (order.stripePaymentIntentId as string | undefined) ||
+      ticket.stripePaymentIntentId;
     ticket.status = "active";
     ticket.qrCode = crypto.randomUUID();
     await ticket.save();

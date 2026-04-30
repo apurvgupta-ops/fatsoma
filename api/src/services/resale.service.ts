@@ -36,6 +36,8 @@ function toListingDTO(listing: any) {
     organiserRevenue: listing.organiserRevenue,
     sellerRefundId: listing.sellerRefundId ?? null,
     sellerRefundStatus: listing.sellerRefundStatus ?? null,
+    sellerPaymentIntentIdAtListing:
+      listing.sellerPaymentIntentIdAtListing ?? null,
     createdAt:
       listing.createdAt instanceof Date
         ? listing.createdAt.toISOString()
@@ -158,6 +160,7 @@ export async function listForResale(input: ListForResaleInput) {
     reallocationType: targetDecision.reallocationType,
     sellerPayout,
     organiserRevenue,
+    sellerPaymentIntentIdAtListing: ticket.stripePaymentIntentId || undefined,
     status: "active",
   });
 
