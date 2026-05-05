@@ -83,6 +83,10 @@ function toEventDTO(
     country: event.country,
     mapsLink: event.mapsLink,
     eventDate: event.eventDate?.toISOString?.() ?? event.eventDate,
+    eventEndDate:
+      (event.eventEndDate ?? event.eventDate)?.toISOString?.() ??
+      event.eventEndDate ??
+      event.eventDate,
     startTime: event.startTime,
     endTime: event.endTime,
     totalTickets: totalRemaining,
@@ -299,12 +303,15 @@ export async function createEvent(
     await assertEventOwnerConnectReady({ createdBy: userId });
   }
   const totalTickets = totalQuantityFromGroups(groups);
+  const startDate = new Date(data.eventDate);
+  const endDateRaw = data.eventEndDate ?? data.eventDate;
   const event = await Event.create({
     ...data,
     ticketGroups: groups,
     totalTickets,
     bookingFee: BOOKING_FEE_PERCENT,
-    eventDate: new Date(data.eventDate),
+    eventDate: startDate,
+    eventEndDate: new Date(endDateRaw),
     status,
     createdBy: userId,
   });
@@ -343,6 +350,10 @@ export async function updateEvent(
     ...rest,
     bookingFee: BOOKING_FEE_PERCENT,
     eventDate: input.eventDate ? new Date(input.eventDate) : undefined,
+    eventEndDate:
+      input.eventEndDate != null && String(input.eventEndDate).trim() !== ""
+        ? new Date(input.eventEndDate)
+        : undefined,
     status,
   };
 

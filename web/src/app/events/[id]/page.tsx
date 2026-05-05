@@ -17,6 +17,7 @@ import type {
   ResaleListingResponse,
 } from "@/lib/shared";
 import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@/lib/shared";
+import { formatEventDatesLabel } from "@/lib/formatEventDates";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -149,6 +150,7 @@ export default function EventDetailPage() {
         eventName: event.eventName,
         eventDescription: event.eventDescription,
         eventDate: event.eventDate,
+        eventEndDate: event.eventEndDate,
         startTime: event.startTime,
         endTime: event.endTime,
         venueName: event.venueName,
@@ -261,12 +263,7 @@ export default function EventDetailPage() {
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={2} />
                 <span>
-                  {new Date(event.eventDate).toLocaleDateString("en-GB", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {formatEventDatesLabel(event.eventDate, event.eventEndDate)}
                 </span>
               </div>
               <div className="flex items-center gap-2">

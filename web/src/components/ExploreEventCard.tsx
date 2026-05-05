@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { EventResponse } from "@/lib/shared";
 import { BOOKING_FEE_PERCENT } from "@/lib/shared";
+import { formatEventDatesLabel } from "@/lib/formatEventDates";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
 
@@ -66,12 +67,7 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
 
         <div className="mt-3 flex items-center justify-between">
           <span className="text-sm text-cream/40">
-            {new Date(event.eventDate).toLocaleDateString("en-GB", {
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
+            {formatEventDatesLabel(event.eventDate, event.eventEndDate)}
           </span>
           {soldOut ? (
             <span className="text-sm font-semibold text-cream/40">

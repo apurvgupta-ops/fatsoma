@@ -41,6 +41,7 @@ export async function addGoogleEvent(req: Request, res: Response) {
       eventName: req.body.eventName,
       eventDescription: req.body.eventDescription,
       eventDate: req.body.eventDate,
+      eventEndDate: req.body.eventEndDate,
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       venueName: req.body.venueName,

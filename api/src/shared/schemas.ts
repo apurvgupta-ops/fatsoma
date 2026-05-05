@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { EVENT_CATEGORIES, EVENT_STATUSES, USER_ROLES } from "./constants";
+import {
+  EVENT_CATEGORIES,
+  EVENT_STATUSES,
+  STAFF_GATE_NAMES,
+  USER_ROLES,
+} from "./constants";
 
 const optionalDateTimeString = z
   .string()
@@ -59,6 +64,7 @@ export const createEventSchema = z
   country: z.string().min(1, "Country is required").trim(),
   mapsLink: z.string().optional(),
   eventDate: z.string().min(1, "Event date is required"),
+  eventEndDate: z.string().min(1).optional(),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   totalTickets: z.number().min(1, "Total tickets must be greater than 0"),
@@ -85,7 +91,20 @@ export const createEventSchema = z
       message: "Add at least one ticket group with slots (or legacy flat batches)",
       path: ["ticketGroups"],
     },
-  );
+  )
+  .superRefine((d, ctx) => {
+    const end =
+      d.eventEndDate && d.eventEndDate.trim().length > 0
+        ? d.eventEndDate.trim()
+        : d.eventDate;
+    if (end < d.eventDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date cannot be before start date",
+        path: ["eventEndDate"],
+      });
+    }
+  });
 
 export const loginSchema = z.object({
   email: z.string().email("Please provide a valid email"),
@@ -101,6 +120,24 @@ export const createUserSchema = z.object({
   email: z.string().email("Please provide a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(USER_ROLES),
+});
+
+export const createStaffUserSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name cannot exceed 100 characters")
+    .trim(),
+  email: z.string().email("Please provide a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  staffEventId: z.string().trim().min(1, "Event is required"),
+  staffGateName: z.enum(STAFF_GATE_NAMES, {
+    message: "Please select a valid gate",
+  }),
+});
+
+export const patchUserActiveSchema = z.object({
+  isActive: z.boolean(),
 });
 
 export const registerSchema = z.object({
@@ -121,5 +158,6 @@ export const assignEventOwnerSchema = z.object({
 export type CreateEventPayload = z.infer<typeof createEventSchema>;
 export type LoginPayload = z.infer<typeof loginSchema>;
 export type CreateUserPayload = z.infer<typeof createUserSchema>;
+export type CreateStaffUserPayload = z.infer<typeof createStaffUserSchema>;
 export type RegisterPayload = z.infer<typeof registerSchema>;
 export type AssignEventOwnerPayload = z.infer<typeof assignEventOwnerSchema>;

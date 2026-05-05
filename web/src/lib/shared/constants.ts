@@ -18,3 +18,12 @@ export type UserRole = (typeof USER_ROLES)[number];
 export const EVENT_STATUSES = ["draft", "published"] as const;
 export type EventStatus = (typeof EVENT_STATUSES)[number];
 
+export const STAFF_GATE_NAMES = [
+  "General Admission",
+  "VIP",
+  "Queue Jump",
+  "Male / Female",
+  "Custom",
+] as const;
+export type StaffGateName = (typeof STAFF_GATE_NAMES)[number];
+

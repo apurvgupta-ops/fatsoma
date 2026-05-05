@@ -25,6 +25,10 @@ export interface IUser {
   };
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  /** When role is `staff`, tickets are validated only for this event. */
+  staffEventId?: mongoose.Types.ObjectId | null;
+  /** When role is `staff`, tickets are validated only for this gate. */
+  staffGateName?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,11 +88,23 @@ const UserSchema = new Schema<IUser>(
     },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    staffEventId: {
+      type: Schema.Types.ObjectId,
+      ref: "Event",
+      default: null,
+    },
+    staffGateName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   { timestamps: true },
 );
 
 UserSchema.index({ role: 1, isActive: 1 });
+UserSchema.index({ role: 1, staffEventId: 1 });
+UserSchema.index({ role: 1, staffGateName: 1 });
 
 const User = models?.User || model<IUser>("User", UserSchema);
 export default User;

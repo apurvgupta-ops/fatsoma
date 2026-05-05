@@ -416,6 +416,7 @@ export class FatsomaClient {
     eventName: string;
     eventDescription: string;
     eventDate: string;
+    eventEndDate?: string;
     startTime: string;
     endTime: string;
     venueName: string;

@@ -6,16 +6,13 @@ import { useAuth } from "@/lib/auth-context";
 import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
 import type { TicketBatch, CreateEventInput } from "@/lib/shared";
-import { EVENT_CATEGORIES, BOOKING_FEE_PERCENT } from "@/lib/shared";
+import { EVENT_CATEGORIES } from "@/lib/shared";
 import {
   ArrowLeft,
   Upload,
-  Plus,
   Trash2,
   Calendar,
   MapPin,
-  Ticket,
-  Settings,
   Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
@@ -26,16 +23,15 @@ import {
   Section,
   InputField,
   SelectField,
-  ToggleField,
 } from "@/components/events/EventFormPrimitives";
-
-type LocalTicketGroup = { title: string; batches: TicketBatch[] };
+import { AddTicketTypeFlow } from "@/components/events/AddTicketTypeFlow";
+import type { LocalTicketGroup } from "@/components/events/TicketTiersEditor";
 
 function stripBatchForApi(batch: TicketBatch) {
   return {
     name: batch.name.trim(),
-    quantity: Number(batch.quantity) || 0,
-    basePrice: Number(batch.basePrice) || 0,
+    quantity: Math.max(0, Number(batch.quantity) || 0),
+    basePrice: Math.max(0, Number(batch.basePrice) || 0),
     minDiscount: batch.minDiscount,
     maxDiscount: batch.maxDiscount,
     entryWindowCutoff: batch.entryWindowCutoff?.trim() || undefined,
@@ -85,6 +81,7 @@ export default function CreateEventPage() {
     country: "",
     mapsLink: "",
     eventDate: "",
+    eventEndDate: "",
     startTime: "",
     endTime: "",
     dynamicPricing: false,
@@ -92,17 +89,21 @@ export default function CreateEventPage() {
     platformCommission: 5,
   });
 
-  const [ticketGroups, setTicketGroups] = useState<LocalTicketGroup[]>([
-    { title: "General admission", batches: [{ ...DEFAULT_BATCH, name: "" }] },
-  ]);
+  const [ticketGroups, setTicketGroups] = useState<LocalTicketGroup[]>([]);
 
   const updateField = (field: string, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const appendTicketGroupFromPreset = (group: LocalTicketGroup) => {
+    setTicketGroups((prev) => [...prev, group]);
+  };
+
   const updateGroupTitle = (groupIndex: number, title: string) => {
     setTicketGroups((prev) =>
-      prev.map((g, i) => (i === groupIndex ? { ...g, title } : g)),
+      prev.map((group, index) =>
+        index === groupIndex ? { ...group, title } : group,
+      ),
     );
   };
 
@@ -113,19 +114,19 @@ export default function CreateEventPage() {
     value: string | number,
   ) => {
     setTicketGroups((prev) =>
-      prev.map((g, i) =>
-        i !== groupIndex
-          ? g
+      prev.map((group, index) =>
+        index !== groupIndex
+          ? group
           : {
-              ...g,
-              batches: g.batches.map((b, j) =>
-                j !== batchIndex
-                  ? b
+              ...group,
+              batches: group.batches.map((batch, slotIndex) =>
+                slotIndex !== batchIndex
+                  ? batch
                   : {
-                      ...b,
+                      ...batch,
                       [field]:
                         typeof DEFAULT_BATCH[field] === "number"
-                          ? Number(value)
+                          ? Math.max(0, Number(value) || 0)
                           : value,
                     },
               ),
@@ -136,35 +137,29 @@ export default function CreateEventPage() {
 
   const addBatchToGroup = (groupIndex: number) => {
     setTicketGroups((prev) =>
-      prev.map((g, i) =>
-        i === groupIndex
-          ? { ...g, batches: [...g.batches, { ...DEFAULT_BATCH }] }
-          : g,
+      prev.map((group, index) =>
+        index === groupIndex
+          ? { ...group, batches: [...group.batches, { ...DEFAULT_BATCH }] }
+          : group,
       ),
     );
   };
 
   const removeBatchFromGroup = (groupIndex: number, batchIndex: number) => {
     setTicketGroups((prev) =>
-      prev.map((g, i) => {
-        if (i !== groupIndex) return g;
-        if (g.batches.length <= 1) return g;
-        return { ...g, batches: g.batches.filter((_, j) => j !== batchIndex) };
+      prev.map((group, index) => {
+        if (index !== groupIndex) return group;
+        if (group.batches.length <= 1) return group;
+        return {
+          ...group,
+          batches: group.batches.filter((_, slotIndex) => slotIndex !== batchIndex),
+        };
       }),
     );
   };
 
-  const addTicketGroup = () => {
-    setTicketGroups((prev) => [
-      ...prev,
-      { title: "", batches: [{ ...DEFAULT_BATCH }] },
-    ]);
-  };
-
   const removeTicketGroup = (groupIndex: number) => {
-    setTicketGroups((prev) =>
-      prev.length <= 1 ? prev : prev.filter((_, i) => i !== groupIndex),
-    );
+    setTicketGroups((prev) => prev.filter((_, index) => index !== groupIndex));
   };
 
   const handleImageUpload = useCallback(
@@ -199,7 +194,8 @@ export default function CreateEventPage() {
       if (!token) throw new Error("Not authenticated");
 
       const totalTickets = ticketGroups.reduce(
-        (s, g) => s + g.batches.reduce((ss, b) => ss + Number(b.quantity || 0), 0),
+        (s, g) =>
+          s + g.batches.reduce((ss, b) => ss + Number(b.quantity || 0), 0),
         0,
       );
       const input: CreateEventInput = {
@@ -295,10 +291,26 @@ export default function CreateEventPage() {
               options={EVENT_CATEGORIES.map((c) => ({ value: c, label: c }))}
             />
             <InputField
-              label="Event Date"
+              label="Start Date"
               type="date"
               value={form.eventDate}
-              onChange={(v) => updateField("eventDate", v)}
+              onChange={(v) =>
+                setForm((prev) => ({
+                  ...prev,
+                  eventDate: v,
+                  eventEndDate:
+                    !prev.eventEndDate || prev.eventEndDate < v
+                      ? v
+                      : prev.eventEndDate,
+                }))
+              }
+              required
+            />
+            <InputField
+              label="End Date"
+              type="date"
+              value={form.eventEndDate}
+              onChange={(v) => updateField("eventEndDate", v)}
               required
             />
             <InputField
@@ -408,158 +420,53 @@ export default function CreateEventPage() {
           </div>
         </Section>
 
-        {/* Ticket groups & slots */}
-        <Section title="Ticket tiers" icon={<Ticket className="h-5 w-5" />}>
-          <p className="mb-4 text-xs text-cream/55">
-            Add a heading per tier family (e.g. General admission), then one row
-            per time slot or price band. Slot names must be unique across the
-            whole event.
-          </p>
-          <div className="flex flex-col gap-6">
-            {ticketGroups.map((group, gi) => (
-              <div
-                key={gi}
-                className="rounded-2xl border border-border bg-surface/40 p-5"
-              >
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <InputField
-                      label="Group heading"
-                      value={group.title}
-                      onChange={(v) => updateGroupTitle(gi, v)}
-                      placeholder="e.g. General admission"
-                      required
-                      className="sm:max-w-md"
-                    />
-                  </div>
-                  {ticketGroups.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeTicketGroup(gi)}
-                      className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-medium text-cream/60 transition hover:border-rose-500/40 hover:text-rose-400"
-                    >
-                      Remove group
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  {group.batches.map((batch, bi) => (
-                    <div
-                      key={`${gi}-${bi}`}
-                      className="rounded-xl border border-border/80 bg-void/40 p-4"
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase tracking-wider text-cream/50">
-                          Slot {bi + 1}
-                        </span>
-                        {group.batches.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeBatchFromGroup(gi, bi)}
-                            className="rounded-lg p-1.5 text-cream/60 transition hover:bg-rose-500/10 hover:text-rose-400"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <InputField
-                          label="Slot name"
-                          value={batch.name}
-                          onChange={(v) => updateBatch(gi, bi, "name", v)}
-                          placeholder="e.g. 11pm entry"
-                          required
-                        />
-                        <InputField
-                          label="Quantity"
-                          type="number"
-                          value={String(batch.quantity)}
-                          onChange={(v) => updateBatch(gi, bi, "quantity", v)}
-                          required
-                        />
-                        <InputField
-                          label="Price (£)"
-                          type="number"
-                          value={String(batch.basePrice)}
-                          onChange={(v) => updateBatch(gi, bi, "basePrice", v)}
-                          required
-                        />
-                        <div className="sm:col-span-2 lg:col-span-3">
-                          <InputField
-                            label="Entry Window Cutoff"
-                            type="datetime-local"
-                            value={batch.entryWindowCutoff ?? ""}
-                            onChange={(v) =>
-                              updateBatch(gi, bi, "entryWindowCutoff", v)
-                            }
-                            placeholder="Optional"
-                          />
-                          <p className="mt-1 text-xs text-cream/55">
-                            Optional: after this datetime, entry with this tier is
-                            no longer valid.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addBatchToGroup(gi)}
-                    className="flex items-center gap-2 self-start rounded-xl border border-dashed border-border bg-surface/40 px-4 py-2.5 text-sm font-medium text-cream/60 transition hover:border-gold/40 hover:text-gold"
-                  >
-                    <Plus className="h-4 w-4" /> Add slot in this group
-                  </button>
-                </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addTicketGroup}
-              className="flex items-center gap-2 self-start rounded-xl border border-dashed border-gold/30 bg-gold/5 px-4 py-2.5 text-sm font-medium text-gold transition hover:bg-gold/10"
-            >
-              <Plus className="h-4 w-4" /> Add ticket group
-            </button>
-          </div>
-        </Section>
+        <AddTicketTypeFlow
+          onAdd={appendTicketGroupFromPreset}
+          ticketGroups={ticketGroups}
+          onUpdateGroupTitle={updateGroupTitle}
+          onUpdateBatch={updateBatch}
+          onAddBatchToGroup={addBatchToGroup}
+          onRemoveBatchFromGroup={removeBatchFromGroup}
+          onRemoveTicketGroup={removeTicketGroup}
+        />
 
         {/* Platform Settings */}
-        <Section
+        {/* <Section
           title="Platform Settings"
           icon={<Settings className="h-5 w-5" />}
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            {/* <InputField
+        > */}
+        {/* <div className="grid gap-5 md:grid-cols-2"> */}
+        {/* <InputField
               label="Platform Commission (%)"
               type="number"
               value={String(form.platformCommission)}
               onChange={(v) => updateField("platformCommission", Number(v))}
               required
             /> */}
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/40 px-4 py-3">
+        {/* <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/40 px-4 py-3">
               <span className="text-sm text-cream/60">Booking Fee</span>
               <span className="ml-auto font-mono text-sm font-semibold text-gold">
                 {BOOKING_FEE_PERCENT}%
               </span>
               <span className="text-xs text-cream/60">(platform-wide)</span>
-            </div>
-            {/* <ToggleField
+            </div> */}
+        {/* <ToggleField
               label="Dynamic Pricing"
               checked={form.dynamicPricing}
               onChange={(v) => updateField("dynamicPricing", v)}
               description="Automatically adjust prices based on demand"
             /> */}
-            <ToggleField
+        {/* <ToggleField
               label="Allow Resale"
               checked={form.allowResale}
               onChange={(v) => updateField("allowResale", v)}
               description="Let ticket holders resell their tickets"
-            />
-          </div>
-        </Section>
+            /> */}
+        {/* </div> */}
+        {/* </Section> */}
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-3 border-border pt-6 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={() => handleSubmit("draft")}

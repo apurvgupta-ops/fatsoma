@@ -16,7 +16,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function ScannerPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [qrCode, setQrCode] = useState("");
   const [eventId, setEventId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +69,21 @@ export default function ScannerPage() {
           </p>
         </header>
 
+        {user?.role === "staff" && user.staffAssignedEvent && (
+          <div className="rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+            You are scanning for{" "}
+            <span className="font-semibold text-cream">{user.staffAssignedEvent.eventName}</span>.
+            {user.staffGateName ? (
+              <>
+                {" "}Gate: <span className="font-semibold text-cream">{user.staffGateName}</span>.
+                Only tickets for this event and gate can be validated.
+              </>
+            ) : (
+              <> Only tickets for this event can be validated.</>
+            )}
+          </div>
+        )}
+
         <form
           onSubmit={handleScan}
           className="rounded-3xl border border-border bg-void/60 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
@@ -84,15 +99,19 @@ export default function ScannerPage() {
               />
             </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium uppercase tracking-wider text-cream/60">Event ID optional</span>
-              <input
-                value={eventId}
-                onChange={(event) => setEventId(event.target.value)}
-                placeholder="Only required if you want to reject other-event tickets"
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"
-              />
-            </label>
+            {user?.role !== "staff" && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium uppercase tracking-wider text-cream/60">
+                  Event ID optional
+                </span>
+                <input
+                  value={eventId}
+                  onChange={(event) => setEventId(event.target.value)}
+                  placeholder="Only required if you want to reject other-event tickets"
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"
+                />
+              </label>
+            )}
           </div>
 
           <button
@@ -153,7 +172,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-void/50 px-4 py-3">
       <p className="text-xs uppercase tracking-wider text-cream/45">{label}</p>
-      <p className="mt-1 break-words text-sm font-medium text-cream">{value}</p>
+      <p className="mt-1 wrap-break-word text-sm font-medium text-cream">{value}</p>
     </div>
   );
 }

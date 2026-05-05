@@ -32,6 +32,8 @@ interface AddCalendarEventInput {
   eventName: string;
   eventDescription: string;
   eventDate: string;
+  /** Calendar day for end time; defaults to `eventDate`. */
+  eventEndDate?: string;
   startTime: string;
   endTime: string;
   venueName: string;
@@ -259,7 +261,8 @@ export async function addEventToGoogleCalendar(
   });
 
   const startDate = buildLocalDateTime(input.eventDate, input.startTime);
-  let endDate = buildLocalDateTime(input.eventDate, input.endTime);
+  const endDay = input.eventEndDate?.trim() || input.eventDate;
+  let endDate = buildLocalDateTime(endDay, input.endTime);
   if (endDate <= startDate) {
     endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
   }

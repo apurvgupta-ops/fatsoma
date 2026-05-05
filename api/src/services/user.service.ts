@@ -7,6 +7,19 @@ import type { IUser } from "../models/User";
 
 const SALT_ROUNDS = 10;
 
+function staffAssignedEventFromDoc(user: any): {
+  id: string;
+  eventName: string;
+} | null {
+  const ref = user.staffEventId;
+  if (!ref) return null;
+  if (typeof ref === "object" && ref !== null && "eventName" in ref) {
+    const id = ref._id?.toString?.() ?? String(ref._id);
+    return { id, eventName: String(ref.eventName) };
+  }
+  return null;
+}
+
 function toUserDTO(user: any) {
   const stripeConnect = user.stripeConnect ?? {
     accountId: null,
@@ -15,6 +28,16 @@ function toUserDTO(user: any) {
     payoutsEnabled: false,
     detailsSubmitted: false,
   };
+
+  const staffEventIdRaw = user.staffEventId;
+  const staffEventIdStr =
+    staffEventIdRaw &&
+    typeof staffEventIdRaw === "object" &&
+    "_id" in staffEventIdRaw
+      ? staffEventIdRaw._id.toString()
+      : staffEventIdRaw
+        ? staffEventIdRaw.toString()
+        : null;
 
   return {
     id: user._id.toString(),
@@ -27,6 +50,10 @@ function toUserDTO(user: any) {
     stripeConnectChargesEnabled: Boolean(stripeConnect.chargesEnabled),
     stripeConnectPayoutsEnabled: Boolean(stripeConnect.payoutsEnabled),
     stripeConnectDetailsSubmitted: Boolean(stripeConnect.detailsSubmitted),
+    staffEventId: user.role === "staff" ? staffEventIdStr : null,
+    staffGateName: user.role === "staff" ? (user.staffGateName ?? null) : null,
+    staffAssignedEvent:
+      user.role === "staff" ? staffAssignedEventFromDoc(user) : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
@@ -66,6 +93,12 @@ export async function createUser(
   password: string,
   role: "admin" | "staff" | "organizer" | "user",
 ) {
+  if (role === "staff") {
+    throw AppError.badRequest(
+      "Staff accounts must be created with an assigned event. Use POST /api/users/staff.",
+    );
+  }
+
   const existing = await User.findOne({ email });
   if (existing) {
     throw AppError.conflict("User with this email already exists");
@@ -74,6 +107,131 @@ export async function createUser(
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
   const user = await User.create({ name, email, password: hashed, role });
   return toUserDTO(user);
+}
+
+export async function listStaff(
+  requesterId: string,
+  requesterRole: "admin" | "organizer",
+) {
+  const query = User.find({ role: "staff" })
+    .sort({ createdAt: -1 })
+    .select("-password")
+    .populate("staffEventId", "eventName createdBy")
+    .lean();
+
+  const rows = (await query) as any[];
+
+  const filtered =
+    requesterRole === "organizer"
+      ? rows.filter(
+          (u) =>
+            u.staffEventId &&
+            String(u.staffEventId.createdBy) === requesterId,
+        )
+      : rows;
+
+  return filtered.map(toUserDTO);
+}
+
+export async function createStaffUser(
+  name: string,
+  email: string,
+  password: string,
+  staffEventId: string,
+  staffGateName: string,
+  requesterRole: "admin" | "organizer",
+  requesterId: string,
+) {
+  const event = await Event.findById(staffEventId).lean();
+  if (!event) {
+    throw AppError.badRequest("Event not found");
+  }
+
+  if (
+    requesterRole === "organizer" &&
+    String(event.createdBy) !== requesterId
+  ) {
+    throw AppError.forbidden(
+      "You can only assign staff to events you organise",
+    );
+  }
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    throw AppError.conflict("User with this email already exists");
+  }
+
+  const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+  await User.create({
+    name,
+    email,
+    password: hashed,
+    role: "staff",
+    staffEventId,
+    staffGateName,
+  });
+
+  const populated = (await User.findOne({ email })
+    .select("-password")
+    .populate("staffEventId", "eventName createdBy")
+    .lean()) as any;
+
+  return toUserDTO(populated);
+}
+
+export async function updateStaffStatus(
+  staffUserId: string,
+  isActive: boolean,
+  requesterId: string,
+  requesterRole: "admin" | "organizer",
+) {
+  const staffUser = (await User.findOne({
+    _id: staffUserId,
+    role: "staff",
+  })
+    .populate("staffEventId", "createdBy")
+    .lean()) as any;
+
+  if (!staffUser) {
+    throw AppError.notFound("Staff user not found");
+  }
+
+  if (requesterRole === "organizer") {
+    const ev = staffUser.staffEventId;
+    if (!ev || String(ev.createdBy) !== requesterId) {
+      throw AppError.forbidden("You cannot manage this staff member");
+    }
+  }
+
+  await User.findByIdAndUpdate(staffUserId, { isActive });
+  return isActive ? "Staff member activated" : "Staff member deactivated";
+}
+
+export async function deleteStaffUser(
+  staffUserId: string,
+  requesterId: string,
+  requesterRole: "admin" | "organizer",
+) {
+  const staffUser = (await User.findOne({
+    _id: staffUserId,
+    role: "staff",
+  })
+    .populate("staffEventId", "createdBy")
+    .lean()) as any;
+
+  if (!staffUser) {
+    throw AppError.notFound("Staff user not found");
+  }
+
+  if (requesterRole === "organizer") {
+    const ev = staffUser.staffEventId;
+    if (!ev || String(ev.createdBy) !== requesterId) {
+      throw AppError.forbidden("You cannot delete this staff member");
+    }
+  }
+
+  await User.findByIdAndDelete(staffUserId);
+  sendAccountDeletedEmail(staffUser.name, staffUser.email);
 }
 
 export async function updateUserStatus(id: string, isActive: boolean) {

@@ -237,6 +237,35 @@ function parseBundleQr(qrCode: string) {
   }
 }
 
+function normalizeGateValue(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function resolveTicketGateName(event: any, ticketBatchName: string) {
+  const groups = Array.isArray(event?.ticketGroups) ? event.ticketGroups : [];
+  for (const group of groups) {
+    const batches = Array.isArray(group?.batches) ? group.batches : [];
+    if (batches.some((batch: any) => batch?.name === ticketBatchName)) {
+      return String(group?.title ?? ticketBatchName);
+    }
+  }
+  return ticketBatchName;
+}
+
+function gateMatches(staffGateName: string, ticketGateName: string) {
+  const staff = normalizeGateValue(staffGateName);
+  const ticket = normalizeGateValue(ticketGateName);
+  if (!staff || !ticket) return true;
+  if (staff === ticket) return true;
+
+  // Allow Male/Female gate to accept either male or female ticket labels.
+  if (staff === "malefemale" && (ticket.includes("male") || ticket.includes("female"))) {
+    return true;
+  }
+
+  return ticket.includes(staff) || staff.includes(ticket);
+}
+
 async function getEntryWindowCutoff(eventId: any, ticketBatchName: string) {
   const event = (await Event.findById(eventId)
     .select("ticketGroups ticketBatches")
@@ -262,6 +291,7 @@ async function validateBundleScan(
   qrCode: string,
   scannedAt: string,
   requestedEventId?: string,
+  staffGateName?: string,
 ): Promise<TicketScanValidationResult | null> {
   const scannedAtDate = new Date(scannedAt);
   const bundle = parseBundleQr(qrCode);
@@ -303,7 +333,7 @@ async function validateBundleScan(
     );
   }
 
-  const { entryWindowCutoff } = await getEntryWindowCutoff(
+  const { event, entryWindowCutoff } = await getEntryWindowCutoff(
     sampleTicket.eventId,
     sampleTicket.ticketBatchName,
   );
@@ -343,6 +373,24 @@ async function validateBundleScan(
     ticketIds: activeTickets.map((ticket) => ticket._id.toString()),
     statusCounts,
   };
+
+  if (staffGateName) {
+    const ticketGateName = resolveTicketGateName(
+      event,
+      sampleTicket.ticketBatchName,
+    );
+    if (!gateMatches(staffGateName, ticketGateName)) {
+      return {
+        valid: false,
+        reason: "WRONG_GATE",
+        message: `Wrong gate. This ticket is for ${ticketGateName}. Please send them to the correct gate and scan again there.`,
+        scannedAt,
+        ticket: ticketSummary,
+        entryWindowCutoff,
+        bundle: bundleDetails,
+      };
+    }
+  }
 
   if (entryWindowCutoff && Date.now() > new Date(entryWindowCutoff).getTime()) {
     return {
@@ -433,10 +481,16 @@ async function validateBundleScan(
 export async function validateTicketScan(
   qrCode: string,
   eventId?: string,
+  staffGateName?: string,
 ): Promise<TicketScanValidationResult> {
   const scannedAt = new Date().toISOString();
   const scannedAtDate = new Date(scannedAt);
-  const bundleResult = await validateBundleScan(qrCode, scannedAt, eventId);
+  const bundleResult = await validateBundleScan(
+    qrCode,
+    scannedAt,
+    eventId,
+    staffGateName,
+  );
   if (bundleResult) return bundleResult;
 
   const ticket = (await Ticket.findOne({ qrCode }).lean()) as any;
@@ -500,6 +554,20 @@ export async function validateTicketScan(
       ticket: ticketSummary,
       entryWindowCutoff: null,
     };
+  }
+
+  if (staffGateName) {
+    const ticketGateName = resolveTicketGateName(event, ticket.ticketBatchName);
+    if (!gateMatches(staffGateName, ticketGateName)) {
+      return {
+        valid: false,
+        reason: "WRONG_GATE",
+        message: `Wrong gate. This ticket is for ${ticketGateName}. Please send them to the correct gate and scan again there.`,
+        scannedAt,
+        ticket: ticketSummary,
+        entryWindowCutoff,
+      };
+    }
   }
 
   if (entryWindowCutoff && Date.now() > new Date(entryWindowCutoff).getTime()) {

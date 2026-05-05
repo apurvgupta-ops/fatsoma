@@ -51,6 +51,7 @@ export const createEventSchema = z
     country: z.string().min(1).trim(),
     mapsLink: z.string().optional(),
     eventDate: z.string().min(1),
+    eventEndDate: z.string().min(1).optional(),
     startTime: z.string().min(1),
     endTime: z.string().min(1),
     totalTickets: z.number().min(1, "Total tickets must be greater than 0"),
@@ -71,7 +72,20 @@ export const createEventSchema = z
         "Add at least one ticket group with slots (or legacy flat batches)",
       path: ["ticketGroups"],
     },
-  );
+  )
+  .superRefine((d, ctx) => {
+    const end =
+      d.eventEndDate && d.eventEndDate.trim().length > 0
+        ? d.eventEndDate.trim()
+        : d.eventDate;
+    if (end < d.eventDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date cannot be before start date",
+        path: ["eventEndDate"],
+      });
+    }
+  });
 
 export const loginSchema = z.object({
   email: z.string().email("Please provide a valid email"),

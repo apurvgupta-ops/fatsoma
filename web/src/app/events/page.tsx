@@ -13,6 +13,10 @@ import type { EventResponse } from "@/lib/shared";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ExploreEventCard from "@/components/ExploreEventCard";
+import {
+  flattenEventCalendarDays,
+  isCalendarDayInEventRange,
+} from "@/lib/formatEventDates";
 
 function getWeekDates(anchor: Date) {
   const start = new Date(anchor);
@@ -63,11 +67,11 @@ export default function EventsPage() {
         return false;
       }
 
-      if (selectedDate) {
-        const d = new Date(e.eventDate);
-        if (d.toDateString() !== selectedDate.toDateString()) {
-          return false;
-        }
+      if (
+        selectedDate &&
+        !isCalendarDayInEventRange(selectedDate, e.eventDate, e.eventEndDate)
+      ) {
+        return false;
       }
 
       if (searchQuery.trim()) {
@@ -108,6 +112,11 @@ export default function EventsPage() {
     return sorted;
   }, [events, selectedCategory, selectedDate, searchQuery, sortBy]);
 
+  const calendarEventDateStrings = useMemo(
+    () => flattenEventCalendarDays(events),
+    [events],
+  );
+
   return (
     <div className="min-h-screen bg-void text-cream/90">
       <Header />
@@ -128,7 +137,7 @@ export default function EventsPage() {
             setSelectedDate={setSelectedDate}
             weekDates={weekDates}
             monthYear={monthYear}
-            eventDates={events.map((e) => new Date(e.eventDate).toDateString())}
+            eventDates={calendarEventDateStrings}
           />
 
           {loading ? (

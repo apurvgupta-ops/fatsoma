@@ -7,6 +7,7 @@ import type {
   RegisterInput,
   UserResponse,
   CreateUserInput,
+  CreateStaffInput,
   TicketResponse,
   TicketScanValidationInput,
   TicketScanValidationResult,
@@ -291,6 +292,33 @@ export class FatsomaClient {
     if (params?.role) qs.set("role", params.role);
     const query = qs.toString();
     return this.request(`/api/users${query ? `?${query}` : ""}`);
+  }
+
+  async getStaffUsers(): Promise<ApiResponse<UserResponse[]>> {
+    return this.request("/api/users/staff");
+  }
+
+  async createStaffUser(
+    input: CreateStaffInput,
+  ): Promise<ApiResponse<UserResponse>> {
+    return this.request("/api/users/staff", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateStaffUserStatus(
+    id: string,
+    isActive: boolean,
+  ): Promise<ApiResponse> {
+    return this.request(`/api/users/staff/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive }),
+    });
+  }
+
+  async deleteStaffUser(id: string): Promise<ApiResponse> {
+    return this.request(`/api/users/staff/${id}`, { method: "DELETE" });
   }
 
   async createUser(input: CreateUserInput): Promise<ApiResponse<UserResponse>> {

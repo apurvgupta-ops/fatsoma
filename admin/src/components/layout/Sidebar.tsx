@@ -27,12 +27,11 @@ export default function Sidebar() {
           ...(user?.role === "admin" || user?.role === "organizer"
             ? [{ name: "Payments", href: "/payments", icon: CreditCard }]
             : []),
-          // { name: "Scanner", href: "/scanner", icon: QrCode },
+          ...(user?.role === "admin" || user?.role === "organizer"
+            ? [{ name: "Staff", href: "/staff", icon: UserCheck }]
+            : []),
           ...(user?.role === "admin"
-            ? [
-                { name: "Staff", href: "/staff", icon: UserCheck },
-                { name: "Organisers", href: "/users", icon: Users },
-              ]
+            ? [{ name: "Organisers", href: "/users", icon: Users }]
             : []),
         ];
 

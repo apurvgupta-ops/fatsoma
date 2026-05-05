@@ -9,6 +9,10 @@ const REFRESH_TOKEN_EXPIRY = "7d";
 export interface TokenPayload {
   userId: string;
   role: "admin" | "staff" | "organizer" | "user";
+  /** Present for staff tokens; scan API validates only this event. */
+  staffEventId?: string;
+  /** Present for staff tokens; scan API validates only this gate. */
+  staffGateName?: string;
 }
 
 export function generateAccessToken(payload: TokenPayload): string {

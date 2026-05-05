@@ -29,6 +29,7 @@ export interface EventBase {
   country: string;
   mapsLink?: string;
   eventDate: string;
+  eventEndDate?: string;
   startTime: string;
   endTime: string;
   totalTickets: number;
@@ -66,6 +67,9 @@ export interface UserResponse {
   stripeConnectChargesEnabled: boolean;
   stripeConnectPayoutsEnabled: boolean;
   stripeConnectDetailsSubmitted: boolean;
+  staffEventId?: string | null;
+  staffGateName?: string | null;
+  staffAssignedEvent?: { id: string; eventName: string } | null;
   ownedEventCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -140,6 +144,7 @@ export type TicketScanReason =
   | "VALID"
   | "NOT_FOUND"
   | "WRONG_EVENT"
+  | "WRONG_GATE"
   | "ENTRY_WINDOW_CLOSED"
   | "ALREADY_USED"
   | "TICKET_NOT_ACTIVE"

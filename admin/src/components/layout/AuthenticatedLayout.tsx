@@ -24,9 +24,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       }
       if (
         user.role === "organizer" &&
-        ["/users", "/staff", "/panel"].some((prefix) =>
-          pathname.startsWith(prefix),
-        )
+        ["/users", "/panel"].some((prefix) => pathname.startsWith(prefix))
       ) {
         router.replace("/events");
       }

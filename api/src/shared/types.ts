@@ -30,6 +30,8 @@ export interface EventBase {
   country: string;
   mapsLink?: string;
   eventDate: string;
+  /** ISO date; when omitted in DB, clients should treat as same day as `eventDate`. */
+  eventEndDate?: string;
   startTime: string;
   endTime: string;
   totalTickets: number;
@@ -69,6 +71,11 @@ export interface UserResponse {
   stripeConnectChargesEnabled: boolean;
   stripeConnectPayoutsEnabled: boolean;
   stripeConnectDetailsSubmitted: boolean;
+  /** Set when role is `staff`; ticket scans apply only to this event. */
+  staffEventId?: string | null;
+  /** Set when role is `staff`; ticket scans apply only to this gate. */
+  staffGateName?: string | null;
+  staffAssignedEvent?: { id: string; eventName: string } | null;
   ownedEventCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +86,14 @@ export interface CreateUserInput {
   email: string;
   password: string;
   role: "admin" | "staff" | "organizer" | "user";
+}
+
+export interface CreateStaffInput {
+  name: string;
+  email: string;
+  password: string;
+  staffEventId: string;
+  staffGateName: string;
 }
 
 export interface AuthTokens {
@@ -143,6 +158,7 @@ export type TicketScanReason =
   | "VALID"
   | "NOT_FOUND"
   | "WRONG_EVENT"
+  | "WRONG_GATE"
   | "ENTRY_WINDOW_CLOSED"
   | "ALREADY_USED"
   | "TICKET_NOT_ACTIVE"

@@ -21,6 +21,8 @@ export interface IEvent extends Document {
   country: string;
   mapsLink?: string;
   eventDate: Date;
+  /** Last calendar day of the event (defaults to start day when unset). */
+  eventEndDate?: Date;
   startTime: string;
   endTime: string;
   totalTickets: number;
@@ -156,6 +158,7 @@ const EventSchema = new Schema<IEvent>(
       required: [true, "Event date is required"],
       index: true,
     },
+    eventEndDate: { type: Date, required: false, index: true },
     startTime: { type: String, required: [true, "Start time is required"] },
     endTime: { type: String, required: [true, "End time is required"] },
     totalTickets: {
@@ -220,6 +223,15 @@ EventSchema.virtual("totalTicketsFromBatches").get(function () {
 EventSchema.pre("save", function (next) {
   if (this.isNew && this.eventDate < new Date()) {
     next(new Error("Event date must be in the future"));
+    return;
+  }
+
+  const startDay = new Date(this.eventDate);
+  startDay.setHours(0, 0, 0, 0);
+  const endDay = new Date(this.eventEndDate ?? this.eventDate);
+  endDay.setHours(0, 0, 0, 0);
+  if (endDay.getTime() < startDay.getTime()) {
+    next(new Error("End date cannot be before start date"));
     return;
   }
 
