@@ -182,7 +182,7 @@ const EventSchema = new Schema<IEvent>(
       min: [0, "Booking fee cannot be negative"],
       max: [100, "Booking fee cannot exceed 100%"],
     },
-    allowResale: { type: Boolean, default: false },
+    allowResale: { type: Boolean, default: true },
     platformCommission: {
       type: Number,
       required: [true, "Platform commission is required"],

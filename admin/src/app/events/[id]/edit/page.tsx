@@ -88,7 +88,7 @@ export default function EditEventPage() {
     startTime: "",
     endTime: "",
     dynamicPricing: false,
-    allowResale: false,
+    allowResale: true,
     platformCommission: 5,
     status: "draft" as "draft" | "published",
   });

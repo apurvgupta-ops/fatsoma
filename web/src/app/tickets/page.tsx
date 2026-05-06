@@ -1040,52 +1040,58 @@ function GroupedTicketCard({
               Individual Tickets
             </p>
 
-            {maxListable > 0 && (
-              <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-xs text-cream/75">
-                  Pass It{" "}
-                  <span className="font-semibold text-gold">On The List</span> (
-                  {maxListable} available)
-                </div>
-                <div className="flex w-full min-w-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setListQuantity((v) => Math.max(1, v - 1));
-                    }}
-                    className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 sm:h-7 sm:w-7"
-                    aria-label="Decrease quantity"
-                  >
-                    -
-                  </button>
-                  <span className="w-5 shrink-0 text-center text-sm font-semibold text-gold sm:w-8">
-                    {listQuantity}
+            <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-cream/75">
+                Pass It <span className="font-semibold text-gold">On The List</span>{" "}
+                ({maxListable} available)
+                {maxListable === 0 && (
+                  <span className="ml-1 text-cream/55">
+                    - resale is not available for these tickets
                   </span>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setListQuantity((v) => Math.min(maxListable, v + 1));
-                    }}
-                    className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 sm:h-7 sm:w-7"
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onListManyForResale(eligibleTickets, listQuantity);
-                    }}
-                    className="ml-auto rounded-lg border border-gold/35 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold whitespace-nowrap transition-colors hover:bg-gold/20 sm:px-3 sm:text-xs"
-                  >
-                    Pass It On The List
-                  </button>
-                </div>
+                )}
               </div>
-            )}
+              <div className="flex w-full min-w-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setListQuantity((v) => Math.max(1, v - 1));
+                  }}
+                  disabled={maxListable === 0}
+                  className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7"
+                  aria-label="Decrease quantity"
+                >
+                  -
+                </button>
+                <span className="w-5 shrink-0 text-center text-sm font-semibold text-gold sm:w-8">
+                  {maxListable > 0 ? listQuantity : 0}
+                </span>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setListQuantity((v) => Math.min(maxListable, v + 1));
+                  }}
+                  disabled={maxListable === 0}
+                  className="h-6 w-6 shrink-0 rounded-md border border-white/20 text-sm text-cream/80 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7"
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (maxListable === 0) return;
+                    onListManyForResale(eligibleTickets, listQuantity);
+                  }}
+                  disabled={maxListable === 0}
+                  className="ml-auto whitespace-nowrap rounded-lg border border-gold/35 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-xs"
+                >
+                  Pass It On The List
+                </button>
+              </div>
+            </div>
             <div className="space-y-2">
               {group.tickets.map((t, idx) => (
                 <div

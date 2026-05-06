@@ -85,7 +85,7 @@ export default function CreateEventPage() {
     startTime: "",
     endTime: "",
     dynamicPricing: false,
-    allowResale: false,
+    allowResale: true,
     platformCommission: 5,
   });
 
