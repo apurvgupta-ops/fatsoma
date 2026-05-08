@@ -23,6 +23,15 @@ export function formatEventDatesLabel(
   })} – ${end.toLocaleDateString("en-GB", full)}`;
 }
 
+/** Events listing: hide when event start date (local midnight) is before today. */
+export function isEventStartDateTodayOrFuture(eventDate: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(eventDate);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime() >= today.getTime();
+}
+
 export function isCalendarDayInEventRange(
   day: Date,
   startIso: string,

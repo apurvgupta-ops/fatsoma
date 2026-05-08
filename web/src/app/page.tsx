@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { createPublicClient } from "@/lib/api";
 import type { EventResponse } from "@/lib/shared";
-import { ChevronDown, Ticket, QrCode, ShieldCheck } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ExploreEventCard from "@/components/ExploreEventCard";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3016";
+import ResaleModelSection from "@/components/ResaleModelSection";
+import { isEventStartDateTodayOrFuture } from "@/lib/formatEventDates";
+import {
+  browseBuySteps,
+  builtForFairnessFeatures,
+  homeHowItWorksIntro,
+} from "@/content/platformGuide";
+import { ORGANISER_DASHBOARD_URL } from "@/lib/organiserDashboard";
 
 export default function HomePage() {
   const [events, setEvents] = useState<EventResponse[]>([]);
@@ -26,7 +31,9 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const featuredEvents = events.slice(0, 3);
+  const featuredEvents = events
+    .filter((e) => isEventStartDateTodayOrFuture(e.eventDate))
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-void text-cream/90">
@@ -82,34 +89,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How It Works + Built for Fairness + Resale model */}
       <section id="how-it-works" className="relative border-t border-border/50">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <h2 className="text-center font-serif text-4xl font-bold text-cream">
             How It Works
           </h2>
-          <p className="mt-3 text-center text-sm text-cream/60">
-            Secure transfers in three steps
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-cream/60 sm:text-base">
+            {homeHowItWorksIntro}
           </p>
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
-            <FeatureCard
-              icon={<Ticket className="h-8 w-8 text-gold" />}
-              title="No Scalping, Ever"
-              description="Resale tickets are priced at the current release tier — you never pay above what's available today. A small transfer fee covers the secure handoff."
-            />
-            <FeatureCard
-              icon={<QrCode className="h-8 w-8 text-gold" />}
-              title="Atomic QR Transfer"
-              description="When a ticket sells, the old QR is instantly invalidated and a new one is generated. No duplicates, no fraud."
-            />
-            <FeatureCard
-              icon={<ShieldCheck className="h-8 w-8 text-gold" />}
-              title="Verified & Secure"
-              description="Student ID verified. Resale closes 1 hour before event. Every transfer is tracked and tamper-proof."
-            />
+          <p className="mt-10 text-center font-serif text-xl font-semibold text-cream sm:text-2xl">
+            Browse &amp; Buy
+          </p>
+          <p className="mt-2 text-center text-sm text-cream/50">
+            Your journey from discovery to doorstep
+          </p>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {browseBuySteps.map((step) => (
+              <FeatureCard
+                key={step.number}
+                icon={<step.icon className="h-8 w-8 text-gold" />}
+                title={step.title}
+                description={step.description}
+              />
+            ))}
+          </div>
+
+          <h3 className="mt-16 text-center font-serif text-3xl font-bold text-cream">
+            Built for Fairness
+          </h3>
+          <p className="mt-2 text-center text-sm text-cream/50">
+            Every feature designed to protect you
+          </p>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {builtForFairnessFeatures.map((f) => (
+              <FeatureCard
+                key={f.title}
+                icon={<f.icon className="h-8 w-8 text-gold" />}
+                title={f.title}
+                description={f.description}
+              />
+            ))}
           </div>
         </div>
       </section>
+
+      <ResaleModelSection />
 
       {/* Featured Events */}
       <section className="relative border-t border-border/50">
@@ -142,7 +167,11 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="mt-12 rounded-xl border border-border/50 bg-surface/40 p-12 text-center">
-              <p className="text-cream/70">No events yet. Check back soon!</p>
+              <p className="text-cream/70">
+                Nothing featured yet — new events go live here as soon as they
+                publish. Take a look at the full calendar for what&apos;s coming
+                up.
+              </p>
               <Link
                 href="/events"
                 className="mt-4 inline-block text-sm font-medium text-gold hover:underline"
@@ -151,6 +180,15 @@ export default function HomePage() {
               </Link>
             </div>
           )}
+          <p className="mt-10 text-center text-sm text-cream/55">
+            Are you an organiser?{" "}
+            <a
+              href={ORGANISER_DASHBOARD_URL}
+              className="font-medium text-gold underline-offset-2 hover:underline"
+            >
+              List your event here.
+            </a>
+          </p>
         </div>
       </section>
 
@@ -170,7 +208,7 @@ export default function HomePage() {
               href="/tickets"
               className="inline-flex rounded-lg bg-gold px-8 py-3 font-semibold text-void transition-colors hover:bg-gold-light"
             >
-              Pass it On The List
+              List My Ticket for Resale
             </Link>
           </div>
         </div>
@@ -186,7 +224,7 @@ function FeatureCard({
   title,
   description,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
 }) {

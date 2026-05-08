@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { LogoIcon } from "@/components/Logo";
 
 export default function LoginPage() {
@@ -57,11 +57,20 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-void px-4">
+    <div className="relative min-h-screen bg-void px-4 py-6">
       <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/10 blur-[160px]" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-gold-light/10 blur-[160px]" />
 
-      <div className="relative w-full max-w-md">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col">
+        <Link
+          href="/"
+          className="mb-6 inline-flex shrink-0 items-center gap-2 text-sm font-medium text-cream/70 transition-colors hover:text-cream"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          Back to home
+        </Link>
+
+        <div className="flex flex-1 flex-col justify-center pb-12 sm:justify-start sm:pt-4 md:justify-center md:pt-0">
         {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-3">
@@ -161,6 +170,7 @@ function LoginForm() {
               Sign up
             </Link>
           </p>
+        </div>
         </div>
       </div>
     </div>

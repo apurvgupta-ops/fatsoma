@@ -13,6 +13,26 @@ import {
   totalQuantityFromGroups,
 } from "../domain/eventTickets";
 
+function startOfLocalCalendarDay(d: Date): Date {
+  const t = new Date(d);
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+
+/** Reject if the event's calendar start day is strictly before today (server local). */
+function assertEventDateTodayOrFuture(eventDate: Date): void {
+  if (Number.isNaN(eventDate.getTime())) {
+    throw AppError.badRequest("Invalid event date");
+  }
+  const day = startOfLocalCalendarDay(eventDate);
+  const today = startOfLocalCalendarDay(new Date());
+  if (day.getTime() < today.getTime()) {
+    throw AppError.badRequest(
+      "Event date must be today or in the future.",
+    );
+  }
+}
+
 function normalizeTicketBatches(batches: any[] = []) {
   return batches.map((batch) => {
     const cutoffRaw = batch?.entryWindowCutoff;
@@ -305,13 +325,18 @@ export async function createEvent(
   const totalTickets = totalQuantityFromGroups(groups);
   const startDate = new Date(data.eventDate);
   const endDateRaw = data.eventEndDate ?? data.eventDate;
+  assertEventDateTodayOrFuture(startDate);
+  const eventEndDate = new Date(endDateRaw);
+  if (Number.isNaN(eventEndDate.getTime())) {
+    throw AppError.badRequest("Invalid event end date");
+  }
   const event = await Event.create({
     ...data,
     ticketGroups: groups,
     totalTickets,
     bookingFee: BOOKING_FEE_PERCENT,
     eventDate: startDate,
-    eventEndDate: new Date(endDateRaw),
+    eventEndDate,
     status,
     createdBy: userId,
   });
@@ -386,6 +411,10 @@ export async function updateEvent(
     isTicketPayloadUpdate
       ? { ...updateBody, $unset: { ticketBatches: "" } }
       : updateBody;
+
+  if (updateBody.eventDate != null) {
+    assertEventDateTodayOrFuture(updateBody.eventDate as Date);
+  }
 
   const updated = await Event.findByIdAndUpdate(id, mongoUpdate, {
     new: true,

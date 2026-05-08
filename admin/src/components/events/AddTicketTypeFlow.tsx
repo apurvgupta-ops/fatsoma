@@ -91,9 +91,12 @@ export function AddTicketTypeFlow({
   ]);
   const [openGroupIndices, setOpenGroupIndices] = useState<number[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [modalSubmitError, setModalSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    setOpenGroupIndices((prev) => prev.filter((idx) => idx < ticketGroups.length));
+    setOpenGroupIndices((prev) =>
+      prev.filter((idx) => idx < ticketGroups.length),
+    );
   }, [ticketGroups.length]);
 
   const toggleOpenGroup = (groupIndex: number) => {
@@ -118,6 +121,7 @@ export function AddTicketTypeFlow({
     field: keyof TicketBatch,
     value: string | number,
   ) => {
+    setModalSubmitError(null);
     setModalBatches((prev) =>
       prev.map((b, i) =>
         i !== index
@@ -134,10 +138,12 @@ export function AddTicketTypeFlow({
   };
 
   const addSlot = () => {
+    setModalSubmitError(null);
     setModalBatches((prev) => [...prev, { ...emptyBatch() }]);
   };
 
   const removeSlot = (index: number) => {
+    setModalSubmitError(null);
     setModalBatches((prev) =>
       prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
     );
@@ -157,11 +163,13 @@ export function AddTicketTypeFlow({
     setModalBatches(initialBatchesForPreset(preset));
     setModalOpen(true);
     setExpanded(false);
+    setModalSubmitError(null);
   };
 
   const closeModal = () => {
     setModalOpen(false);
     setActivePreset(null);
+    setModalSubmitError(null);
   };
 
   const handleModalSubmit = (e: React.FormEvent) => {
@@ -169,12 +177,30 @@ export function AddTicketTypeFlow({
     if (!activePreset) return;
 
     const title = groupTitle.trim();
-    if (!title) return;
+    if (!title) {
+      setModalSubmitError("Enter a group heading.");
+      return;
+    }
 
-    for (const batch of modalBatches) {
-      if (!batch.name.trim()) return;
-      if ((Number(batch.quantity) || 0) < 1) return;
-      if ((Number(batch.basePrice) || 0) < 0) return;
+    for (let i = 0; i < modalBatches.length; i++) {
+      const batch = modalBatches[i];
+      const slot = i + 1;
+      if (!batch.name.trim()) {
+        setModalSubmitError(`Enter a slot name for slot ${slot}.`);
+        return;
+      }
+      if ((Number(batch.quantity) || 0) < 1) {
+        setModalSubmitError(
+          `Quantity for "${batch.name.trim()}" must be at least 1.`,
+        );
+        return;
+      }
+      if ((Number(batch.basePrice) || 0) < 0) {
+        setModalSubmitError(
+          `Price for "${batch.name.trim()}" cannot be negative.`,
+        );
+        return;
+      }
     }
 
     onAdd({
@@ -194,7 +220,7 @@ export function AddTicketTypeFlow({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 border-b border-border px-5 py-4 text-left transition hover:bg-surface/30"
+          className="flex w-full items-center justify-between gap-3 border-border px-5 py-4 text-left transition hover:bg-surface/30"
         >
           <span className="text-sm font-semibold text-cream">
             + Add ticket type
@@ -377,8 +403,8 @@ export function AddTicketTypeFlow({
                               placeholder="Optional"
                             />
                             <p className="mt-1 text-xs text-cream/55">
-                              Optional: after this datetime, entry with this tier
-                              is no longer valid.
+                              Optional: after this datetime, entry with this
+                              tier is no longer valid.
                             </p>
                           </div>
                         </div>
@@ -431,7 +457,10 @@ export function AddTicketTypeFlow({
               <InputField
                 label="Group heading"
                 value={groupTitle}
-                onChange={setGroupTitle}
+                onChange={(v) => {
+                  setModalSubmitError(null);
+                  setGroupTitle(v);
+                }}
                 placeholder="e.g. General admission"
                 required
                 className="sm:max-w-md"
@@ -501,7 +530,7 @@ export function AddTicketTypeFlow({
                         <InputField
                           label="Entry Window Cutoff"
                           type="datetime-local"
-                          value={batch.entryWindowCutoff ?? ""}
+                          value={toDateTimeLocal(batch.entryWindowCutoff)}
                           onChange={(v) =>
                             patchBatch(bi, "entryWindowCutoff", v)
                           }
@@ -525,6 +554,15 @@ export function AddTicketTypeFlow({
                 </button>
               </div>
             </div>
+
+            {modalSubmitError && (
+              <div
+                className="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+                role="alert"
+              >
+                {modalSubmitError}
+              </div>
+            )}
 
             <div className="mt-8 flex flex-wrap justify-end gap-2 border-t border-border pt-6">
               <button

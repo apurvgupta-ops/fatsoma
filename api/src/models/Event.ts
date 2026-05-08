@@ -221,11 +221,6 @@ EventSchema.virtual("totalTicketsFromBatches").get(function () {
 });
 
 EventSchema.pre("save", function (next) {
-  if (this.isNew && this.eventDate < new Date()) {
-    next(new Error("Event date must be in the future"));
-    return;
-  }
-
   const startDay = new Date(this.eventDate);
   startDay.setHours(0, 0, 0, 0);
   const endDay = new Date(this.eventEndDate ?? this.eventDate);

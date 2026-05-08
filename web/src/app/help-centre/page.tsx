@@ -12,24 +12,14 @@ const faqs = [
       "Browse events on our platform, select the event you want to attend, choose your ticket quantity, and proceed to checkout. Payments are processed securely through Stripe. Once your payment is confirmed, a unique QR code is generated and linked to your account — that's your ticket.",
   },
   {
-    question: "Can I get a refund?",
-    answer:
-      "Refund policies are set by individual event organisers. If the organiser allows refunds, you can request one from your tickets page. Alternatively, you can list your ticket for resale on the platform — you'll receive your original purchase price back when it sells.",
-  },
-  {
     question: "How does resale work?",
     answer:
       "If you can no longer attend an event, you can list your ticket for resale at or below the current release price. When another student buys it, your original QR code is instantly invalidated and a new one is generated for the buyer. You receive your original purchase price back in full.",
   },
   {
-    question: "What is the Smart Timing Fee?",
-    answer:
-      "The Smart Timing Fee is our platform booking fee applied at checkout. It currently operates as a fixed percentage but is designed to adjust dynamically based on demand and proximity to the event — starting low when tickets first go on sale and rising as the event approaches. This encourages early purchases and keeps pricing fair.",
-  },
-  {
     question: "How do I list my ticket for resale?",
     answer:
-      "Go to your tickets page, find the ticket you want to sell, and tap 'List for Resale'. Set your price (at or below the current release price) and confirm. Your ticket will appear in the resale marketplace. You can cancel the listing at any time before it sells.",
+      "Go to your tickets page, find the ticket you want to sell, and tap 'List for Resale'. Your ticket will appear in the resale marketplace. You can cancel the listing at any time before it sells.",
   },
   {
     question: "Is my payment secure?",
@@ -82,7 +72,7 @@ export default function HelpCentrePage() {
           <div className="space-y-3">
             {faqs.map((faq, index) => (
               <div
-                key={index}
+                key={faq.question}
                 className="rounded-xl border border-border bg-surface/60 transition-colors"
               >
                 <button

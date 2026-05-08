@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { createPublicClient } from "@/lib/api";
 import type { EventResponse } from "@/lib/shared";
 import Header from "@/components/Header";
@@ -16,6 +10,7 @@ import ExploreEventCard from "@/components/ExploreEventCard";
 import {
   flattenEventCalendarDays,
   isCalendarDayInEventRange,
+  isEventStartDateTodayOrFuture,
 } from "@/lib/formatEventDates";
 
 function getWeekDates(anchor: Date) {
@@ -51,18 +46,19 @@ export default function EventsPage() {
     () => getWeekDates(calendarAnchor),
     [calendarAnchor],
   );
-  const monthYear = calendarAnchor.toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-  });
 
-  const categories = useMemo(
-    () => ["all", ...new Set(events.map((e) => e.eventCategory))],
+  const upcomingEvents = useMemo(
+    () => events.filter((e) => isEventStartDateTodayOrFuture(e.eventDate)),
     [events],
   );
 
+  const categories = useMemo(
+    () => ["all", ...new Set(upcomingEvents.map((e) => e.eventCategory))],
+    [upcomingEvents],
+  );
+
   const filtered = useMemo(() => {
-    const base = events.filter((e) => {
+    const base = upcomingEvents.filter((e) => {
       if (selectedCategory !== "all" && e.eventCategory !== selectedCategory) {
         return false;
       }
@@ -110,11 +106,17 @@ export default function EventsPage() {
     }
 
     return sorted;
-  }, [events, selectedCategory, selectedDate, searchQuery, sortBy]);
+  }, [
+    upcomingEvents,
+    selectedCategory,
+    selectedDate,
+    searchQuery,
+    sortBy,
+  ]);
 
   const calendarEventDateStrings = useMemo(
-    () => flattenEventCalendarDays(events),
-    [events],
+    () => flattenEventCalendarDays(upcomingEvents),
+    [upcomingEvents],
   );
 
   return (
@@ -136,7 +138,6 @@ export default function EventsPage() {
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
             weekDates={weekDates}
-            monthYear={monthYear}
             eventDates={calendarEventDateStrings}
           />
 
@@ -188,7 +189,6 @@ function EventsHeader({
   selectedDate,
   setSelectedDate,
   weekDates,
-  monthYear,
   eventDates,
 }: {
   searchQuery: string;
@@ -203,7 +203,6 @@ function EventsHeader({
   selectedDate: Date | null;
   setSelectedDate: (d: Date | null) => void;
   weekDates: Date[];
-  monthYear: string;
   eventDates: string[];
 }) {
   const todayDateStr = new Date().toDateString();
@@ -239,28 +238,6 @@ function EventsHeader({
         </p>
       </div>
 
-      <div className="relative mb-8 flex items-start gap-4 rounded-xl border border-gold/20 bg-surface px-5 py-4">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10">
-          <ShieldCheck className="h-4 w-4 text-gold" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm leading-relaxed text-muted">
-            <span className="font-semibold text-cream">
-              On The List has two ways to get in
-            </span>{" "}
-            - buy direct from the organiser, or claim a spot passed on by
-            another student. Same price. Fully secure.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="mt-0.5 shrink-0 text-cream/40 transition-colors hover:text-cream"
-          aria-label="Dismiss"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
       <div className="mb-8 rounded-2xl border border-border bg-surface p-5">
         <div className="mb-5 flex items-center justify-between">
           <button
@@ -289,7 +266,7 @@ function EventsHeader({
             const dateStr = d.toDateString();
             const isSelected = selectedDate?.toDateString() === dateStr;
             const isToday = dateStr === todayDateStr;
-            const showTodayHighlight = !selectedDate && isToday;
+            const showTodayDot = !selectedDate && isToday;
             const inCurrentMonth = d.getMonth() === calendarAnchor.getMonth();
             const dayCount = eventCountByDay[dateStr] ?? 0;
             return (
@@ -298,37 +275,39 @@ function EventsHeader({
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : d)}
                 aria-pressed={isSelected}
+                aria-current={showTodayDot ? "date" : undefined}
                 className={`relative flex select-none flex-col items-center rounded-xl px-1 py-3 transition-all ${
                   !inCurrentMonth
                     ? "opacity-30"
                     : isSelected
                       ? "border border-gold/40 bg-gold/10"
-                      : showTodayHighlight
-                        ? "border border-gold/30 bg-gold/5"
-                        : ""
+                      : ""
                 }`}
               >
-                <span
-                  className={`mb-1.5 text-[11px] font-medium ${
-                    isSelected || showTodayHighlight
-                      ? "text-gold/70"
-                      : "text-cream/40"
-                  }`}
-                >
+                <span className="mb-1.5 text-[11px] font-medium text-cream/40">
                   {d.toLocaleDateString("en-GB", { weekday: "short" })}
                 </span>
                 <span
-                  className={`text-sm font-bold leading-none ${isSelected || showTodayHighlight ? "text-gold" : "text-cream"}`}
+                  className={`text-sm font-bold leading-none ${isSelected ? "text-gold" : "text-cream"}`}
                 >
                   {d.getDate()}
                 </span>
-                <span className="mt-1.5 h-4">
+                <div className="mt-1.5 flex min-h-5 flex-col items-center justify-end gap-1">
+                  {showTodayDot ? (
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold"
+                      aria-hidden
+                    />
+                  ) : null}
                   {dayCount > 0 ? (
                     <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gold/20 px-1 text-[10px] font-bold text-gold">
                       {dayCount}
                     </span>
                   ) : null}
-                </span>
+                  {!showTodayDot && dayCount === 0 ? (
+                    <span className="h-1.5 shrink-0" aria-hidden />
+                  ) : null}
+                </div>
               </button>
             );
           })}

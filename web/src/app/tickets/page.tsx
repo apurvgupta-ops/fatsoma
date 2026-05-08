@@ -341,7 +341,10 @@ export default function MyTicketsPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             <SummaryCard value={activeTickets.length} label="Upcoming" />
-            <SummaryCard value={resaleTickets.length} label="On The List" />
+            <SummaryCard
+              value={resaleTickets.length}
+              label="Listed for Resale"
+            />
             {/* <SummaryCard value={resaleTickets.length} label="Active listings" /> */}
           </div>
 
@@ -368,11 +371,7 @@ export default function MyTicketsPage() {
                   : "bg-surface/60 text-cream/90 hover:bg-surface"
               }`}
             >
-              <span
-                className={activeTab === "resale" ? "text-void" : "text-gold"}
-              >
-                On The List
-              </span>{" "}
+              Listed for Resale{" "}
               <span className="ml-1.5 text-xs text-bg/70">
                 ({resaleTickets.length})
               </span>
@@ -620,7 +619,7 @@ export default function MyTicketsPage() {
           <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="font-serif text-xl font-semibold text-cream">
-                Pass It <span className="text-gold">On The List</span>
+                List ticket for resale
               </h3>
               <button
                 onClick={() => {
@@ -779,7 +778,7 @@ export default function MyTicketsPage() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-void transition-colors hover:bg-gold-light disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Pass It On The List
+                List My Ticket for Resale
               </button>
             </div>
           </div>
@@ -1042,8 +1041,7 @@ function GroupedTicketCard({
 
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-cream/75">
-                Pass It <span className="font-semibold text-gold">On The List</span>{" "}
-                ({maxListable} available)
+                Resale listings ({maxListable} available)
                 {maxListable === 0 && (
                   <span className="ml-1 text-cream/55">
                     - resale is not available for these tickets
@@ -1088,7 +1086,7 @@ function GroupedTicketCard({
                   disabled={maxListable === 0}
                   className="ml-auto whitespace-nowrap rounded-lg border border-gold/35 bg-gold/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-xs"
                 >
-                  Pass It On The List
+                  List My Ticket for Resale
                 </button>
               </div>
             </div>
@@ -1151,7 +1149,7 @@ function GroupedTicketCard({
                           }}
                           className="shrink-0 rounded-lg border border-gold/30 px-3 py-1.5 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
                         >
-                          Pass It On The List
+                          List My Ticket for Resale
                         </button>
                       )}
                     </div>
@@ -1304,9 +1302,7 @@ function GroupedResaleCard({
 
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gold/20 bg-gold/5 p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-cream/75">
-                Cancel{" "}
-                <span className="font-semibold text-gold">On The List</span>{" "}
-                listing ({group.quantity} available)
+                Cancel resale listing ({group.quantity} available)
               </div>
               <div className="flex w-full min-w-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
                 <button
@@ -1468,7 +1464,7 @@ function TicketCard({
                   onClick={onListForResale}
                   className="border border-gold/30 text-muted text-sm font-medium px-4 py-2 rounded-lg hover:bg-gold/10 transition-colors"
                 >
-                  Pass It <span className="text-gold">On The List</span>
+                  List My Ticket for Resale
                 </button>
               )}
               {/* {ticket.status === "active" && (

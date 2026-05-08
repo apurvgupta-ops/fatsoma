@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, QrCode, UserCheck, Lock, Database } from "lucide-react";
+import { ShieldCheck, QrCode, Lock, Database } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -25,17 +25,6 @@ const policies = [
       "Instant QR code invalidation",
       "New QR generated for buyer",
       "Zero duplicate ticket risk",
-    ],
-  },
-  {
-    icon: UserCheck,
-    title: "Student Verification",
-    description:
-      "On The List is built for verified students. Our platform ensures that ticket holders are genuine members of the student community, keeping events safe and authentic.",
-    highlights: [
-      "Student-only platform",
-      "Identity verification",
-      "Community trust",
     ],
   },
   {
@@ -79,8 +68,7 @@ export default function TrustSafetyPage() {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
             Every layer of our platform is built around protecting you — from
-            fair pricing to secure transfers, verified identities, and encrypted
-            data.
+            fair pricing to secure transfers and encrypted data.
           </p>
         </div>
       </section>

@@ -42,9 +42,8 @@ export default function ExploreEventCard({ event }: { event: EventResponse }) {
             {event.eventCategory}
           </span>
           {event.allowResale && (
-            <span className="rounded-md bg-gold/20 px-2.5 py-1 text-xs font-medium backdrop-blur-sm">
-              <span className="text-cream">Spots available </span>
-              <span className="text-gold">On The List</span>
+            <span className="rounded-md bg-gold/20 px-2.5 py-1 text-xs font-medium text-gold backdrop-blur-sm">
+              Resale listing open
             </span>
           )}
           {soldOut && (

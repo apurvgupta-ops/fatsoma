@@ -54,7 +54,10 @@ export const createEventSchema = z
     eventEndDate: z.string().min(1).optional(),
     startTime: z.string().min(1),
     endTime: z.string().min(1),
-    totalTickets: z.number().min(1, "Total tickets must be greater than 0"),
+    totalTickets: z.number().min(
+      1,
+      "Add at least one ticket tier and set available quantity.",
+    ),
     ticketGroups: z.array(ticketGroupSchema).optional(),
     ticketBatches: z.array(ticketBatchSchema).optional(),
     dynamicPricing: z.boolean(),

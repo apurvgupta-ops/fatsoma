@@ -1,60 +1,14 @@
 "use client";
 
-import {
-  Search,
-  ShoppingCart,
-  QrCode,
-  ShieldCheck,
-  RefreshCw,
-  Percent,
-} from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-const steps = [
-  {
-    number: "01",
-    icon: Search,
-    title: "Find Your Event",
-    description:
-      "Browse upcoming events near you. Filter by date, category, or venue to find exactly what you're looking for.",
-  },
-  {
-    number: "02",
-    icon: ShoppingCart,
-    title: "Select & Checkout",
-    description:
-      "Pick your tickets, choose your quantity, and pay securely through Stripe. Your QR code is generated instantly.",
-  },
-  {
-    number: "03",
-    icon: QrCode,
-    title: "Get Your QR Code",
-    description:
-      "A unique, tamper-proof QR code is issued to your account. Show it at the door — that's your ticket in.",
-  },
-];
-
-const features = [
-  {
-    icon: ShieldCheck,
-    title: "Secure Resale",
-    description:
-      "Need to sell your ticket? List it at or below the current release price. When it sells, your old QR code is instantly invalidated and a brand-new one is generated for the buyer. No duplicates, no fraud.",
-  },
-  {
-    icon: RefreshCw,
-    title: "Atomic Transfers",
-    description:
-      "Every resale is an atomic operation — the old ticket is voided and the new one is created in a single step. There is never a moment where two valid tickets exist for the same seat.",
-  },
-  {
-    icon: Percent,
-    title: "Fair Pricing, Always",
-    description:
-      "Our Smart Timing Fee starts low and rises with demand, but the ticket price itself is always capped at the current release tier. No scalping, ever. You pay what's fair.",
-  },
-];
+import ResaleModelSection from "@/components/ResaleModelSection";
+import {
+  howItWorksPageSubtitle,
+  browseBuySectionSubtitle,
+  browseBuySteps,
+  builtForFairnessFeatures,
+} from "@/content/platformGuide";
 
 export default function HowItWorksPage() {
   return (
@@ -72,8 +26,7 @@ export default function HowItWorksPage() {
             How It <span className="text-gold">Works</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
-            From browsing to entry — three simple steps. Secure payments,
-            verified transfers, and fair pricing built into every transaction.
+            {howItWorksPageSubtitle}
           </p>
         </div>
       </section>
@@ -84,10 +37,10 @@ export default function HowItWorksPage() {
             Browse & Buy
           </h2>
           <p className="mt-3 text-center text-sm text-cream/60">
-            Your journey from discovery to doorstep
+            {browseBuySectionSubtitle}
           </p>
           <div className="mt-16 space-y-12">
-            {steps.map((step) => (
+            {browseBuySteps.map((step) => (
               <div
                 key={step.number}
                 className="flex flex-col items-center gap-6 sm:flex-row"
@@ -122,7 +75,7 @@ export default function HowItWorksPage() {
             Every feature designed to protect you
           </p>
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
-            {features.map((feature) => (
+            {builtForFairnessFeatures.map((feature) => (
               <div
                 key={feature.title}
                 className="rounded-2xl border border-border bg-surface/60 p-8"
@@ -142,8 +95,9 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
+      <ResaleModelSection />
+
       <Footer />
     </div>
   );
 }
-
