@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import Header from "@/components/Header";
+import Header, { SITE_HEADER_OFFSET } from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const faqs = [
@@ -46,7 +46,7 @@ export default function HelpCentrePage() {
   };
 
   return (
-    <div className="min-h-screen bg-void text-cream/90">
+    <div className={`min-h-screen bg-void text-cream/90 ${SITE_HEADER_OFFSET}`}>
       <Header />
 
       <section className="relative overflow-hidden">

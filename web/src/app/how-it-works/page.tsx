@@ -1,6 +1,6 @@
 "use client";
 
-import Header from "@/components/Header";
+import Header, { SITE_HEADER_OFFSET } from "@/components/Header";
 import Footer from "@/components/Footer";
 import ResaleModelSection from "@/components/ResaleModelSection";
 import {
@@ -12,7 +12,7 @@ import {
 
 export default function HowItWorksPage() {
   return (
-    <div className="min-h-screen bg-void text-cream/90">
+    <div className={`min-h-screen bg-void text-cream/90 ${SITE_HEADER_OFFSET}`}>
       <Header />
 
       <section className="relative overflow-hidden">

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, User, ChevronDown, Ticket } from "lucide-react";
 
 export default function UserMenu() {
   const { user, loading, logout } = useAuth();
@@ -19,15 +18,14 @@ export default function UserMenu() {
   }, []);
 
   if (loading) {
-    return <div className="h-9 w-24 animate-pulse rounded-lg bg-white/5" />;
+    return (
+      <div className="h-8 w-8 animate-pulse rounded-full bg-[#2A2A2A]" />
+    );
   }
 
   if (!user) {
     return (
-      <Link
-        href="/login"
-        className="cursor-pointer rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-void transition hover:brightness-110"
-      >
+      <Link href="/login" className="nav-sign-up">
         Sign In
       </Link>
     );
@@ -40,58 +38,51 @@ export default function UserMenu() {
     .toUpperCase()
     .slice(0, 2);
 
+  const menuItemClass =
+    "block w-full border-b border-border px-4 py-3 text-left font-jost text-xs tracking-[0.08em] text-cream/70 uppercase transition hover:bg-[#242424] last:border-b-0";
+
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-white/5 px-3 py-1.5 transition hover:bg-white/10"
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-[#2A2A2A] font-jost text-xs font-bold tracking-[0.05em] text-gold"
+        aria-label="Profile menu"
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-gold to-gold-light text-xs font-bold text-cream">
-          {initials}
-        </div>
-        <span className="max-w-[100px] truncate text-sm font-medium text-cream/90">
-          {user.name}
-        </span>
-        <ChevronDown className={`h-3.5 w-3.5 text-cream/60 transition ${open ? "rotate-180" : ""}`} />
+        {initials}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-void shadow-2xl">
-          <div className="border-b border-border px-4 py-3">
-            <p className="text-sm font-medium text-cream">{user.name}</p>
-            <p className="truncate text-xs text-cream/60">{user.email}</p>
-          </div>
-          <div className="p-1">
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-gold"
-            >
-              <User className="h-4 w-4" />
-              Profile
-            </Link>
-            <Link
-              href="/tickets"
-              onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-gold"
-            >
-              <Ticket className="h-4 w-4" />
-              My Tickets
-            </Link>
-            <button
-              onClick={() => {
-                setOpen(false);
-                logout();
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-cream/60 transition hover:bg-white/5 hover:text-red-400"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
+        <div
+          className="absolute top-11 right-0 z-[100] min-w-[160px] overflow-hidden rounded-lg border border-border bg-[#1A1A1A] shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+          style={{ animation: "fadeInDown 150ms cubic-bezier(0.16,1,0.3,1)" }}
+        >
+          <Link
+            href="/unbuy"
+            onClick={() => setOpen(false)}
+            className={menuItemClass}
+          >
+            My Tickets
+          </Link>
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className={menuItemClass}
+          >
+            Settings
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              logout();
+            }}
+            className={menuItemClass}
+          >
+            Logout
+          </button>
         </div>
       )}
     </div>
   );
 }
-

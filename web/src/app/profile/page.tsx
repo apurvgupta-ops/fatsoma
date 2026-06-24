@@ -22,7 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import Header from "@/components/Header";
+import Header, { SITE_HEADER_OFFSET } from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function ProfilePage() {
@@ -67,7 +67,7 @@ export default function ProfilePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-void">
+      <div className={`min-h-screen bg-void ${SITE_HEADER_OFFSET}`}>
         <Header />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-gold" />
@@ -87,7 +87,7 @@ export default function ProfilePage() {
   const totalSpent = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
 
   return (
-    <div className="min-h-screen bg-void text-cream/90">
+    <div className={`min-h-screen bg-void text-cream/90 ${SITE_HEADER_OFFSET}`}>
       <Header />
 
       <div className="relative overflow-hidden">
@@ -293,7 +293,7 @@ function PurchaseHistory({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-cream">Purchase History</h2>
         {/* <Link
-          href="/tickets"
+          href="/unbuy"
           className="cursor-pointer text-sm font-medium text-gold hover:underline"
         >
           View Tickets
@@ -448,7 +448,7 @@ function ResaleHistory({
           <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-cream/20" />
           <p className="text-sm text-cream/60">No resale history yet</p>
           <Link
-            href="/tickets"
+            href="/unbuy"
             className="mt-4 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gold hover:underline"
           >
             Go to My Tickets <ArrowRight className="h-4 w-4" />

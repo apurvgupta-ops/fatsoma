@@ -20,7 +20,7 @@ import { BOOKING_FEE_PERCENT, RESALE_FEE_PERCENT } from "@/lib/shared";
 import { formatEventDatesLabel } from "@/lib/formatEventDates";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/Header";
+import Header, { SITE_HEADER_OFFSET } from "@/components/Header";
 import {
   MapPin,
   CalendarDays,
@@ -221,10 +221,10 @@ export default function EventDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-cream/90">
+    <div className={`min-h-screen bg-void text-cream/90 ${SITE_HEADER_OFFSET}`}>
       <Header />
 
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <nav className="mb-6 flex items-center gap-2 text-sm text-cream/40">
           <Link href="/events" className="transition hover:text-gold">
             Events

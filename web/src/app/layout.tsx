@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Space_Grotesk, Cormorant_Garamond, Inter, Playfair_Display } from "next/font/google";
+import {
+  IBM_Plex_Mono,
+  Cormorant_Garamond,
+  Inter,
+  Playfair_Display,
+  Jost,
+} from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-geist-mono",
@@ -29,11 +30,19 @@ const inter = Inter({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
+  weight: ["400", "700", "900"],
+});
+
+const jost = Jost({
+  variable: "--font-jost",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "Explore Events | OnTheList",
-  description: "Browse upcoming events with live stock-style booking fee trends.",
+  title: "On The List — Student Ticket Marketplace",
+  description:
+    "The student ticket platform that moves with your plans. Buy early, un-buy later.",
   icons: {
     icon: "/favicon.svg",
   },
@@ -42,7 +51,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${plexMono.variable} ${cormorant.variable} ${inter.variable} ${playfair.variable} antialiased`}>
+      <body
+        className={`${jost.variable} ${plexMono.variable} ${cormorant.variable} ${inter.variable} ${playfair.variable} antialiased`}
+      >
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

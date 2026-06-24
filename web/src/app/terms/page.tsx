@@ -1,128 +1,84 @@
 "use client";
 
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import {
+  ContentPageLayout,
+  PageHero,
+  FadeInSection,
+} from "@/components/content/ContentPage";
 
-const sections = [
+const clauses = [
   {
-    number: 1,
-    title: "Acceptance of Terms",
-    content:
-      'By accessing or using On The List ("the Platform"), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, you must not use the Platform. We reserve the right to update these terms at any time, and your continued use of the Platform constitutes acceptance of any modifications.',
+    n: "1.",
+    heading: "Acceptance of terms",
+    body: "By accessing or using On The List, you agree to be bound by these Terms of Use. If you do not agree, you may not use the platform. These terms apply to all visitors, buyers, sellers, and event organisers.",
   },
   {
-    number: 2,
-    title: "User Accounts",
-    content:
-      "You must create an account to purchase or sell tickets on the Platform. You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You must provide accurate and complete information during registration and keep your account information up to date. We reserve the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.",
+    n: "2.",
+    heading: "The resale model",
+    body: "On The List operates a controlled resale system. When you list a ticket for resale, the resale price is set automatically to the current tier price — the same price any new buyer would pay at that moment. You may not set a higher or lower price. This is enforced at the platform level, not by policy.",
   },
   {
-    number: 3,
-    title: "Ticket Purchases",
-    content:
-      "All ticket purchases are subject to availability. Prices are set by event organisers and may vary between ticket batches. A platform booking fee is applied at checkout. Once a purchase is confirmed, a unique QR code is generated and linked to your account. This QR code serves as your entry credential and must not be shared, duplicated, or transferred outside of the Platform's official resale mechanism.",
+    n: "3.",
+    heading: "No profit on resale",
+    body: "You may not profit from reselling a ticket on this platform. The resale model is designed such that profit is structurally impossible. Any attempt to circumvent this through external arrangements is a breach of these terms and may result in account termination.",
   },
   {
-    number: 4,
-    title: "Resale Policy",
-    content:
-      "Tickets may be listed for resale exclusively through the Platform's built-in resale feature. Resale prices are capped at the current release price set by the organiser — tickets may not be listed above this threshold. When a resale transaction is completed, the seller's QR code is immediately invalidated and a new QR code is generated for the buyer. Resale listings close one hour before the event start time. Any attempt to sell tickets outside of the Platform, or at prices above the cap, will result in account suspension.",
+    n: "4.",
+    heading: "Ticket validity",
+    body: "Each ticket is uniquely identified by a QR code. Upon a completed resale transaction, the seller's QR code is permanently invalidated and a new code is issued to the buyer in the same atomic transaction. On The List accepts no liability for tickets purchased or transferred outside of this platform.",
   },
   {
-    number: 5,
-    title: "Fees and Payments",
-    content:
-      "All payments are processed through Stripe, a PCI DSS Level 1 compliant payment processor. A booking fee is applied to all ticket purchases and resale transactions. The current fee structure is displayed at checkout before payment is confirmed. Sellers receive their original purchase price when a resale is completed. The Platform does not store payment card details — all sensitive payment information is handled by Stripe.",
+    n: "5.",
+    heading: "Payments",
+    body: "All payments are processed securely via third-party payment providers. Booking fees and resale fees are shown to you before you confirm any transaction. On The List does not store payment card details. Refunds are issued in accordance with the specific event's policy and these terms.",
   },
   {
-    number: 6,
-    title: "Cancellations and Refunds",
-    content:
-      "Refund policies are determined by individual event organisers. If an event is cancelled, all ticket holders are eligible for a full refund, which will be processed to the original payment method. If an organiser permits refunds for non-cancelled events, refund requests must be submitted through the Platform. The Platform booking fee may or may not be refundable depending on the circumstances. We recommend listing your ticket for resale as an alternative to requesting a refund.",
+    n: "6.",
+    heading: "Governing law",
+    body: "These terms are governed by and construed in accordance with the laws of England and Wales. Any disputes arising from use of this platform shall be subject to the exclusive jurisdiction of the courts of England and Wales.",
   },
   {
-    number: 7,
-    title: "Limitation of Liability",
-    content:
-      'The Platform acts as an intermediary between event organisers and ticket buyers. We do not organise, host, or manage events listed on the Platform. To the maximum extent permitted by law, On The List shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Platform, including but not limited to event cancellations, changes to event details, or any disputes between buyers and sellers. The Platform is provided "as is" without warranties of any kind.',
-  },
-  {
-    number: 8,
-    title: "Privacy",
-    content:
-      "We collect and process personal data in accordance with applicable data protection laws, including the UK GDPR. Personal information is used solely for the purpose of providing and improving our services. We do not sell or share your personal data with third parties for marketing purposes. All data is encrypted in transit and at rest. For full details on how we handle your data, please refer to our Privacy Policy.",
-  },
-  {
-    number: 9,
-    title: "Changes to Terms",
-    content:
-      "We reserve the right to modify these Terms and Conditions at any time. Material changes will be communicated via email or through a notice on the Platform. Your continued use of the Platform after changes are posted constitutes your acceptance of the revised terms. We encourage you to review these terms periodically to stay informed of any updates.",
+    n: "7.",
+    heading: "Contact",
+    body: "Questions about these terms should be directed to hello@onthelyst.com. On The List is operated from London, United Kingdom.",
   },
 ];
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-void text-cream/90">
-      <Header />
+    <ContentPageLayout>
+      <PageHero
+        eyebrow="Legal"
+        title="Terms of use."
+        meta="Last updated June 2026"
+      />
 
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-gold/15 blur-[160px]" />
-        <div className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-gold-light/15 blur-[160px]" />
-        <div className="relative mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32 lg:px-8">
-          <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-cream/50">
-            • Legal
-          </p>
-          <h1 className="font-serif text-5xl font-bold tracking-tight text-cream sm:text-6xl">
-            Terms & <span className="text-gold">Conditions</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream/70 sm:text-lg">
-            Please read these terms carefully before using the On The List
-            platform.
-          </p>
-          <p className="mt-4 text-xs text-cream/40">
-            Last updated: March 2026
-          </p>
-        </div>
-      </section>
-
-      <section className="relative border-t border-border/50">
-        <div className="pointer-events-none absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-gold/10 blur-[160px]" />
-        <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="space-y-10">
-            {sections.map((section) => (
-              <div key={section.number}>
-                <div className="flex items-baseline gap-3">
-                  <span className="font-mono text-sm font-semibold text-gold">
-                    {section.number}.
-                  </span>
-                  <h2 className="font-serif text-xl font-bold text-cream sm:text-2xl">
-                    {section.title}
-                  </h2>
-                </div>
-                <p className="mt-4 pl-7 text-sm leading-relaxed text-cream/60">
-                  {section.content}
-                </p>
-              </div>
-            ))}
+      <FadeInSection style={{ maxWidth: "680px" }}>
+        {clauses.map((clause, index) => (
+          <div
+            key={clause.n}
+            className="grid grid-cols-[32px_1fr] gap-6 py-9"
+            style={{
+              borderBottom:
+                index < clauses.length - 1
+                  ? "1px solid rgba(201,168,76,0.08)"
+                  : "none",
+            }}
+          >
+            <span className="pt-0.5 font-sans text-xs font-semibold text-gold">
+              {clause.n}
+            </span>
+            <div>
+              <h3 className="m-0 mb-3 font-sans text-sm font-semibold tracking-[0.04em] text-cream uppercase">
+                {clause.heading}
+              </h3>
+              <p className="m-0 font-sans text-sm font-light leading-[1.9] text-[rgba(245,240,232,0.65)]">
+                {clause.body}
+              </p>
+            </div>
           </div>
-
-          <div className="mt-16 rounded-2xl border border-border bg-surface/60 p-8 text-center sm:p-10">
-            <p className="text-sm text-cream/60">
-              If you have any questions about these terms, please{" "}
-              <a
-                href="/contact"
-                className="font-medium text-gold hover:underline"
-              >
-                contact us
-              </a>
-              .
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-    </div>
+        ))}
+      </FadeInSection>
+    </ContentPageLayout>
   );
 }
-
