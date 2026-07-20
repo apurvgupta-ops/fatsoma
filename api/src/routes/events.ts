@@ -9,10 +9,12 @@ export const eventRouter = Router();
 
 eventRouter.get("/published", asyncHandler(eventCtrl.getPublished));
 eventRouter.get("/", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.getAll));
+eventRouter.get("/:id/insights", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.getInsights));
 eventRouter.get("/:id", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.getOne));
 eventRouter.post("/", authenticate, requireAdminOrOrganizer, validate(createEventSchema), asyncHandler(eventCtrl.create));
 eventRouter.put("/:id", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.update));
 eventRouter.patch("/:id/status", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.updateStatus));
+eventRouter.post("/:id/cancel", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.cancel));
 eventRouter.patch("/:id/owner", authenticate, requireAdmin, validate(assignEventOwnerSchema), asyncHandler(eventCtrl.assignOwner));
 eventRouter.delete("/:id", authenticate, requireAdminOrOrganizer, asyncHandler(eventCtrl.remove));
 

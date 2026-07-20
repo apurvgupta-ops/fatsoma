@@ -19,7 +19,7 @@ import { ticketRouter } from "./routes/tickets";
 import { resaleRouter } from "./routes/resale";
 import { calendarRouter } from "./routes/calendar";
 import { notificationRouter } from "./routes/notifications";
-import { connectRouter } from "./routes/connect";
+import { withdrawalRouter } from "./routes/withdrawals";
 import { errorHandler } from "./middleware/error";
 import { requestLogger } from "./middleware/logger";
 
@@ -61,7 +61,7 @@ export function createApp() {
   app.use("/api/resale", resaleRouter);
   app.use("/api/calendar", calendarRouter);
   app.use("/api/notifications", notificationRouter);
-  app.use("/api/connect", connectRouter);
+  app.use("/api/withdrawals", withdrawalRouter);
 
   // ── Health check ────────────────────────────────────
   app.get("/api/health", (_req, res) => {

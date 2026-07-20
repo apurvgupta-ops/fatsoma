@@ -23,6 +23,8 @@ export default function UsersPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const getApiErrorMessage = (
     error: unknown,
@@ -82,6 +84,27 @@ export default function UsersPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!token || !deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      const client = createApiClient(token);
+      const res = await client.deleteUser(deleteTarget.id);
+      if (res.ok) {
+        showMessage("success", res.message || "Organiser deleted");
+        setDeleteTarget(null);
+        loadOrganizers();
+      }
+    } catch (error) {
+      showMessage(
+        "error",
+        getApiErrorMessage(error, "Failed to delete organiser"),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const resetAddOrganizerForm = () => {
     setNewOrganizer({ name: "", email: "", password: "", role: "organizer" });
   };
@@ -136,21 +159,6 @@ export default function UsersPage() {
     }
   };
 
-  const getConnectStatus = (organizer: UserResponse) => {
-    if (!organizer.stripeConnectAccountId) {
-      return "Not connected";
-    }
-    if (
-      organizer.stripeConnectOnboardingComplete &&
-      organizer.stripeConnectChargesEnabled &&
-      organizer.stripeConnectPayoutsEnabled &&
-      organizer.stripeConnectDetailsSubmitted
-    ) {
-      return "Ready";
-    }
-    return "Onboarding pending";
-  };
-
   return (
     <AuthenticatedLayout>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
@@ -185,9 +193,6 @@ export default function UsersPage() {
                       Organiser
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
-                      Stripe Connect
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
                       Owned Events
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-cream/60">
@@ -204,19 +209,6 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <p className="font-medium text-cream">{u.name}</p>
                         <p className="text-sm text-cream/60">{u.email}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                            getConnectStatus(u) === "Ready"
-                              ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                              : getConnectStatus(u) === "Onboarding pending"
-                                ? "border border-amber-500/40 bg-amber-500/10 text-amber-300"
-                                : "border border-border bg-border/40 text-cream/70"
-                          }`}
-                        >
-                          {getConnectStatus(u)}
-                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-cream/85">
                         {u.ownedEventCount ?? 0}
@@ -235,6 +227,18 @@ export default function UsersPage() {
                             className="rounded-lg border border-border bg-surface px-3 py-1 text-xs text-cream/90 transition hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {u.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(u)}
+                            disabled={(u.ownedEventCount ?? 0) > 0}
+                            title={
+                              (u.ownedEventCount ?? 0) > 0
+                                ? "Reassign or delete owned events before removing this organiser"
+                                : "Permanently delete organiser account"
+                            }
+                            className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -260,6 +264,43 @@ export default function UsersPage() {
                 className="rounded-md border border-border/70 bg-surface px-2 py-1 text-xs text-cream/80 transition hover:bg-surface/80"
               >
                 Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-void p-5 shadow-[0_28px_80px_rgba(0,0,0,0.6)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-cream">Delete organiser?</h2>
+            <p className="mt-2 text-sm text-cream/70">
+              This will permanently remove{" "}
+              <span className="font-medium text-cream">{deleteTarget.name}</span>{" "}
+              ({deleteTarget.email}). This cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-cream/80 transition hover:bg-surface/80 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDelete}
+                className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Delete organiser"}
               </button>
             </div>
           </div>
@@ -302,7 +343,10 @@ export default function UsersPage() {
                 <input
                   value={newOrganizer.name}
                   onChange={(e) =>
-                    setNewOrganizer((prev) => ({ ...prev, name: e.target.value }))
+                    setNewOrganizer((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
                   }
                   placeholder="Full name"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"
@@ -319,7 +363,10 @@ export default function UsersPage() {
                   type="email"
                   value={newOrganizer.email}
                   onChange={(e) =>
-                    setNewOrganizer((prev) => ({ ...prev, email: e.target.value }))
+                    setNewOrganizer((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
                   }
                   placeholder="email@example.com"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none placeholder:text-cream/40 focus:border-gold/50"

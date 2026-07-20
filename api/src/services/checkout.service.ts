@@ -14,7 +14,6 @@ import {
 } from "../lib/email";
 import { logPayment, logRefund } from "../lib/systemLogger";
 import { createNotification } from "./notification.service";
-import { syncConnectFromStripeAccount } from "./connect.service";
 import { flattenTicketBatchesFromEvent } from "../domain/eventTickets";
 
 const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
@@ -34,35 +33,6 @@ function getStripe(): Stripe {
     _stripe = new Stripe(key);
   }
   return _stripe;
-}
-
-function isOrganizerConnectReady(user: any) {
-  if (!user || user.role !== "organizer") return true;
-  const stripeConnect = user.stripeConnect ?? {};
-  return Boolean(
-    stripeConnect.accountId &&
-      stripeConnect.onboardingComplete &&
-      stripeConnect.chargesEnabled &&
-      stripeConnect.payoutsEnabled &&
-      stripeConnect.detailsSubmitted,
-  );
-}
-
-async function getEventDestinationAccountId(event: any) {
-  if (!event?.createdBy) return null;
-
-  const owner = (await User.findById(event.createdBy)
-    .select("role stripeConnect")
-    .lean()) as any;
-  if (!owner || owner.role !== "organizer") return null;
-
-  if (!isOrganizerConnectReady(owner)) {
-    throw AppError.badRequest(
-      "Ticket checkout is unavailable until the organiser completes Stripe Connect",
-    );
-  }
-
-  return owner.stripeConnect?.accountId ?? null;
 }
 
 // ── Primary checkout ────────────────────────────────────
@@ -96,7 +66,6 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   if (!event || event.status !== "published") {
     throw AppError.notFound("Event not found or not published");
   }
-  const destinationAccountId = await getEventDestinationAccountId(event);
 
   const batch = flattenTicketBatchesFromEvent(event).find(
     (b: any) => b.name === batchName,
@@ -221,10 +190,6 @@ export async function createCheckoutSession(input: CreateSessionInput) {
   const organiserTransferAmount = Math.round(
     (primaryOrganiserRevenue + resaleOrganiserRevenue) * 100,
   );
-  const platformApplicationFeePence = Math.max(
-    0,
-    totalChargePence - organiserTransferAmount,
-  );
 
   let session: Stripe.Checkout.Session;
   try {
@@ -251,14 +216,6 @@ export async function createCheckoutSession(input: CreateSessionInput) {
         eventName: event.eventName,
         userId,
       },
-      ...(destinationAccountId
-        ? {
-            payment_intent_data: {
-              application_fee_amount: platformApplicationFeePence,
-              transfer_data: { destination: destinationAccountId },
-            },
-          }
-        : {}),
       success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${WEB_URL}/events/${eventId}`,
     });
@@ -401,7 +358,6 @@ export async function createResaleCheckoutSession(
 
   const event = (await Event.findById(firstListing.eventId).lean()) as any;
   if (!event) throw AppError.notFound("Event not found");
-  const destinationAccountId = await getEventDestinationAccountId(event);
 
   const fee = Math.round(capturedFee * 100) / 100;
   const unitTotal = firstListing.askingPrice + fee;
@@ -422,10 +378,6 @@ export async function createResaleCheckoutSession(
     ) * 100,
   ) / 100;
   const organiserTransferAmount = Math.round(organiserRevenueTotal * 100);
-  const platformApplicationFeePence = Math.max(
-    0,
-    totalChargePence - organiserTransferAmount,
-  );
 
   let session: Stripe.Checkout.Session;
   try {
@@ -458,14 +410,6 @@ export async function createResaleCheckoutSession(
         totalAmount: String(totalAmount),
         userId,
       },
-      ...(destinationAccountId
-        ? {
-            payment_intent_data: {
-              application_fee_amount: platformApplicationFeePence,
-              transfer_data: { destination: destinationAccountId },
-            },
-          }
-        : {}),
       success_url: `${WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${WEB_URL}/events/${firstListing.eventId}`,
     });
@@ -1425,23 +1369,6 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string) {
           reason: "No matching order in database for expired session",
         });
       }
-      break;
-    }
-
-    case "account.updated": {
-      const account = stripeEvent.data.object as Stripe.Account;
-      await syncConnectFromStripeAccount(account);
-      logPayment({
-        event: "webhook_account_updated",
-        outcome: "success",
-        type: "webhook",
-        metadata: {
-          accountId: account.id,
-          chargesEnabled: String(account.charges_enabled),
-          payoutsEnabled: String(account.payouts_enabled),
-          detailsSubmitted: String(account.details_submitted),
-        },
-      });
       break;
     }
 

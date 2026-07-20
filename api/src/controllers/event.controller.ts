@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as eventService from "../services/event.service";
+import * as eventInsightsService from "../services/eventInsights.service";
 import { paramId } from "../utils/paramId";
 import { sendSuccess } from "../utils/response";
 
@@ -50,6 +51,16 @@ export async function updateStatus(req: Request, res: Response) {
   sendSuccess(res, event, `Event ${req.body.status}`);
 }
 
+export async function cancel(req: Request, res: Response) {
+  const id = paramId(req.params);
+  const event = await eventService.cancelEvent(
+    id,
+    req.user!.userId,
+    req.user!.role,
+  );
+  sendSuccess(res, event, "Event cancelled");
+}
+
 export async function remove(req: Request, res: Response) {
   const id = paramId(req.params);
   await eventService.deleteEvent(id, req.user!.userId, req.user!.role);
@@ -64,4 +75,14 @@ export async function assignOwner(req: Request, res: Response) {
     req.user!.role,
   );
   sendSuccess(res, event, "Event organizer updated");
+}
+
+export async function getInsights(req: Request, res: Response) {
+  const id = paramId(req.params);
+  const insights = await eventInsightsService.getEventInsights(
+    id,
+    req.user!.userId,
+    req.user!.role,
+  );
+  sendSuccess(res, insights, "Event insights");
 }

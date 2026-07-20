@@ -21,14 +21,6 @@ function staffAssignedEventFromDoc(user: any): {
 }
 
 function toUserDTO(user: any) {
-  const stripeConnect = user.stripeConnect ?? {
-    accountId: null,
-    onboardingComplete: false,
-    chargesEnabled: false,
-    payoutsEnabled: false,
-    detailsSubmitted: false,
-  };
-
   const staffEventIdRaw = user.staffEventId;
   const staffEventIdStr =
     staffEventIdRaw &&
@@ -45,11 +37,6 @@ function toUserDTO(user: any) {
     email: user.email,
     role: user.role,
     isActive: user.isActive,
-    stripeConnectAccountId: stripeConnect.accountId ?? null,
-    stripeConnectOnboardingComplete: Boolean(stripeConnect.onboardingComplete),
-    stripeConnectChargesEnabled: Boolean(stripeConnect.chargesEnabled),
-    stripeConnectPayoutsEnabled: Boolean(stripeConnect.payoutsEnabled),
-    stripeConnectDetailsSubmitted: Boolean(stripeConnect.detailsSubmitted),
     staffEventId: user.role === "staff" ? staffEventIdStr : null,
     staffGateName: user.role === "staff" ? (user.staffGateName ?? null) : null,
     staffAssignedEvent:
@@ -261,10 +248,24 @@ export async function deleteUser(id: string, requestingUserId: string) {
     throw AppError.badRequest("You cannot delete your own account");
   }
 
-  const user = await User.findByIdAndDelete(id);
+  const user = await User.findById(id);
   if (!user) {
     throw AppError.notFound("User not found");
   }
 
+  if (user.role === "admin") {
+    throw AppError.badRequest("Admin accounts cannot be deleted from this action");
+  }
+
+  if (user.role === "organizer") {
+    const ownedEvents = await Event.countDocuments({ createdBy: user._id });
+    if (ownedEvents > 0) {
+      throw AppError.badRequest(
+        `Cannot delete organiser with ${ownedEvents} owned event(s). Reassign or delete their events first.`,
+      );
+    }
+  }
+
+  await User.findByIdAndDelete(id);
   sendAccountDeletedEmail(user.name, user.email);
 }

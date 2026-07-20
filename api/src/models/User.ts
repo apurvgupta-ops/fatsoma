@@ -7,13 +7,6 @@ export interface IUser {
   password: string;
   role: "admin" | "staff" | "organizer" | "user";
   isActive: boolean;
-  stripeConnect?: {
-    accountId?: string | null;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-    detailsSubmitted: boolean;
-  };
   googleCalendar?: {
     connected: boolean;
     email?: string | null;
@@ -69,13 +62,6 @@ const UserSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
-    },
-    stripeConnect: {
-      accountId: { type: String, default: null },
-      onboardingComplete: { type: Boolean, default: false },
-      chargesEnabled: { type: Boolean, default: false },
-      payoutsEnabled: { type: Boolean, default: false },
-      detailsSubmitted: { type: Boolean, default: false },
     },
     googleCalendar: {
       connected: { type: Boolean, default: false },

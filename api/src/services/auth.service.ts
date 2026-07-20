@@ -27,14 +27,6 @@ function staffAssignedEventFromDoc(user: any): {
 
 /** Serialize a Mongoose user doc into a safe API response shape. */
 function toUserDTO(user: any) {
-  const stripeConnect = user.stripeConnect ?? {
-    accountId: null,
-    onboardingComplete: false,
-    chargesEnabled: false,
-    payoutsEnabled: false,
-    detailsSubmitted: false,
-  };
-
   const staffEventIdRaw = user.staffEventId;
   const staffEventIdStr =
     staffEventIdRaw &&
@@ -51,11 +43,6 @@ function toUserDTO(user: any) {
     email: user.email,
     role: user.role,
     isActive: user.isActive,
-    stripeConnectAccountId: stripeConnect.accountId ?? null,
-    stripeConnectOnboardingComplete: Boolean(stripeConnect.onboardingComplete),
-    stripeConnectChargesEnabled: Boolean(stripeConnect.chargesEnabled),
-    stripeConnectPayoutsEnabled: Boolean(stripeConnect.payoutsEnabled),
-    stripeConnectDetailsSubmitted: Boolean(stripeConnect.detailsSubmitted),
     staffEventId:
       user.role === "staff" ? staffEventIdStr : null,
     staffGateName:

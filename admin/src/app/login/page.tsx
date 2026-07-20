@@ -26,7 +26,7 @@ export default function LoginPage() {
         setError("Admin, organizer, or staff account required");
         return;
       }
-      router.push(user.role === "staff" ? "/scanner" : "/dashboard");
+        router.push(user.role === "staff" ? "/scanner" : "/organiser-dashboard");
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
     } finally {

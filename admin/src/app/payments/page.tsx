@@ -4,6 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { createApiClient } from "@/lib/api";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
+import {
+  PanelShell,
+  PanelEyebrow,
+  PanelTitle,
+  StatGrid,
+} from "@/components/organiser/OrganiserUi";
 import type { OrderResponse, OrderStats } from "@/lib/api-client";
 import type { EventResponse } from "@/lib/shared";
 import {
@@ -134,68 +140,26 @@ export default function PaymentsPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="flex w-full flex-col gap-8 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
-        {/* Header */}
-        <header>
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold/80">
-            <span className="h-px w-10 bg-linear-to-r from-gold to-gold-light" />
-            Payments
-          </div>
-          <h1 className="text-3xl font-semibold text-cream sm:text-4xl">
-            Payment History
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-cream/60">
-            Track all ticket purchases, resale transactions, revenue, and
-            booking fees.
-          </p>
-        </header>
+      <PanelShell>
+        <PanelEyebrow>Payments</PanelEyebrow>
+        <PanelTitle
+          title="Payment History"
+          subtitle="Track all ticket purchases, resale transactions, revenue, and booking fees."
+        />
 
-        {/* Stats Cards */}
         {stats && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            <StatCard
-              icon={<Receipt className="h-5 w-5" />}
-              label="Total Orders"
-              value={stats.totalOrders.toString()}
-              color="text-gold"
-            />
-            <StatCard
-              icon={<CheckCircle className="h-5 w-5" />}
-              label="Paid"
-              value={stats.paidOrders.toString()}
-              color="text-gold"
-            />
-            <StatCard
-              icon={<Clock className="h-5 w-5" />}
-              label="Failed / Expired / Settlement"
-              value={stats.pendingOrders.toString()}
-              color="text-gold-light"
-            />
-            <StatCard
-              icon={<Banknote className="h-5 w-5" />}
-              label="Revenue"
-              value={formatCurrency(stats.totalRevenue)}
-              color="text-gold"
-            />
-            <StatCard
-              icon={<TrendingUp className="h-5 w-5" />}
-              label="Fees Collected"
-              value={formatCurrency(stats.totalFees)}
-              color="text-gold-light"
-            />
-            <StatCard
-              icon={<RefreshCw className="h-5 w-5" />}
-              label="Resale Orders"
-              value={stats.resaleOrders.toString()}
-              color="text-gold-light"
-            />
-            <StatCard
-              icon={<CreditCard className="h-5 w-5" />}
-              label="Resale Revenue"
-              value={formatCurrency(stats.resaleRevenue)}
-              color="text-gold-light"
-            />
-          </div>
+          <StatGrid
+            columns={7}
+            stats={[
+              { label: "TOTAL ORDERS", value: stats.totalOrders.toString() },
+              { label: "PAID", value: stats.paidOrders.toString() },
+              { label: "FAILED / EXPIRED", value: stats.pendingOrders.toString() },
+              { label: "REVENUE", value: formatCurrency(stats.totalRevenue) },
+              { label: "FEES COLLECTED", value: formatCurrency(stats.totalFees) },
+              { label: "RESALE ORDERS", value: stats.resaleOrders.toString() },
+              { label: "RESALE REVENUE", value: formatCurrency(stats.resaleRevenue) },
+            ]}
+          />
         )}
 
         {/* Filters */}
@@ -537,7 +501,7 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
-      </div>
+      </PanelShell>
     </AuthenticatedLayout>
   );
 }

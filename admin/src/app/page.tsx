@@ -15,7 +15,7 @@ export default function Home() {
           router.replace("/login");
           return;
         }
-        router.replace(user.role === "staff" ? "/scanner" : "/dashboard");
+        router.replace(user.role === "staff" ? "/scanner" : "/organiser-dashboard");
       } else {
         router.replace("/login");
       }

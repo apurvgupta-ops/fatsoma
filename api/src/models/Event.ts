@@ -25,6 +25,10 @@ export interface IEvent extends Document {
   eventEndDate?: Date;
   startTime: string;
   endTime: string;
+  /** Latest time attendees may enter the venue (HH:mm). */
+  lastEntryTime?: string;
+  /** Minimum age requirement, e.g. 18+, 21+, or none. */
+  ageRestriction?: string;
   totalTickets: number;
   /** Nested ticket tiers (e.g. General admission → 11pm, 12am slots). */
   ticketGroups?: ITicketGroup[];
@@ -34,7 +38,7 @@ export interface IEvent extends Document {
   bookingFee: number;
   allowResale: boolean;
   platformCommission: number;
-  status: "draft" | "published";
+  status: "draft" | "published" | "cancelled";
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -161,6 +165,8 @@ const EventSchema = new Schema<IEvent>(
     eventEndDate: { type: Date, required: false, index: true },
     startTime: { type: String, required: [true, "Start time is required"] },
     endTime: { type: String, required: [true, "End time is required"] },
+    lastEntryTime: { type: String, trim: true },
+    ageRestriction: { type: String, trim: true },
     totalTickets: {
       type: Number,
       required: [true, "Total tickets is required"],
@@ -191,7 +197,7 @@ const EventSchema = new Schema<IEvent>(
     },
     status: {
       type: String,
-      enum: ["draft", "published"],
+      enum: ["draft", "published", "cancelled"],
       default: "draft",
       index: true,
     },

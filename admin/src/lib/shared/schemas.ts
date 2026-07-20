@@ -54,6 +54,8 @@ export const createEventSchema = z
     eventEndDate: z.string().min(1).optional(),
     startTime: z.string().min(1),
     endTime: z.string().min(1),
+    lastEntryTime: z.string().trim().optional(),
+    ageRestriction: z.string().trim().optional(),
     totalTickets: z.number().min(
       1,
       "Add at least one ticket tier and set available quantity.",

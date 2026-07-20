@@ -11,7 +11,7 @@
   --color-void: #0a0a0a;
   --color-surface: #141414;
   --color-border: #2a2a2a;
-  --color-gold: #cea655;
+  --color-gold: #c9a84c;
   --color-gold-light: #e8d5a3;
   --color-cream: #f5f2ec;
   --font-sans: var(--font-geist-sans);
@@ -62,7 +62,38 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  opacity: 0.95;
-  cursor: pointer;
+@keyframes organiserShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.otl-stat-cell:hover .otl-stat-shimmer {
+  animation: organiserShimmer 600ms ease forwards;
+}
+
+.otl-input::placeholder {
+  color: #555555;
+}
+
+.otl-insights-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.otl-insights-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 800px) {
+  .otl-insights-2col,
+  .otl-insights-3col {
+    grid-template-columns: 1fr;
+  }
 }

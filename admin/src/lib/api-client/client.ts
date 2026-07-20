@@ -71,13 +71,27 @@ export interface OrderStats {
   resaleRevenue: number;
 }
 
-export interface StripeConnectStatus {
-  stripeConnectAccountId: string | null;
-  stripeConnectOnboardingComplete: boolean;
-  stripeConnectChargesEnabled: boolean;
-  stripeConnectPayoutsEnabled: boolean;
-  stripeConnectDetailsSubmitted: boolean;
-  requirementsCurrentlyDue?: string[];
+export interface WithdrawalBalance {
+  totalEarned: number;
+  reserved: number;
+  available: number;
+  currency: string;
+}
+
+export interface WithdrawalRequestResponse {
+  id: string;
+  organizerId: string;
+  organizerName: string | null;
+  organizerEmail: string | null;
+  amount: number;
+  currency: string;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class FatsomaClient {
@@ -208,24 +222,46 @@ export class FatsomaClient {
     });
   }
 
-  async createOrRetrieveStripeConnectAccount(): Promise<
-    ApiResponse<{ accountId: string; status: StripeConnectStatus }>
-  > {
-    return this.request("/api/connect/stripe/account", {
+  // ── Withdrawals ───────────────────────────────────────
+  async getWithdrawalBalance(): Promise<ApiResponse<WithdrawalBalance>> {
+    return this.request("/api/withdrawals/balance");
+  }
+
+  async getWithdrawalRequests(params?: {
+    status?: string;
+  }): Promise<ApiResponse<WithdrawalRequestResponse[]>> {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    const query = qs.toString();
+    return this.request(`/api/withdrawals${query ? `?${query}` : ""}`);
+  }
+
+  async createWithdrawalRequest(input: {
+    amount: number;
+    note?: string;
+  }): Promise<ApiResponse<WithdrawalRequestResponse>> {
+    return this.request("/api/withdrawals", {
       method: "POST",
+      body: JSON.stringify(input),
     });
   }
 
-  async createStripeOnboardingLink(): Promise<
-    ApiResponse<{ url: string; expiresAt: number }>
-  > {
-    return this.request("/api/connect/stripe/onboarding-link", {
-      method: "POST",
+  async approveWithdrawalRequest(
+    id: string,
+  ): Promise<ApiResponse<WithdrawalRequestResponse>> {
+    return this.request(`/api/withdrawals/${id}/approve`, {
+      method: "PATCH",
     });
   }
 
-  async getStripeConnectStatus(): Promise<ApiResponse<StripeConnectStatus>> {
-    return this.request("/api/connect/stripe/status");
+  async rejectWithdrawalRequest(
+    id: string,
+    adminNote?: string,
+  ): Promise<ApiResponse<WithdrawalRequestResponse>> {
+    return this.request(`/api/withdrawals/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ adminNote }),
+    });
   }
 
   // ── Events ────────────────────────────────────────────
@@ -239,6 +275,12 @@ export class FatsomaClient {
 
   async getEvent(id: string): Promise<ApiResponse<EventResponse>> {
     return this.request(`/api/events/${id}`);
+  }
+
+  async getEventInsights(
+    id: string,
+  ): Promise<ApiResponse<import("@/lib/eventDisplay").EventInsightsData>> {
+    return this.request(`/api/events/${id}/insights`);
   }
 
   async createEvent(
@@ -272,6 +314,10 @@ export class FatsomaClient {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
+  }
+
+  async cancelEvent(id: string): Promise<ApiResponse<EventResponse>> {
+    return this.request(`/api/events/${id}/cancel`, { method: "POST" });
   }
 
   async assignEventOrganizer(

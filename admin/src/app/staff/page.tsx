@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
+import { PanelShell, PanelTitle } from "@/components/organiser/OrganiserUi";
 import { ApiError } from "@/lib/api-client";
 import { createApiClient } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -165,14 +166,11 @@ export default function StaffPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-12 sm:px-6 lg:px-8">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-cream">Staff</h1>
-          <p className="mt-1 text-sm text-cream/60">
-            Scanner-only accounts tied to one event. Staff sign in here and can only validate tickets
-            for that event.
-          </p>
-        </header>
+      <PanelShell>
+        <PanelTitle
+          title="Staff"
+          subtitle="Scanner-only accounts tied to one event. Staff sign in here and can only validate tickets for that event."
+        />
 
         {message && (
           <div
@@ -389,7 +387,7 @@ export default function StaffPage() {
             </div>
           </div>
         )}
-      </div>
+      </PanelShell>
     </AuthenticatedLayout>
   );
 }

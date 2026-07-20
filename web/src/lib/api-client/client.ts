@@ -71,15 +71,6 @@ export interface OrderStats {
   resaleRevenue: number;
 }
 
-export interface StripeConnectStatus {
-  stripeConnectAccountId: string | null;
-  stripeConnectOnboardingComplete: boolean;
-  stripeConnectChargesEnabled: boolean;
-  stripeConnectPayoutsEnabled: boolean;
-  stripeConnectDetailsSubmitted: boolean;
-  requirementsCurrentlyDue?: string[];
-}
-
 export class FatsomaClient {
   private baseUrl: string;
   private getToken: () => string | null;
@@ -206,26 +197,6 @@ export class FatsomaClient {
       method: "POST",
       body: JSON.stringify({ token, password }),
     });
-  }
-
-  async createOrRetrieveStripeConnectAccount(): Promise<
-    ApiResponse<{ accountId: string; status: StripeConnectStatus }>
-  > {
-    return this.request("/api/connect/stripe/account", {
-      method: "POST",
-    });
-  }
-
-  async createStripeOnboardingLink(): Promise<
-    ApiResponse<{ url: string; expiresAt: number }>
-  > {
-    return this.request("/api/connect/stripe/onboarding-link", {
-      method: "POST",
-    });
-  }
-
-  async getStripeConnectStatus(): Promise<ApiResponse<StripeConnectStatus>> {
-    return this.request("/api/connect/stripe/status");
   }
 
   // ── Events ────────────────────────────────────────────

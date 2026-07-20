@@ -1,17 +1,34 @@
 import mongoose from "mongoose";
+import Stripe from "stripe";
 import Event from "../models/Event";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
+import Order from "../models/Order";
 import ResaleListing from "../models/ResaleListing";
 import { AppError } from "../utils/AppError";
 import { BOOKING_FEE_PERCENT } from "../shared";
+import { logRefund } from "../lib/systemLogger";
 import {
   assertValidTicketGroups,
   ensureTicketGroups,
+  flattenTicketBatchesFromEvent,
   normalizeTicketGroups,
   ticketGroupsFromLegacyBatches,
   totalQuantityFromGroups,
+  type ITicketBatch,
+  type ITicketGroup,
 } from "../domain/eventTickets";
+
+let stripeClient: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) throw new AppError("STRIPE_SECRET_KEY is not configured", 500);
+    stripeClient = new Stripe(key);
+  }
+  return stripeClient;
+}
 
 function startOfLocalCalendarDay(d: Date): Date {
   const t = new Date(d);
@@ -109,6 +126,8 @@ function toEventDTO(
       event.eventDate,
     startTime: event.startTime,
     endTime: event.endTime,
+    lastEntryTime: event.lastEntryTime,
+    ageRestriction: event.ageRestriction,
     totalTickets: totalRemaining,
     ticketGroups,
     ticketBatches,
@@ -202,6 +221,102 @@ async function getActiveResaleCountsByEvent(
   return result;
 }
 
+function getEventStartDateTime(event: {
+  eventDate: Date;
+  startTime?: string;
+}): Date {
+  const d = new Date(event.eventDate);
+  const [h, m] = (event.startTime || "00:00").split(":").map(Number);
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d;
+}
+
+function isWithinSixHoursOfEventStart(event: {
+  eventDate: Date;
+  startTime?: string;
+}): boolean {
+  const start = getEventStartDateTime(event);
+  return start.getTime() - Date.now() < 6 * 60 * 60 * 1000;
+}
+
+function batchCutoffEqual(a?: Date, b?: Date): boolean {
+  const ta = a?.getTime();
+  const tb = b?.getTime();
+  if (ta == null && tb == null) return true;
+  if (ta == null || tb == null) return false;
+  return ta === tb;
+}
+
+function assertEventCopyEditable(existing: {
+  eventDate: Date;
+  startTime?: string;
+}) {
+  if (isWithinSixHoursOfEventStart(existing)) {
+    throw AppError.badRequest(
+      "Event name and description can only be edited more than 6 hours before the event starts.",
+    );
+  }
+}
+
+function assertExistingBatchesUnmodified(
+  existing: {
+    ticketGroups?: ITicketGroup[] | null;
+    ticketBatches?: Partial<ITicketBatch>[] | null;
+  },
+  groups: ITicketGroup[],
+) {
+  const existingBatches = flattenTicketBatchesFromEvent(existing);
+  const incomingFlat = groups.flatMap((g) => g.batches);
+  const incomingByName = new Map(incomingFlat.map((b) => [b.name, b]));
+
+  for (const batch of existingBatches) {
+    if (!incomingByName.has(batch.name)) {
+      throw AppError.badRequest(`Tier "${batch.name}" cannot be removed.`);
+    }
+  }
+
+  const existingByName = new Map(existingBatches.map((b) => [b.name, b]));
+  for (const batch of incomingFlat) {
+    const orig = existingByName.get(batch.name);
+    if (!orig) continue;
+
+    if (
+      batch.quantity !== orig.quantity ||
+      batch.basePrice !== orig.basePrice ||
+      !batchCutoffEqual(batch.entryWindowCutoff, orig.entryWindowCutoff)
+    ) {
+      throw AppError.badRequest(
+        `Tier "${batch.name}" cannot be modified. Add a new tier instead.`,
+      );
+    }
+  }
+}
+
+async function assertTicketGroupsNotBelowSold(
+  eventId: string,
+  groups: ReturnType<typeof normalizeTicketGroups>,
+) {
+  const soldMap = await getSoldCountsByEvent([eventId]);
+  const soldByBatch = soldMap.get(eventId) ?? new Map<string, number>();
+
+  for (const [batchName, sold] of soldByBatch) {
+    if (sold <= 0) continue;
+    const batch = groups
+      .flatMap((g) => g.batches)
+      .find((b) => b.name === batchName);
+    if (!batch) {
+      throw AppError.badRequest(
+        `Can't remove tier "${batchName}" with tickets already sold.`,
+      );
+    }
+    if (batch.quantity < sold) {
+      throw AppError.badRequest(
+        `Quantity for "${batchName}" can't be reduced below tickets already sold (${sold}).`,
+      );
+    }
+  }
+}
+
 export async function getPublishedEvents() {
   const events = await Event.find({ status: "published" })
     .sort({ eventDate: 1 })
@@ -254,29 +369,6 @@ function ensureCanManageEvent(event: any, userId: string, role: string) {
   }
 }
 
-async function assertEventOwnerConnectReady(event: any) {
-  if (!event?.createdBy) return;
-  const owner = (await User.findById(event.createdBy)
-    .select("role stripeConnect")
-    .lean()) as any;
-  if (!owner || owner.role !== "organizer") return;
-
-  const stripeConnect = owner.stripeConnect ?? {};
-  const isReady = Boolean(
-    stripeConnect.accountId &&
-      stripeConnect.onboardingComplete &&
-      stripeConnect.chargesEnabled &&
-      stripeConnect.payoutsEnabled &&
-      stripeConnect.detailsSubmitted,
-  );
-
-  if (!isReady) {
-    throw AppError.badRequest(
-      "Publishing is blocked until the event organiser completes Stripe Connect onboarding",
-    );
-  }
-}
-
 export async function getEventById(id: string, userId: string, role: string) {
   const event = await Event.findById(id).lean();
   if (!event) {
@@ -319,9 +411,6 @@ export async function createEvent(
     );
   }
 
-  if (status === "published") {
-    await assertEventOwnerConnectReady({ createdBy: userId });
-  }
   const totalTickets = totalQuantityFromGroups(groups);
   const startDate = new Date(data.eventDate);
   const endDateRaw = data.eventEndDate ?? data.eventDate;
@@ -359,6 +448,20 @@ export async function updateEvent(
     throw AppError.notFound("Event not found");
   }
   ensureCanManageEvent(existing, userId, role);
+  if (existing.status === "cancelled") {
+    throw AppError.badRequest("Cancelled events cannot be modified");
+  }
+
+  const nameChanged =
+    input.eventName !== undefined &&
+    String(input.eventName).trim() !== String(existing.eventName ?? "").trim();
+  const descChanged =
+    input.eventDescription !== undefined &&
+    String(input.eventDescription).trim() !==
+      String(existing.eventDescription ?? "").trim();
+  if (nameChanged || descChanged) {
+    assertEventCopyEditable(existing);
+  }
 
   const {
     status,
@@ -367,9 +470,6 @@ export async function updateEvent(
     ticketGroups: incomingGroups,
     ...rest
   } = input;
-  if (status === "published") {
-    await assertEventOwnerConnectReady(existing);
-  }
 
   const updateBody: Record<string, unknown> = {
     ...rest,
@@ -403,6 +503,8 @@ export async function updateEvent(
         e instanceof Error ? e.message : "Invalid ticket configuration",
       );
     }
+    assertExistingBatchesUnmodified(existing, groups);
+    await assertTicketGroupsNotBelowSold(id, groups);
     updateBody.ticketGroups = groups;
     updateBody.totalTickets = totalQuantityFromGroups(groups);
   }
@@ -443,9 +545,6 @@ export async function updateEventStatus(
     throw AppError.notFound("Event not found");
   }
   ensureCanManageEvent(existing, userId, role);
-  if (status === "published") {
-    await assertEventOwnerConnectReady(existing);
-  }
 
   const updated = await Event.findByIdAndUpdate(
     id,
@@ -458,6 +557,95 @@ export async function updateEventStatus(
   }
 
   return toEventDTO(updated);
+}
+
+export async function cancelEvent(id: string, userId: string, role: string) {
+  const existing = await Event.findById(id);
+  if (!existing) {
+    throw AppError.notFound("Event not found");
+  }
+  ensureCanManageEvent(existing, userId, role);
+
+  if (existing.status === "cancelled") {
+    throw AppError.badRequest("Event is already cancelled");
+  }
+  if (existing.status !== "published") {
+    throw AppError.badRequest("Only published events can be cancelled");
+  }
+
+  const eventOid = existing._id;
+
+  await ResaleListing.updateMany(
+    { eventId: eventOid, status: "active" },
+    { status: "cancelled" },
+  );
+
+  await Ticket.updateMany(
+    { eventId: eventOid, status: { $ne: "used" } },
+    { $set: { status: "cancelled", qrCode: null } },
+  );
+
+  const refundableOrders = await Order.find({
+    eventId: eventOid,
+    status: { $in: ["paid", "settlement_pending", "partially_refunded"] },
+  });
+
+  if (refundableOrders.length > 0) {
+    const stripe = getStripe();
+    for (const order of refundableOrders) {
+      if (!order.stripePaymentIntentId) continue;
+
+      const ticketRefundGbp = order.basePrice * order.quantity;
+      const alreadyRefundedGbp = order.refundedAmount ?? 0;
+      const remainingGbp =
+        Math.round((ticketRefundGbp - alreadyRefundedGbp) * 100) / 100;
+      if (remainingGbp <= 0) continue;
+
+      const refundPence = Math.round(remainingGbp * 100);
+      try {
+        await stripe.refunds.create(
+          {
+            payment_intent: order.stripePaymentIntentId,
+            amount: refundPence,
+            reason: "requested_by_customer",
+          },
+          { idempotencyKey: `event_cancel_${id}_${order._id}` },
+        );
+
+        order.refundedAmount = alreadyRefundedGbp + remainingGbp;
+        order.status = "partially_refunded";
+        await order.save();
+
+        logRefund({
+          event: "event_cancel_refund",
+          outcome: "success",
+          orderId: order._id.toString(),
+          paymentIntentId: order.stripePaymentIntentId,
+          amountGbp: remainingGbp,
+          reason: `Event ${id} cancelled — ticket price refunded`,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Refund failed";
+        logRefund({
+          event: "event_cancel_refund_failed",
+          outcome: "failure",
+          orderId: order._id.toString(),
+          paymentIntentId: order.stripePaymentIntentId,
+          errorMessage: message,
+        });
+        throw AppError.badRequest(
+          `Failed to refund order ${order._id}: ${message}`,
+        );
+      }
+    }
+  }
+
+  existing.status = "cancelled";
+  await existing.save();
+
+  const soldMap = await getSoldCountsByEvent([id]);
+  const resaleMap = await getActiveResaleCountsByEvent([id]);
+  return toEventDTO(existing, soldMap.get(id), resaleMap.get(id));
 }
 
 export async function deleteEvent(id: string, userId: string, role: string) {

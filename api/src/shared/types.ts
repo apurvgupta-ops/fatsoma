@@ -34,6 +34,8 @@ export interface EventBase {
   eventEndDate?: string;
   startTime: string;
   endTime: string;
+  lastEntryTime?: string;
+  ageRestriction?: string;
   totalTickets: number;
   ticketGroups: TicketGroup[];
   /** All slots flattened in tier order (for checkout, resale tiering, and simple UIs). */
@@ -46,7 +48,7 @@ export interface EventBase {
 
 export interface EventResponse extends EventBase {
   id: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "cancelled";
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -54,7 +56,7 @@ export interface EventResponse extends EventBase {
 
 export interface CreateEventInput
   extends Omit<EventBase, "ticketGroups" | "ticketBatches"> {
-  status: "draft" | "published";
+  status: "draft" | "published" | "cancelled";
   ticketGroups: TicketGroup[];
   /** @deprecated Wrapped into a single implicit group server-side. */
   ticketBatches?: TicketBatch[];
@@ -66,11 +68,6 @@ export interface UserResponse {
   email: string;
   role: "admin" | "staff" | "organizer" | "user";
   isActive: boolean;
-  stripeConnectAccountId: string | null;
-  stripeConnectOnboardingComplete: boolean;
-  stripeConnectChargesEnabled: boolean;
-  stripeConnectPayoutsEnabled: boolean;
-  stripeConnectDetailsSubmitted: boolean;
   /** Set when role is `staff`; ticket scans apply only to this event. */
   staffEventId?: string | null;
   /** Set when role is `staff`; ticket scans apply only to this gate. */
